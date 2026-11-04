@@ -1,0 +1,7 @@
+{
+  "name": "SeeCareer",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

@@ -1,0 +1,26 @@
+<ion-tabs>
+  <!-- Laptop / desktop (1024px and wider): side navigation -->
+  <nav class="rail" slot="top" aria-label="Main navigation">
+    <div class="brand">
+      <span class="mark"><ion-icon name="briefcase" aria-hidden="true"></ion-icon></span>
+      <span class="name">SeeCareer</span>
+    </div>
+    @for (item of items; track item.path) {
+      <a class="rail-link" [routerLink]="item.path" routerLinkActive="active">
+        <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+    <p class="rail-note">No account needed. Your resume stays on this device.</p>
+  </nav>
+
+  <!-- Phone / tablet: bottom tab bar -->
+  <ion-tab-bar slot="bottom">
+    @for (item of items; track item.path) {
+      <ion-tab-button [tab]="item.tab" [routerLink]="item.path">
+        <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+        <ion-label>{{ item.label }}</ion-label>
+      </ion-tab-button>
+    }
+  </ion-tab-bar>
+</ion-tabs>

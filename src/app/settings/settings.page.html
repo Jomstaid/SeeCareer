@@ -1,0 +1,246 @@
+<app-page-header title="Settings"></app-page-header>
+
+<ion-content [fullscreen]="true">
+  <div class="container page">
+    <!-- ================= AI providers ================= -->
+    <section class="card">
+      <h2>AI Providers</h2>
+      <p class="muted">Add any free AI. SeeCareer tests the models and uses the fastest working one.</p>
+
+      <ion-item lines="none" class="field">
+        <ion-select
+          label="Provider"
+          labelPlacement="stacked"
+          interface="popover"
+          [(ngModel)]="presetKey"
+          (ionChange)="onPresetChange()"
+        >
+          @for (p of presets; track p.key) {
+            <ion-select-option [value]="p.key">{{ p.label }}</ion-select-option>
+          }
+        </ion-select>
+      </ion-item>
+      <p class="note">
+        {{ preset.note }}
+        @if (preset.signup) {
+          <a href="javascript:void(0)" (click)="openSignup()">Get free key ↗</a>
+        }
+      </p>
+
+      <ion-item lines="none" class="field" [class.invalid]="errors.name">
+        <ion-input label="Name" labelPlacement="stacked" [(ngModel)]="name" maxlength="40" placeholder="My provider"></ion-input>
+      </ion-item>
+      @if (errors.name) {
+        <p class="error">{{ errors.name }}</p>
+      }
+
+      <ion-item lines="none" class="field" [class.invalid]="errors.baseUrl">
+        <ion-input
+          label="Base URL"
+          labelPlacement="stacked"
+          type="url"
+          [(ngModel)]="baseUrl"
+          placeholder="https://host/v1"
+          autocapitalize="off"
+        ></ion-input>
+      </ion-item>
+      @if (errors.baseUrl) {
+        <p class="error">{{ errors.baseUrl }}</p>
+      }
+
+      <ion-item lines="none" class="field" [class.invalid]="errors.apiKey">
+        <ion-input
+          label="API key"
+          labelPlacement="stacked"
+          [type]="showKey ? 'text' : 'password'"
+          [(ngModel)]="apiKey"
+          [placeholder]="preset.keyHint"
+          autocapitalize="off"
+          autocomplete="off"
+        >
+          <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+        </ion-input>
+      </ion-item>
+      @if (errors.apiKey) {
+        <p class="error">{{ errors.apiKey }}</p>
+      }
+
+      <ion-item lines="none" class="field" [class.invalid]="errors.model">
+        <ion-input label="Model" labelPlacement="stacked" [(ngModel)]="model" placeholder="Leave empty = Auto" autocapitalize="off"></ion-input>
+      </ion-item>
+      @if (errors.model) {
+        <p class="error">{{ errors.model }}</p>
+      } @else {
+        <p class="note">Leave empty = Auto (picks the fastest working model).</p>
+      }
+
+      <ion-item lines="none" class="field">
+        <ion-toggle [(ngModel)]="enabled">Enabled</ion-toggle>
+      </ion-item>
+
+      <div class="buttons">
+        <ion-button (click)="testAndSave()" [disabled]="busy()">
+          @if (busy()) {
+            <ion-spinner name="dots" slot="start"></ion-spinner>
+            Testing…
+          } @else {
+            Test &amp; Save
+          }
+        </ion-button>
+        <ion-button color="danger" fill="outline" (click)="confirmDelete()" [disabled]="busy()">Delete</ion-button>
+        <ion-button fill="outline" (click)="newProvider()" [disabled]="busy()">New</ion-button>
+      </div>
+      @if (statusText()) {
+        <p class="status" [class]="statusColor()">{{ statusText() }}</p>
+      }
+    </section>
+
+    <!-- ================= My providers ================= -->
+    <section class="card">
+      <h2>My Providers</h2>
+      @if (providers.providers().length === 0) {
+        <p class="muted">No providers yet. Choose one above and press Test &amp; Save.</p>
+      }
+      <ion-list lines="none" class="plist">
+        @for (p of providers.providers(); track p.id) {
+          <ion-item button detail="false" [class.active]="p.id === selectedId" (click)="select(p)">
+            <ion-label>
+              <h3>{{ p.name }}</h3>
+              <p>{{ p.model || 'Auto' }} ·
+                @if (!p.enabled) {
+                  <span class="muted">Disabled</span>
+                } @else if (ai.scanning()) {
+                  Checking…
+                } @else if (workingCount(p)) {
+                  <span class="ok">{{ workingCount(p) }} model(s) working</span>
+                } @else {
+                  <span class="warn">Not checked / not working</span>
+                }
+              </p>
+            </ion-label>
+            <ion-toggle slot="end" [checked]="p.enabled" (click)="toggleEnabled(p, $event)" aria-label="Enable provider"></ion-toggle>
+          </ion-item>
+        }
+      </ion-list>
+    </section>
+
+    <!-- ================= Model health ================= -->
+    <section class="card">
+      <div class="head">
+        <h2>Model health</h2>
+        <ion-button size="small" fill="outline" (click)="recheck()" [disabled]="ai.scanning()">
+          @if (ai.scanning()) {
+            <ion-spinner name="dots" slot="start"></ion-spinner>
+            Checking
+          } @else {
+            <ion-icon slot="start" name="refresh-outline"></ion-icon>
+            Re-check
+          }
+        </ion-button>
+      </div>
+      @if (providers.health().length === 0) {
+        <p class="muted">Not checked yet. Models are checked when you save a provider or send your first message.</p>
+      } @else {
+        <ul class="health">
+          @for (h of providers.health(); track $index) {
+            <li>
+              <span class="badge" [class.ok]="h.ok === true" [class.bad]="h.ok === false" aria-hidden="true"><ion-icon [name]="h.ok === true ? 'checkmark' : h.ok === false ? 'close' : 'remove'"></ion-icon></span>
+              <div class="info">
+                <strong>{{ h.model === '*' ? providerName(h.providerId) : h.model }}</strong>
+                <small>{{ providerName(h.providerId) }}{{ h.error ? ' · ' + h.error : '' }}</small>
+              </div>
+              @if (h.latency) {
+                <span class="lat">{{ h.latency.toFixed(1) }}s</span>
+              }
+            </li>
+          }
+        </ul>
+        @if (providers.lastScan()) {
+          <p class="note">Last check {{ providers.lastScan() | date: 'MMM d, h:mm a' }}</p>
+        }
+      }
+    </section>
+
+    <!-- ================= Appearance & chat ================= -->
+    <section class="card">
+      <h2>Appearance &amp; chat</h2>
+
+      <p class="label">Theme</p>
+      <ion-segment [value]="settings.settings().theme" (ionChange)="setTheme($any($event).detail.value)">
+        <ion-segment-button value="dark"><ion-label>Dark</ion-label></ion-segment-button>
+        <ion-segment-button value="light"><ion-label>Light</ion-label></ion-segment-button>
+        <ion-segment-button value="system"><ion-label>System</ion-label></ion-segment-button>
+      </ion-segment>
+
+      <p class="label">Text size</p>
+      <ion-segment [value]="settings.settings().fontSize" (ionChange)="setFontSize($any($event).detail.value)">
+        <ion-segment-button value="small"><ion-label>Small</ion-label></ion-segment-button>
+        <ion-segment-button value="medium"><ion-label>Medium</ion-label></ion-segment-button>
+        <ion-segment-button value="large"><ion-label>Large</ion-label></ion-segment-button>
+      </ion-segment>
+
+      <p class="label">Reply length: {{ settings.settings().maxTokens }} tokens</p>
+      <ion-range
+        [min]="200"
+        [max]="2000"
+        [step]="100"
+        [pin]="true"
+        [value]="settings.settings().maxTokens"
+        (ionChange)="setMaxTokens($any($event).detail.value)"
+        aria-label="Reply length"
+      ></ion-range>
+
+      <ion-item lines="none" class="field">
+        <ion-toggle [checked]="settings.settings().saveHistory" (ionChange)="setSaveHistory($any($event).detail.checked)">
+          Save chat history on this phone
+        </ion-toggle>
+      </ion-item>
+    </section>
+
+    <!-- ================= AI instructions ================= -->
+    <section class="card">
+      <h2>AI instructions</h2>
+      <p class="muted">Optional. Added to every AI request, e.g. "Answer in Filipino" or "Focus on IT jobs".</p>
+      <ion-textarea
+        class="field"
+        [(ngModel)]="instructions"
+        [maxlength]="maxInstructions"
+        [autoGrow]="true"
+        rows="3"
+        placeholder="Your custom instructions"
+        aria-label="Custom AI instructions"
+      ></ion-textarea>
+      <p class="note">{{ instructions.length }}/{{ maxInstructions }}</p>
+      <div class="buttons">
+        <ion-button size="small" (click)="saveInstructions()">Save</ion-button>
+        <ion-button size="small" fill="outline" (click)="resetInstructions()">Reset</ion-button>
+      </div>
+    </section>
+
+    <!-- ================= Privacy ================= -->
+    <section class="card">
+      <h2>Privacy</h2>
+      <ul class="privacy">
+        <li>No account or login. Nothing is sent to a SeeCareer server (there isn't one).</li>
+        <li>Your resume is saved only on this phone and can be deleted below.</li>
+        <li>When you use an AI tool, the resume text is sent to the AI provider you chose above.</li>
+        <li>API keys are stored on this device only.</li>
+      </ul>
+      <div class="buttons">
+        <ion-button size="small" fill="outline" color="danger" (click)="confirmDeleteResume()" [disabled]="!resume.resume() && !resume.consent()">
+          Delete my resume
+        </ion-button>
+      </div>
+    </section>
+
+    <!-- ================= Data ================= -->
+    <section class="card">
+      <h2>Data</h2>
+      <div class="buttons">
+        <ion-button fill="outline" color="danger" (click)="confirmClearChats()">Clear chat history</ion-button>
+        <ion-button fill="outline" (click)="confirmReset()">Reset providers</ion-button>
+      </div>
+      <p class="note">API keys are stored only on this device.</p>
+    </section>
+  </div>
+</ion-content>

@@ -1,0 +1,173 @@
+// SeeCareer design tokens.
+// Direction from the ui-ux-pro-max skill for a job/career product:
+// Flat design, professional blue primary (#0369A1), green call-to-action, no gradients or shadows,
+// Lexend headings + Source Sans 3 body, 4/8 spacing scale, breakpoints 375 / 768 / 1024 / 1440.
+
+:root {
+  // ----- typography -----
+  --sc-font: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --sc-font-head: 'Lexend', 'Source Sans 3', system-ui, sans-serif;
+  --sc-code: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --sc-mono: var(--sc-font); // older stylesheets use this name for small labels
+  --sc-chat-size: 16px;
+
+  // ----- spacing scale (4pt) -----
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  // ----- shape -----
+  --sc-radius: 12px;
+  --sc-radius-sm: 8px;
+  --sc-shadow: none; // flat style: separation comes from borders, not shadows
+  --sc-gradient: var(--sc-primary); // any leftover gradient becomes a flat color
+
+  // ----- colour (light) -----
+  --sc-bg: #f0f9ff;
+  --sc-panel: #ffffff;
+  --sc-panel-2: #e7f1f8;
+  --sc-border: #bfdcee;
+  --sc-text: #0c2a40;
+  --sc-muted: #475569;
+  --sc-primary: #0369a1;
+  --sc-on-primary: #ffffff;
+  --sc-accent: #0369a1;
+  --sc-accent-2: #0369a1;
+  --sc-cyan: #0e7490;
+  --sc-cta: #15803d; // green call-to-action (white text 5:1)
+  --sc-on-cta: #ffffff;
+  --sc-ok: #15803d;
+  --sc-warn: #b45309;
+  --sc-danger: #b91c1c;
+  --sc-focus: #0369a1;
+
+  // ----- Ionic mapping -----
+  --ion-font-family: var(--sc-font);
+  --ion-background-color: var(--sc-bg);
+  --ion-text-color: var(--sc-text);
+  --ion-color-primary: #0369a1;
+  --ion-color-primary-rgb: 3, 105, 161;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #025d8e;
+  --ion-color-primary-tint: #1a78ab;
+  --ion-color-success: #15803d;
+  --ion-color-success-rgb: 21, 128, 61;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #127035;
+  --ion-color-success-tint: #2c8c50;
+  --ion-toolbar-background: var(--sc-panel);
+  --ion-item-background: var(--sc-panel);
+}
+
+:root.ion-palette-dark {
+  --sc-bg: #0a1824;
+  --sc-panel: #0f2335;
+  --sc-panel-2: #153048;
+  --sc-border: #24445f;
+  --sc-text: #e6f1fa;
+  --sc-muted: #9db2c5;
+  --sc-primary: #38bdf8;
+  --sc-on-primary: #06283d;
+  --sc-accent: #38bdf8;
+  --sc-accent-2: #38bdf8;
+  --sc-cyan: #22d3ee;
+  --sc-cta: #22c55e;
+  --sc-on-cta: #052e16;
+  --sc-ok: #4ade80;
+  --sc-warn: #fbbf24;
+  --sc-danger: #f87171;
+  --sc-focus: #7dd3fc;
+
+  --ion-background-color: var(--sc-bg);
+  --ion-background-color-rgb: 10, 24, 36;
+  --ion-text-color: var(--sc-text);
+  --ion-color-primary: #38bdf8;
+  --ion-color-primary-rgb: 56, 189, 248;
+  --ion-color-primary-contrast: #06283d;
+  --ion-color-primary-contrast-rgb: 6, 40, 61;
+  --ion-color-primary-shade: #31a6da;
+  --ion-color-primary-tint: #4ac3f9;
+  --ion-color-success: #22c55e;
+  --ion-color-success-rgb: 34, 197, 94;
+  --ion-color-success-contrast: #052e16;
+  --ion-color-success-contrast-rgb: 5, 46, 22;
+  --ion-toolbar-background: var(--sc-panel);
+  --ion-item-background: var(--sc-panel);
+  --ion-card-background: var(--sc-panel);
+}
+
+:root[data-fontsize='small'] {
+  --sc-chat-size: 15px;
+}
+
+:root[data-fontsize='large'] {
+  --sc-chat-size: 18px;
+}
+
+// ----- base elements -----
+ion-content {
+  --background: var(--sc-bg);
+}
+
+h1,
+h2,
+h3,
+ion-title {
+  font-family: var(--sc-font-head);
+  letter-spacing: -0.01em;
+}
+
+ion-segment {
+  --background: var(--sc-panel-2);
+}
+
+ion-modal {
+  --background: var(--sc-panel);
+}
+
+ion-button {
+  --border-radius: var(--sc-radius-sm);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 40px;
+}
+
+ion-card {
+  box-shadow: none;
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius);
+  margin: 0;
+}
+
+ion-chip {
+  --background: var(--sc-panel-2);
+  --color: var(--sc-text);
+  min-height: 28px;
+}
+
+a {
+  color: var(--sc-primary);
+}
+
+// ----- accessibility: visible keyboard focus and reduced motion -----
+:focus-visible {
+  outline: 2px solid var(--sc-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

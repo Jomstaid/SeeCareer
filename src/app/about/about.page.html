@@ -1,0 +1,72 @@
+<app-page-header title="About Our Group"></app-page-header>
+
+<ion-content [fullscreen]="true">
+  <div class="container page">
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>Project</ion-card-subtitle>
+        <ion-card-title>{{ project.title }}</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <p class="tagline">{{ project.tagline }}</p>
+        <p>{{ project.description }}</p>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>Course information</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list lines="none">
+          <ion-item><ion-label>Course</ion-label><ion-note slot="end">{{ project.course }}</ion-note></ion-item>
+          <ion-item><ion-label>Program</ion-label><ion-note slot="end">{{ project.program }}</ion-note></ion-item>
+          <ion-item><ion-label>Year</ion-label><ion-note slot="end">{{ project.year }}</ion-note></ion-item>
+          <ion-item><ion-label>Section</ion-label><ion-note slot="end">{{ project.section }}</ion-note></ion-item>
+          <ion-item><ion-label>School</ion-label><ion-note slot="end" class="wrap">{{ project.school }}</ion-note></ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>Group members &amp; roles</ion-card-subtitle>
+      </ion-card-header>
+      <ion-accordion-group [multiple]="true">
+        @for (m of members; track m.name) {
+          <ion-accordion [value]="m.name">
+            <ion-item slot="header">
+              <span class="avatar" slot="start">{{ initials(m.name) }}</span>
+              <ion-label>
+                <h3>{{ m.name }}</h3>
+                <p>{{ m.role }}</p>
+              </ion-label>
+            </ion-item>
+            <div slot="content" class="contrib">{{ m.contribution }}</div>
+          </ion-accordion>
+        }
+      </ion-accordion-group>
+    </ion-card>
+
+    <ion-card>
+      <ion-card-header>
+        <ion-card-subtitle>Technology &amp; API</ion-card-subtitle>
+      </ion-card-header>
+      <ion-card-content>
+        <div class="chips">
+          @for (t of tech; track t) {
+            <ion-chip outline color="primary">{{ t }}</ion-chip>
+          }
+        </div>
+        <p class="api">
+          <strong>{{ project.api }}</strong><br />
+          <code>{{ project.endpoint }}</code>
+        </p>
+        <ion-button expand="block" fill="outline" routerLink="/tabs/home">
+          <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+          Explore jobs
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

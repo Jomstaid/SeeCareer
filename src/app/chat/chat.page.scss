@@ -1,0 +1,781 @@
+// ---------- feature switcher (Ionic segment) ----------
+.modebar {
+  position: relative;
+  z-index: 2; // stays above the scrolling content
+  background: var(--sc-panel);
+  border-bottom: 1px solid var(--sc-border);
+  padding-block: var(--sp-2);
+
+  ion-segment {
+    --background: var(--sc-panel-2);
+    min-height: 44px;
+  }
+
+  ion-segment-button {
+    --color: var(--sc-muted);
+    --color-checked: var(--sc-primary);
+    --indicator-color: var(--sc-primary);
+    --indicator-height: 3px;
+    --padding-start: var(--sp-4);
+    --padding-end: var(--sp-4);
+    min-height: 44px;
+    min-width: 88px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: none;
+
+    ion-icon {
+      font-size: 18px;
+    }
+  }
+}
+
+.chat-content {
+  --background: var(--sc-bg);
+}
+
+.page {
+  padding-block: var(--sp-5);
+}
+
+// ---------- welcome ----------
+.welcome {
+  h1 {
+    margin: 0 0 var(--sp-2);
+    font-size: 26px;
+    line-height: 1.2;
+    font-weight: 600;
+  }
+
+  .lead {
+    margin: 0 0 var(--sp-5);
+    max-width: 62ch;
+    color: var(--sc-muted);
+  }
+}
+
+.resume-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 56px;
+  margin-top: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px dashed var(--sc-primary);
+  border-radius: var(--sc-radius);
+  background: color-mix(in srgb, var(--sc-primary) 6%, transparent);
+  color: var(--sc-text);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--sc-primary) 12%, transparent);
+  }
+
+  ion-icon:first-child {
+    font-size: 24px;
+    color: var(--sc-primary);
+  }
+
+  span {
+    flex: 1;
+  }
+}
+
+.privacy {
+  margin: var(--sp-3) 0 0;
+  font-size: 14px;
+  color: var(--sc-muted);
+}
+
+// ---------- messages ----------
+.stream {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.row {
+  display: flex;
+
+  &.user {
+    justify-content: flex-end;
+  }
+
+  .col {
+    min-width: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-3);
+  }
+}
+
+.bubble {
+  font-size: var(--sc-chat-size);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.user-bubble {
+  max-width: min(82%, 62ch);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--sc-radius) var(--sc-radius) 4px var(--sc-radius);
+  background: var(--sc-primary);
+  color: var(--sc-on-primary);
+  white-space: pre-wrap;
+}
+
+.ai-bubble {
+  max-width: 100%;
+  padding: var(--sp-4);
+  border: 1px solid var(--sc-border);
+  border-radius: 4px var(--sc-radius) var(--sc-radius) var(--sc-radius);
+  background: var(--sc-panel);
+  color: var(--sc-text);
+
+  &.error {
+    border-color: var(--sc-danger);
+  }
+
+  .errtext {
+    display: flex;
+    gap: var(--sp-2);
+    margin: 0 0 var(--sp-2);
+    color: var(--sc-danger);
+
+    ion-icon {
+      flex: 0 0 auto;
+      margin-top: 4px;
+      font-size: 18px;
+    }
+  }
+}
+
+.ucol {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--sp-2);
+  max-width: 100%;
+  min-width: 0;
+}
+
+.typing {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--sc-muted);
+
+  .dots {
+    display: inline-flex;
+    gap: 4px;
+
+    i {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--sc-primary);
+      animation: bounce 1.2s infinite ease-in-out;
+
+      &:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+
+      &:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+    }
+  }
+}
+
+@keyframes bounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.3;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+// formatted AI text: readable line length
+.prose {
+  max-width: 75ch;
+
+  ::ng-deep {
+    p {
+      margin: 0 0 var(--sp-2);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+
+    h4 {
+      margin: var(--sp-4) 0 var(--sp-1);
+      font-size: 1em;
+      font-weight: 700;
+      color: var(--sc-primary);
+    }
+
+    ul,
+    ol {
+      margin: 0 0 var(--sp-2);
+      padding-left: 22px;
+    }
+
+    li {
+      margin: 2px 0;
+    }
+
+    code {
+      font-family: var(--sc-code);
+      font-size: 0.88em;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: var(--sc-panel-2);
+    }
+
+    pre {
+      margin: var(--sp-2) 0;
+      padding: var(--sp-3);
+      overflow-x: auto;
+      border-radius: var(--sc-radius-sm);
+      background: var(--sc-panel-2);
+
+      code {
+        padding: 0;
+        background: transparent;
+      }
+    }
+  }
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  margin-top: var(--sp-3);
+  font-size: 13px;
+  color: var(--sc-muted);
+
+  span {
+    margin-right: auto;
+  }
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-block: -8px;
+  border: 0;
+  border-radius: var(--sc-radius-sm);
+  background: transparent;
+  color: var(--sc-muted);
+  font-size: 20px;
+  transition: background-color 150ms ease;
+
+  &:hover {
+    background: var(--sc-panel-2);
+    color: var(--sc-text);
+  }
+}
+
+// ---------- document check badge ----------
+.verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  background: var(--sc-panel-2);
+  color: var(--sc-text);
+
+  &.resume {
+    background: color-mix(in srgb, var(--sc-ok) 14%, transparent);
+    color: var(--sc-ok);
+  }
+
+  &.not_job_related {
+    background: color-mix(in srgb, var(--sc-danger) 12%, transparent);
+    color: var(--sc-danger);
+  }
+
+  &.job_posting,
+  &.cover_letter,
+  &.job_related {
+    background: color-mix(in srgb, var(--sc-primary) 12%, transparent);
+    color: var(--sc-primary);
+  }
+}
+
+// ---------- single match score ----------
+.score {
+  --c: var(--sc-ok);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-sm);
+  background: var(--sc-panel-2);
+
+  &.mid {
+    --c: var(--sc-warn);
+  }
+
+  &.low {
+    --c: var(--sc-danger);
+  }
+
+  .num {
+    display: grid;
+    place-content: center;
+    width: 72px;
+    height: 56px;
+    border: 2px solid var(--c);
+    border-radius: var(--sc-radius-sm);
+    text-align: center;
+    color: var(--c);
+
+    strong {
+      font-family: var(--sc-font-head);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    small {
+      font-size: 12px;
+    }
+  }
+
+  div > strong {
+    display: block;
+    color: var(--c);
+  }
+
+  div > small {
+    color: var(--sc-muted);
+  }
+}
+
+// ---------- job results in chat ----------
+.jobs {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+}
+
+.jobcard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-3) var(--sp-4);
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-sm);
+  background: var(--sc-bg);
+
+  &.picked {
+    border-color: var(--sc-primary);
+    box-shadow: inset 0 0 0 1px var(--sc-primary);
+  }
+
+  strong {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  small {
+    color: var(--sc-muted);
+    font-size: 14px;
+  }
+
+  .jchips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: var(--sp-2) 0;
+
+    span {
+      max-width: 100%;
+      padding: 2px 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      background: var(--sc-panel-2);
+      color: var(--sc-muted);
+    }
+  }
+
+  .jbtns {
+    display: flex;
+    gap: var(--sp-2);
+    margin-top: auto;
+  }
+}
+
+// ---------- buttons under messages ----------
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--sc-primary);
+  border-radius: var(--sc-radius-sm);
+  background: var(--sc-primary);
+  color: var(--sc-on-primary);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  transition: filter 150ms ease, background-color 150ms ease;
+
+  &:hover {
+    filter: brightness(0.93);
+  }
+
+  &.ghost {
+    background: transparent;
+    border-color: var(--sc-border);
+    color: var(--sc-text);
+
+    &:hover {
+      filter: none;
+      background: var(--sc-panel-2);
+    }
+  }
+}
+
+.jbtns .act {
+  flex: 1;
+}
+
+.starters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+}
+
+.starter {
+  min-height: 44px;
+  padding: 0 var(--sp-4);
+  border: 1px solid var(--sc-border);
+  border-radius: 999px;
+  background: var(--sc-panel);
+  color: var(--sc-text);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 150ms ease;
+
+  &:hover {
+    border-color: var(--sc-primary);
+  }
+}
+
+// ---------- attachments ----------
+.files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+
+  &.sent {
+    justify-content: flex-end;
+  }
+
+  &.pending {
+    padding-bottom: var(--sp-2);
+  }
+
+  .thumb {
+    max-width: 200px;
+    max-height: 200px;
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-sm);
+    object-fit: cover;
+  }
+
+  .file {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-2);
+    max-width: 100%;
+    min-height: 40px;
+    padding: 4px 6px 4px var(--sp-3);
+    border: 1px solid var(--sc-border);
+    border-radius: var(--sc-radius-sm);
+    background: var(--sc-panel);
+    font-size: 14px;
+    color: var(--sc-text);
+
+    ion-icon {
+      flex: 0 0 auto;
+      font-size: 20px;
+      color: var(--sc-primary);
+    }
+
+    .mini {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      object-fit: cover;
+    }
+
+    .fname {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 200px;
+      font-weight: 600;
+    }
+
+    small {
+      color: var(--sc-muted);
+      white-space: nowrap;
+    }
+
+    button {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: var(--sc-muted);
+
+      &:hover {
+        background: var(--sc-panel-2);
+      }
+    }
+
+    &.reading {
+      color: var(--sc-muted);
+    }
+  }
+}
+
+// ---------- drag & drop overlay ----------
+.dropzone {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--sp-5);
+  background: color-mix(in srgb, var(--sc-bg) 88%, transparent);
+  pointer-events: none;
+
+  .dz-box {
+    display: grid;
+    justify-items: center;
+    gap: var(--sp-2);
+    width: min(100%, 420px);
+    padding: var(--sp-6) var(--sp-5);
+    border: 2px dashed var(--sc-primary);
+    border-radius: var(--sc-radius);
+    background: var(--sc-panel);
+    text-align: center;
+    color: var(--sc-text);
+
+    ion-icon {
+      font-size: 48px;
+      color: var(--sc-primary);
+    }
+
+    small {
+      color: var(--sc-muted);
+    }
+  }
+}
+
+// ---------- composer ----------
+.composer {
+  background: var(--sc-bg);
+  border-top: 1px solid var(--sc-border);
+  padding-block: var(--sp-2);
+
+  &::before {
+    display: none;
+  }
+}
+
+.context {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+  font-size: 14px;
+  color: var(--sc-muted);
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sc-ok);
+
+    &.off {
+      background: var(--sc-warn);
+    }
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-1);
+    max-width: 60%;
+    padding: 2px 4px 2px var(--sp-3);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--sc-primary) 12%, transparent);
+    color: var(--sc-primary);
+    font-weight: 600;
+
+    .t {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      display: grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 0;
+      border-radius: 50%;
+      background: transparent;
+      color: inherit;
+    }
+  }
+}
+
+.inputbox {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--sp-1);
+  padding: var(--sp-1);
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius);
+  background: var(--sc-panel);
+
+  &:focus-within {
+    border-color: var(--sc-primary);
+    box-shadow: 0 0 0 1px var(--sc-primary);
+  }
+
+  &.invalid {
+    border-color: var(--sc-danger);
+  }
+
+  ion-textarea {
+    flex: 1;
+    --padding-top: 11px;
+    --padding-bottom: 11px;
+    --padding-start: var(--sp-2);
+    --background: transparent;
+    --color: var(--sc-text);
+    max-height: 160px;
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .attach,
+  .send {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: var(--sc-radius-sm);
+    display: grid;
+    place-items: center;
+    font-size: 22px;
+    transition: background-color 150ms ease;
+  }
+
+  .attach {
+    background: transparent;
+    color: var(--sc-muted);
+
+    &:hover {
+      background: var(--sc-panel-2);
+    }
+
+    &.on {
+      color: var(--sc-ok);
+    }
+  }
+
+  .send {
+    background: var(--sc-cta);
+    color: var(--sc-on-cta);
+
+    &:hover {
+      filter: brightness(0.93);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+    }
+  }
+}
+
+.hint {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  padding: var(--sp-1) var(--sp-1) 0;
+  font-size: 13px;
+  color: var(--sc-muted);
+
+  .err {
+    color: var(--sc-danger);
+  }
+}
+
+.empty {
+  padding: var(--sp-5);
+  text-align: center;
+  color: var(--sc-muted);
+}
+
+// ---------- tablet and desktop ----------
+@media (min-width: 768px) {
+  .page {
+    padding-block: var(--sp-6);
+  }
+
+  .welcome h1 {
+    font-size: 30px;
+  }
+
+  .jobs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ai-bubble {
+    padding: var(--sp-4) var(--sp-5);
+  }
+}

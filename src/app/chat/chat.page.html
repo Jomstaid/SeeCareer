@@ -1,0 +1,314 @@
+<app-page-header title="AI Chat">
+  <ion-button (click)="historyOpen.set(true)" aria-label="Chat history">
+    <ion-icon slot="icon-only" name="time-outline"></ion-icon>
+  </ion-button>
+  <ion-button (click)="newChat()" [disabled]="sending()" aria-label="New chat">
+    <ion-icon slot="icon-only" name="add-outline"></ion-icon>
+  </ion-button>
+</app-page-header>
+
+<!-- the six AI features: Ionic segment control, scrolls sideways on small screens -->
+<div class="modebar">
+  <div class="container narrow">
+    <ion-segment
+      [scrollable]="true"
+      [value]="mode()"
+      (ionChange)="onMode($any($event).detail.value)"
+      aria-label="AI feature"
+    >
+      <ion-segment-button value="general">
+        <ion-icon name="chatbubble-outline" aria-hidden="true"></ion-icon>
+        <ion-label>Chat</ion-label>
+      </ion-segment-button>
+      @for (m of modes; track m.key) {
+        <ion-segment-button [value]="m.key">
+          <ion-icon [name]="m.icon + '-outline'" aria-hidden="true"></ion-icon>
+          <ion-label>{{ m.short }}</ion-label>
+        </ion-segment-button>
+      }
+    </ion-segment>
+  </div>
+</div>
+
+<ion-content class="chat-content">
+  @if (dragging()) {
+    <div class="dropzone" aria-live="polite">
+      <div class="dz-box">
+        <ion-icon name="cloud-upload-outline" aria-hidden="true"></ion-icon>
+        <strong>Drop your file here</strong>
+        <small>PDF, Word, Excel, PowerPoint, image or text. Up to 5 files.</small>
+      </div>
+    </div>
+  }
+
+  <div class="container narrow page">
+    @if (chat().messages.length === 0) {
+      <section class="welcome">
+        <h1>How can I help with your career?</h1>
+        <p class="lead">Pick a feature, or just type a question below. You can also drop in your resume.</p>
+
+        <app-feature-list [features]="modes" (pick)="selectMode($event)"></app-feature-list>
+
+        <button type="button" class="resume-banner" (click)="resumeOpen.set(true)">
+          <ion-icon [name]="hasResume() ? 'checkmark-circle-outline' : 'document-attach-outline'" aria-hidden="true"></ion-icon>
+          <span>{{ hasResume() ? 'Your resume is saved on this device' : 'Add your resume to unlock job matching and applications' }}</span>
+          <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+        </button>
+        <p class="privacy">No account needed. Your resume stays on this device.</p>
+      </section>
+    }
+
+    <div class="stream" aria-live="polite">
+      @for (m of chat().messages; track trackMessage($index, m)) {
+        @if (m.role === 'user') {
+          <div class="row user">
+            <div class="ucol">
+              @if (m.attachments?.length) {
+                <div class="files sent">
+                  @for (img of imagesOf(m); track $index) {
+                    <img class="thumb" [src]="img" alt="Attached image" />
+                  }
+                  @for (a of m.attachments; track a.id) {
+                    @if (a.kind !== 'image') {
+                      <span class="file">
+                        <ion-icon [name]="attachmentIcon(a) + '-outline'" aria-hidden="true"></ion-icon>
+                        <span class="fname">{{ a.name }}</span>
+                        <small>{{ formatBytes(a.size) }}{{ a.pages ? ' · ' + a.pages + ' pages' : '' }}</small>
+                      </span>
+                    } @else if (!imagesOf(m).length) {
+                      <span class="file">
+                        <ion-icon name="image-outline" aria-hidden="true"></ion-icon>
+                        <span class="fname">{{ a.name }}</span>
+                      </span>
+                    }
+                  }
+                </div>
+              }
+              <div class="bubble user-bubble">{{ m.content }}</div>
+            </div>
+          </div>
+        } @else {
+          <div class="row ai">
+            <div class="col">
+              <div class="bubble ai-bubble" [class.error]="m.error">
+                @if (m.verdict; as v) {
+                  <div class="verdict {{ v.type }}">
+                    <ion-icon
+                      [name]="v.type === 'resume' ? 'shield-checkmark-outline' : v.type === 'not_job_related' ? 'close-circle-outline' : 'document-text-outline'"
+                      aria-hidden="true"
+                    ></ion-icon>
+                    <span><strong>{{ v.label }}</strong> · {{ v.confidence }}% sure</span>
+                  </div>
+                }
+                @if (m.score !== undefined) {
+                  <div class="score {{ scoreClass(m.score) }}">
+                    <div class="num"><strong>{{ m.score }}</strong><small>/100</small></div>
+                    <div>
+                      <strong>{{ scoreLabel(m.score) }}</strong>
+                      <small>Compatibility with this job</small>
+                    </div>
+                  </div>
+                }
+                @if (m.error) {
+                  <p class="errtext">
+                    <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+                    {{ m.content }}
+                  </p>
+                  @if (isLast(m)) {
+                    <div class="actions">
+                      <button type="button" class="act" (click)="retry()"><ion-icon name="refresh-outline"></ion-icon>Try again</button>
+                      <button type="button" class="act ghost" routerLink="/tabs/settings">Open Settings</button>
+                    </div>
+                  }
+                } @else {
+                  <div class="prose" [innerHTML]="html(m)"></div>
+                }
+
+                @if (m.jobs?.length) {
+                  <div class="jobs">
+                    @for (j of m.jobs; track j.id) {
+                      <div class="jobcard" [class.picked]="job()?.id === j.id">
+                        <strong>{{ j.title }}</strong>
+                        <small>{{ j.company_name }}</small>
+                        <div class="jchips">
+                          <span>{{ j.category }}</span>
+                          @if (j.candidate_required_location) {
+                            <span>{{ j.candidate_required_location }}</span>
+                          }
+                        </div>
+                        <div class="jbtns">
+                          <button type="button" class="act ghost" (click)="openJob(j)">Details</button>
+                          <button type="button" class="act" (click)="selectJob(j)">
+                            {{ job()?.id === j.id ? 'Selected' : 'Select' }}
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+
+                @if (!m.error && (m.model || m.content.length > 120)) {
+                  <div class="meta">
+                    <span>{{ m.model }}</span>
+                    <button type="button" class="icon-btn" (click)="openDownload(m)" aria-label="Download as a file">
+                      <ion-icon name="download-outline"></ion-icon>
+                    </button>
+                    <button type="button" class="icon-btn" (click)="copy(m)" aria-label="Copy answer">
+                      <ion-icon name="copy-outline"></ion-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+
+              @if (m.recs?.length) {
+                <app-rec-carousel
+                  [recs]="m.recs!"
+                  [selectedId]="job()?.id"
+                  (details)="openJob($event)"
+                  (select)="selectJob($event)"
+                ></app-rec-carousel>
+              }
+
+              @if (m.actions?.length && isLast(m)) {
+                <div class="actions">
+                  @for (a of m.actions; track a.label) {
+                    <button type="button" class="act" (click)="onAction(a, m)">
+                      @if (a.icon) {
+                        <ion-icon [name]="a.icon + '-outline'" aria-hidden="true"></ion-icon>
+                      }
+                      {{ a.label }}
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      @if (sending()) {
+        <div class="row ai">
+          <div class="bubble ai-bubble typing" role="status">
+            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <small>{{ stepText() || 'Thinking…' }} {{ elapsed() }}s</small>
+          </div>
+        </div>
+      }
+
+      @if (!sending() && info().starters.length && chat().messages.length) {
+        <div class="starters">
+          @for (s of info().starters; track s) {
+            <button type="button" class="starter" (click)="useStarter(s)">{{ s }}</button>
+          }
+        </div>
+      }
+    </div>
+  </div>
+</ion-content>
+
+<ion-footer class="composer">
+  <div class="container narrow">
+    <div class="context">
+      <span class="dot" [class.off]="!status().ok" aria-hidden="true"></span>
+      <span class="stat">{{ status().text }}</span>
+      <span class="spacer"></span>
+      @if (job(); as j) {
+        <span class="pill" [title]="j.title">
+          <ion-icon name="briefcase-outline" aria-hidden="true"></ion-icon>
+          <span class="t">{{ j.title }}</span>
+          <button type="button" (click)="clearJob()" aria-label="Remove selected job">
+            <ion-icon name="close"></ion-icon>
+          </button>
+        </span>
+      }
+    </div>
+
+    @if (pending().length || reading()) {
+      <div class="files pending">
+        @for (a of pending(); track a.id) {
+          <span class="file">
+            @if (a.images?.length && a.kind === 'image') {
+              <img class="mini" [src]="a.images![0]" alt="" />
+            } @else {
+              <ion-icon [name]="attachmentIcon(a) + '-outline'" aria-hidden="true"></ion-icon>
+            }
+            <span class="fname">{{ a.name }}</span>
+            <small>{{ formatBytes(a.size) }}</small>
+            <button type="button" (click)="removePending(a.id)" [attr.aria-label]="'Remove ' + a.name">
+              <ion-icon name="close"></ion-icon>
+            </button>
+          </span>
+        }
+        @if (reading()) {
+          <span class="file reading"><ion-spinner name="dots"></ion-spinner> Reading file…</span>
+        }
+      </div>
+    }
+
+    <div class="inputbox" [class.invalid]="inputError">
+      <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or add your resume">
+        <ion-icon name="attach-outline"></ion-icon>
+      </button>
+      <input #filePicker type="file" multiple [accept]="accepted" hidden (change)="onFiles($event)" />
+      <ion-textarea
+        [(ngModel)]="inputText"
+        (keydown)="onKeydown($event)"
+        (paste)="onPaste($any($event))"
+        (ionInput)="inputError = ''"
+        [autoGrow]="true"
+        rows="1"
+        [maxlength]="maxLength"
+        [placeholder]="pending().length ? 'Ask about the file (optional)…' : mock() ? 'Type your answer…' : info().placeholder"
+        aria-label="Message"
+        [disabled]="sending()"
+      ></ion-textarea>
+      <button type="button" class="send" (click)="send()" [disabled]="sending() || reading()" aria-label="Send message">
+        <ion-icon name="arrow-up"></ion-icon>
+      </button>
+    </div>
+    <div class="hint">
+      @if (inputError) {
+        <span class="err" role="alert">{{ inputError }}</span>
+      } @else {
+        <span>{{ mock() ? 'Mock interview running. Type /new to stop.' : 'Drop or attach PDF, Word, Excel, images or text. Type /help for commands.' }}</span>
+      }
+      <span [class.err]="remaining < 100">{{ remaining }}</span>
+    </div>
+  </div>
+</ion-footer>
+
+<!-- history -->
+<ion-modal [isOpen]="historyOpen()" (didDismiss)="historyOpen.set(false)" [initialBreakpoint]="0.7" [breakpoints]="[0, 0.7, 1]">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title>Chat history</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="historyOpen.set(false)">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content>
+      @if (store.conversations().length === 0) {
+        <p class="empty">No saved chats yet.</p>
+      } @else {
+        <ion-list>
+          @for (c of store.conversations(); track c.id) {
+            <ion-item button detail="false" (click)="openConversation(c)">
+              <ion-label>
+                <h3>{{ c.title }}</h3>
+                <p>{{ c.updated | date: 'MMM d, h:mm a' }} · {{ c.messages.length }} messages</p>
+              </ion-label>
+              <ion-button slot="end" fill="clear" color="danger" (click)="deleteConversation(c, $event)" aria-label="Delete chat">
+                <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+              </ion-button>
+            </ion-item>
+          }
+        </ion-list>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<!-- resume -->
+<app-resume-sheet [open]="resumeOpen()" (closed)="resumeOpen.set(false)" (changed)="onResumeChanged($event)"></app-resume-sheet>

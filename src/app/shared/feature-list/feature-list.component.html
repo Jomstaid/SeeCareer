@@ -1,0 +1,14 @@
+<ul class="features" role="list">
+  @for (f of features; track f.key) {
+    <li>
+      <button type="button" class="feature" (click)="pick.emit(f.key)">
+        <span class="icon" aria-hidden="true"><ion-icon [name]="f.icon + '-outline'"></ion-icon></span>
+        <span class="text">
+          <strong>{{ f.label }}</strong>
+          <small>{{ f.blurb }}</small>
+        </span>
+        <ion-icon class="go" name="chevron-forward" aria-hidden="true"></ion-icon>
+      </button>
+    </li>
+  }
+</ul>

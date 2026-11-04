@@ -1,0 +1,59 @@
+<div class="carousel" role="list" aria-label="Recommended jobs">
+  @for (r of recs; track r.job.id; let i = $index) {
+    <article class="rec" role="listitem" [class.picked]="selectedId === r.job.id">
+      <header>
+        <span class="rank">#{{ i + 1 }}</span>
+        <span class="chance {{ r.chance.toLowerCase() }}">{{ r.chance }} chance</span>
+      </header>
+
+      <div class="title">
+        <div class="fit {{ tone(r.score) }}" role="img" [attr.aria-label]="'Fit ' + r.score + ' percent'">
+          <strong>{{ r.score }}</strong><small>%</small>
+        </div>
+        <div class="names">
+          <h4>{{ r.job.title }}</h4>
+          <p>{{ r.job.company_name }}</p>
+          <p class="where">{{ r.job.candidate_required_location }}</p>
+        </div>
+      </div>
+
+      <div class="stat">
+        <label>Fit <b>{{ r.score }}%</b></label>
+        <div class="bar"><i class="{{ tone(r.score) }}" [style.width.%]="r.score"></i></div>
+      </div>
+      <div class="stat">
+        <label>
+          Skills matched
+          <b>{{ r.matched.length }}{{ r.missing.length ? ' of ' + (r.matched.length + r.missing.length) : '' }}</b>
+        </label>
+        <div class="bar"><i class="info" [style.width.%]="skillPct(r)"></i></div>
+      </div>
+
+      <p class="why">{{ r.reason }}</p>
+
+      @if (r.matched.length || r.missing.length) {
+        <div class="skills">
+          @for (k of r.matched; track k) {
+            <span class="sk ok"><ion-icon name="checkmark" aria-hidden="true"></ion-icon>{{ k }}</span>
+          }
+          @for (k of r.missing; track k) {
+            <span class="sk miss"><ion-icon name="add" aria-hidden="true"></ion-icon>{{ k }}</span>
+          }
+        </div>
+      }
+
+      <div class="buttons">
+        @if (r.job.url) {
+          <a class="btn primary" [href]="r.job.url" target="_blank" rel="noopener">
+            <ion-icon name="open-outline" aria-hidden="true"></ion-icon>Apply
+          </a>
+        }
+        <button type="button" class="btn" (click)="details.emit(r.job)">Details</button>
+        <button type="button" class="btn" (click)="select.emit(r.job)">
+          {{ selectedId === r.job.id ? 'Selected' : 'Select' }}
+        </button>
+      </div>
+    </article>
+  }
+</div>
+<p class="hint">Swipe sideways to see more jobs.</p>

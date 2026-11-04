@@ -1,0 +1,58 @@
+<ion-modal [isOpen]="open" (didDismiss)="closed.emit()" [initialBreakpoint]="0.85" [breakpoints]="[0, 0.85, 1]">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title>Your resume</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closed.emit()">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <p class="muted">
+        Paste your resume or import a PDF, Word (.docx) or text file. It is saved <strong>only on this phone</strong>. It is sent to your AI
+        provider only when you use an AI action.
+      </p>
+
+      <ion-textarea
+        class="area"
+        [class.invalid]="error"
+        [(ngModel)]="text"
+        (ionInput)="error = ''"
+        [autoGrow]="true"
+        rows="9"
+        [maxlength]="maxLength + 1"
+        placeholder="Name, contact, summary, skills, education, work experience, certifications…"
+        aria-label="Resume text"
+      ></ion-textarea>
+      <div class="hint">
+        @if (error) {
+          <span class="err">{{ error }}</span>
+        } @else {
+          <span>Minimum 50 characters</span>
+        }
+        <span [class.err]="text.length > maxLength">{{ text.length }}/{{ maxLength }}</span>
+      </div>
+
+      <div class="buttons">
+        <ion-button (click)="save()">
+          <ion-icon slot="start" name="checkmark"></ion-icon>
+          Save resume
+        </ion-button>
+        <ion-button fill="outline" (click)="fileInput.click()" [disabled]="reading">
+          <ion-icon slot="start" name="cloud-upload-outline"></ion-icon>
+          @if (reading) {
+            Reading…
+          } @else {
+            Import PDF / Word
+          }
+        </ion-button>
+        <ion-button fill="clear" color="danger" (click)="remove()" [disabled]="!store.resume() && !text">
+          <ion-icon slot="start" name="trash-outline"></ion-icon>
+          Delete
+        </ion-button>
+        <input #fileInput type="file" accept=".pdf,.docx,.txt,.md,text/plain,application/pdf" hidden (change)="onFile($event)" />
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

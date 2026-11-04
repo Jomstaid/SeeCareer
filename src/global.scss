@@ -1,0 +1,114 @@
+/* Fonts bundled with the app (work offline in the Android app): Lexend for headings, Source Sans 3 for text */
+@import '@fontsource/lexend/latin-500.css';
+@import '@fontsource/lexend/latin-600.css';
+@import '@fontsource/lexend/latin-700.css';
+@import '@fontsource/source-sans-3/latin-400.css';
+@import '@fontsource/source-sans-3/latin-600.css';
+@import '@fontsource/source-sans-3/latin-700.css';
+
+/*
+ * App Global CSS
+ * ----------------------------------------------------------------------------
+ * Put style rules here that you want to apply globally. These styles are for
+ * the entire app and not just one component. Additionally, this file can be
+ * used as an entry point to import other CSS/Sass files to be included in the
+ * output CSS.
+ * For more information on global stylesheets, visit the documentation:
+ * https://ionicframework.com/docs/layout/global-stylesheets
+ */
+
+/* Core CSS required for Ionic components to work properly */
+@import "@ionic/angular/css/core.css";
+
+/* Basic CSS for apps built with Ionic */
+@import "@ionic/angular/css/normalize.css";
+@import "@ionic/angular/css/structure.css";
+@import "@ionic/angular/css/typography.css";
+@import "@ionic/angular/css/display.css";
+
+/* Optional CSS utils that can be commented out */
+@import "@ionic/angular/css/padding.css";
+@import "@ionic/angular/css/float-elements.css";
+@import "@ionic/angular/css/text-alignment.css";
+@import "@ionic/angular/css/text-transformation.css";
+@import "@ionic/angular/css/flex-utils.css";
+
+/**
+ * Ionic Dark Mode
+ * -----------------------------------------------------
+ * For more info, please see:
+ * https://ionicframework.com/docs/theming/dark-mode
+ */
+
+/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+@import "@ionic/angular/css/palettes/dark.class.css";
+/* @import "@ionic/angular/css/palettes/dark.system.css"; */
+
+/* ---------- Responsive layout ----------
+   Breakpoints (mobile first): 375 phone, 768 tablet, 1024 laptop (side navigation appears), 1440 wide desktop.
+   Every page puts its content in .container so lines stay readable and nothing stretches edge to edge. */
+html,
+body {
+  height: 100%;
+  background: var(--sc-bg);
+  font-family: var(--sc-font);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: var(--sp-4);
+  box-sizing: border-box;
+}
+
+.container.narrow {
+  max-width: 880px;
+}
+
+@media (min-width: 768px) {
+  .container {
+    padding-inline: var(--sp-5);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    padding-inline: var(--sp-6);
+  }
+}
+
+/* sheets and dialogs: comfortable width on big screens, centered */
+ion-modal.sheet-modal::part(content),
+ion-modal::part(content) {
+  max-width: 720px;
+}
+
+@media (min-width: 768px) {
+  ion-modal.sheet-modal::part(content) {
+    left: 0;
+    right: 0;
+    margin-inline: auto;
+    width: min(100%, 720px);
+  }
+}
+
+/* long words and URLs never push the layout sideways */
+ion-content,
+ion-card,
+ion-item {
+  overflow-wrap: anywhere;
+}
+
+ion-content::part(scroll) {
+  overflow-x: hidden;
+}
+
+/* every clickable thing shows it is clickable and is at least 44px tall on touch screens */
+button,
+[role='button'],
+a.act {
+  cursor: pointer;
+}
