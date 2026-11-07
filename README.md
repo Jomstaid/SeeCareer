@@ -418,7 +418,3 @@ GitHub no longer accepts account passwords in the terminal. Sign in through the 
 - Old `.doc`, `.xls` and `.ppt` files can't be read. Save them as PDF or the newer format first.
 - Very large files are shortened before being sent to the AI (about 15,000 characters).
 - Free AI models can be slow or busy at times. The app retries with the next model.
-
----
-
-Made for NEUST, Mobile Application Development.
