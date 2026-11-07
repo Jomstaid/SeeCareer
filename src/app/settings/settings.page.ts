@@ -2,8 +2,10 @@ import { Component, signal } from '@angular/core';
 import { AlertController, ToastController } from '@ionic/angular/lazy';
 
 import { AiService } from '../core/ai.service';
+import { chatsFromBackup, chatsToBackup } from '../core/chatbackup';
 import { ChatStore } from '../core/chatstore.service';
 import { PROVIDER_PRESETS } from '../core/defaults';
+import { deliverBlob } from '../core/fileexport';
 import { AiError, AiProvider, AppSettings, ProviderPreset } from '../core/models';
 import { ProviderService } from '../core/provider.service';
 import { SettingsService } from '../core/settings.service';
@@ -320,6 +322,33 @@ export class SettingsPage {
   }
 
   // ---------- data ----------
+  /** Saves every chat in one file the user can keep. */
+  async exportChats(): Promise<void> {
+    const chats = this.chats.conversations();
+    if (!chats.length) {
+      void this.notify('There are no chats to export yet.');
+      return;
+    }
+    const blob = new Blob([chatsToBackup(chats)], { type: 'application/json' });
+    void this.notify(await deliverBlob(blob, `seecareerchats${new Date().toISOString().slice(0, 10)}.json`));
+  }
+
+  /** Reads a backup file picked by the user and adds its chats. */
+  async importChats(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) {
+      return;
+    }
+    try {
+      const count = this.chats.importChats(chatsFromBackup(await file.text()));
+      void this.notify(`Imported ${count} chat${count === 1 ? '' : 's'}`);
+    } catch (e) {
+      void this.notify(e instanceof Error ? e.message : 'Could not import this file.');
+    }
+  }
+
   async confirmClearChats(): Promise<void> {
     const alert = await this.alerts.create({
       header: 'Clear chat history',

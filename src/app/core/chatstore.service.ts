@@ -44,6 +44,14 @@ export class ChatStore {
     this.set([updated, ...rest].slice(0, MAX_CONVERSATIONS));
   }
 
+  /** Adds chats from a backup (a chat with the same id is replaced). Returns how many were added. */
+  importChats(chats: Conversation[]): number {
+    const ids = new Set(chats.map((c) => c.id));
+    const kept = this.conversations().filter((c) => !ids.has(c.id));
+    this.set([...chats, ...kept].sort((a, b) => b.updated - a.updated).slice(0, MAX_CONVERSATIONS));
+    return Math.min(chats.length, MAX_CONVERSATIONS);
+  }
+
   remove(id: string): void {
     this.set(this.conversations().filter((c) => c.id !== id));
   }

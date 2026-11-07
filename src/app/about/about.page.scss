@@ -132,3 +132,48 @@ ion-note {
 .api code {
   font-size: 14px;
 }
+
+.members {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: var(--sp-3) var(--sp-4);
+    border-top: 1px solid var(--sc-border);
+  }
+
+  .avatar {
+    flex: none;
+    margin: 0;
+  }
+
+  .who {
+    min-width: 0;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--sc-text);
+  }
+
+  p {
+    margin: 2px 0 0;
+    line-height: 1.45;
+  }
+
+  .role {
+    font-size: 14.5px;
+    color: var(--sc-primary);
+  }
+
+  .did {
+    font-size: 14.5px;
+    color: var(--sc-muted);
+  }
+}

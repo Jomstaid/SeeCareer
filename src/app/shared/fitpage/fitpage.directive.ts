@@ -75,6 +75,12 @@ export class FitPageDirective implements AfterViewInit, OnDestroy {
     }
     page.style.zoom = String(lo);
     // the little height that is left is taken up by the stretching cards
-    page.style.minHeight = `${available / lo}px`;
+    page.style.minHeight = `${(available - 3) / lo}px`;
+    // rounding can leave a pixel or two over: step down until nothing scrolls
+    for (let i = 0; i < 12 && box.scrollHeight > box.clientHeight && lo > this.minZoom; i++) {
+      lo = Math.max(this.minZoom, lo - 0.01);
+      page.style.zoom = String(lo);
+      page.style.minHeight = `${(available - 3) / lo}px`;
+    }
   }
 }

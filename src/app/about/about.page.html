@@ -35,20 +35,18 @@
       <ion-card-header>
         <ion-card-subtitle>Group members &amp; roles</ion-card-subtitle>
       </ion-card-header>
-      <ion-accordion-group [multiple]="true">
+      <ul class="members">
         @for (m of members; track m.name) {
-          <ion-accordion [value]="m.name">
-            <ion-item slot="header">
-              <span class="avatar" slot="start">{{ initials(m.name) }}</span>
-              <ion-label>
-                <h3>{{ m.name }}</h3>
-                <p>{{ m.role }}</p>
-              </ion-label>
-            </ion-item>
-            <div slot="content" class="contrib">{{ m.contribution }}</div>
-          </ion-accordion>
+          <li>
+            <span class="avatar" aria-hidden="true">{{ initials(m.name) }}</span>
+            <div class="who">
+              <h3>{{ m.name }}</h3>
+              <p class="role">{{ m.role }}</p>
+              <p class="did">{{ m.contribution }}</p>
+            </div>
+          </li>
         }
-      </ion-accordion-group>
+      </ul>
     </ion-card>
 
     <ion-card class="grow">

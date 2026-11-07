@@ -47,6 +47,49 @@
         </ul>
       </section>
 
+      <!-- ================= Appearance & chat ================= -->
+      <section class="card">
+        <h2>Appearance &amp; chat</h2>
+
+        <div class="row">
+          <span class="label">Theme</span>
+          <ion-segment [value]="settings.settings().theme" (ionChange)="setTheme($any($event).detail.value)" aria-label="Theme">
+            <ion-segment-button value="dark"><ion-label>Dark</ion-label></ion-segment-button>
+            <ion-segment-button value="light"><ion-label>Light</ion-label></ion-segment-button>
+            <ion-segment-button value="system"><ion-label>System</ion-label></ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div class="row">
+          <span class="label">Text size</span>
+          <ion-segment [value]="settings.settings().fontSize" (ionChange)="setFontSize($any($event).detail.value)" aria-label="Text size">
+            <ion-segment-button value="small"><ion-label>Small</ion-label></ion-segment-button>
+            <ion-segment-button value="medium"><ion-label>Medium</ion-label></ion-segment-button>
+            <ion-segment-button value="large"><ion-label>Large</ion-label></ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div class="row">
+          <span class="label">Reply length <b>{{ settings.settings().maxTokens }}</b> tokens</span>
+          <ion-range
+            [min]="200"
+            [max]="2000"
+            [step]="100"
+            [pin]="true"
+            [value]="settings.settings().maxTokens"
+            (ionChange)="setMaxTokens($any($event).detail.value)"
+            aria-label="Reply length"
+          ></ion-range>
+        </div>
+
+        <div class="switch">
+          <span>Save chat history on this device</span>
+          <ion-toggle [checked]="settings.settings().saveHistory" (ionChange)="setSaveHistory($any($event).detail.checked)" aria-label="Save chat history"></ion-toggle>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
       <!-- ================= Model health ================= -->
       <section class="card grow">
         <div class="head">
@@ -98,63 +141,6 @@
     </div>
 
     <div class="col">
-      <!-- ================= Appearance & chat ================= -->
-      <section class="card">
-        <h2>Appearance &amp; chat</h2>
-
-        <div class="row">
-          <span class="label">Theme</span>
-          <ion-segment [value]="settings.settings().theme" (ionChange)="setTheme($any($event).detail.value)" aria-label="Theme">
-            <ion-segment-button value="dark"><ion-label>Dark</ion-label></ion-segment-button>
-            <ion-segment-button value="light"><ion-label>Light</ion-label></ion-segment-button>
-            <ion-segment-button value="system"><ion-label>System</ion-label></ion-segment-button>
-          </ion-segment>
-        </div>
-
-        <div class="row">
-          <span class="label">Text size</span>
-          <ion-segment [value]="settings.settings().fontSize" (ionChange)="setFontSize($any($event).detail.value)" aria-label="Text size">
-            <ion-segment-button value="small"><ion-label>Small</ion-label></ion-segment-button>
-            <ion-segment-button value="medium"><ion-label>Medium</ion-label></ion-segment-button>
-            <ion-segment-button value="large"><ion-label>Large</ion-label></ion-segment-button>
-          </ion-segment>
-        </div>
-
-        <div class="row">
-          <span class="label">Reply length <b>{{ settings.settings().maxTokens }}</b> tokens</span>
-          <ion-range
-            [min]="200"
-            [max]="2000"
-            [step]="100"
-            [pin]="true"
-            [value]="settings.settings().maxTokens"
-            (ionChange)="setMaxTokens($any($event).detail.value)"
-            aria-label="Reply length"
-          ></ion-range>
-        </div>
-
-        <div class="switch">
-          <span>Save chat history on this device</span>
-          <ion-toggle [checked]="settings.settings().saveHistory" (ionChange)="setSaveHistory($any($event).detail.checked)" aria-label="Save chat history"></ion-toggle>
-        </div>
-      </section>
-
-      <!-- ================= Privacy & data ================= -->
-      <section class="card">
-        <h2>Privacy &amp; data</h2>
-        <ul class="privacy">
-          <li><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>No account or login. SeeCareer has no server of its own.</li>
-          <li><ion-icon name="phone-portrait-outline" aria-hidden="true"></ion-icon>Your resume and API keys stay on this device.</li>
-          <li><ion-icon name="send-outline" aria-hidden="true"></ion-icon>When you use an AI tool, the text goes to the AI provider you chose.</li>
-        </ul>
-        <div class="buttons">
-          <ion-button size="small" fill="outline" color="danger" (click)="confirmClearChats()">Clear chat history</ion-button>
-          <ion-button size="small" fill="outline" (click)="confirmReset()">Reset providers</ion-button>
-        </div>
-      </section>
-    </div>
-
-    <div class="col">
       <!-- ================= AI instructions ================= -->
       <section class="card grow">
         <div class="head">
@@ -173,6 +159,29 @@
         <div class="buttons">
           <ion-button size="small" (click)="saveInstructions()">Save</ion-button>
           <ion-button size="small" fill="outline" (click)="resetInstructions()">Reset</ion-button>
+        </div>
+      </section>
+
+      <!-- ================= Privacy & data ================= -->
+      <section class="card">
+        <h2>Privacy &amp; data</h2>
+        <ul class="privacy">
+          <li><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon>No account or login. SeeCareer has no server of its own.</li>
+          <li><ion-icon name="phone-portrait-outline" aria-hidden="true"></ion-icon>Your resume and API keys stay on this device.</li>
+          <li><ion-icon name="send-outline" aria-hidden="true"></ion-icon>When you use an AI tool, the text goes to the AI provider you chose.</li>
+        </ul>
+        <div class="buttons">
+          <ion-button size="small" fill="outline" (click)="exportChats()">
+            <ion-icon slot="start" name="download-outline"></ion-icon>
+            Export chats
+          </ion-button>
+          <ion-button size="small" fill="outline" (click)="picker.click()">
+            <ion-icon slot="start" name="push-outline"></ion-icon>
+            Import chats
+          </ion-button>
+          <input #picker type="file" accept="application/json,.json" hidden (change)="importChats($event)" aria-label="Import chats from a backup file" />
+          <ion-button size="small" fill="outline" color="danger" (click)="confirmClearChats()">Clear chat history</ion-button>
+          <ion-button size="small" fill="outline" (click)="confirmReset()">Reset providers</ion-button>
         </div>
       </section>
     </div>
