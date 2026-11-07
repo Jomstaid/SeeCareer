@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { Router } from '@angular/router';
+import { AlertController } from '@ionic/angular/lazy';
 
 import { ChatStore } from '../core/chatstore.service';
 import { Conversation } from '../core/models';
@@ -25,13 +26,15 @@ export class TabsPage {
   constructor(
     public store: ChatStore,
     private router: Router,
+    private alerts: AlertController,
   ) {}
 
   readonly items: NavItem[] = [
-    { tab: 'chat', path: '/tabs/chat', label: 'Assistant', icon: 'sparkles-outline', hint: 'Chat, resume, matching, interview', group: 'work' },
-    { tab: 'home', path: '/tabs/home', label: 'Job board', icon: 'briefcase-outline', hint: 'Browse and search all openings', group: 'work' },
-    { tab: 'settings', path: '/tabs/settings', label: 'Settings', icon: 'options-outline', hint: 'AI providers, theme, data', group: 'app' },
-    { tab: 'about', path: '/tabs/about', label: 'About', icon: 'people-outline', hint: 'Our group', group: 'app' },
+    { tab: 'home', path: '/home', label: 'Home', icon: 'home-outline', hint: 'Start here', group: 'work' },
+    { tab: 'chat', path: '/chat', label: 'Assistant', icon: 'sparkles-outline', hint: 'Chat, resume, matching, interview', group: 'work' },
+    { tab: 'jobs', path: '/jobs', label: 'Job board', icon: 'briefcase-outline', hint: 'Browse and search all openings', group: 'work' },
+    { tab: 'settings', path: '/settings', label: 'Settings', icon: 'options-outline', hint: 'AI providers, theme, data', group: 'app' },
+    { tab: 'about', path: '/about', label: 'About', icon: 'people-outline', hint: 'Our group', group: 'app' },
   ];
 
   get work(): NavItem[] {
@@ -59,19 +62,33 @@ export class TabsPage {
 
   async newChat(): Promise<void> {
     this.store.requestNew();
-    await this.router.navigateByUrl('/tabs/chat');
+    await this.router.navigateByUrl('/chat');
   }
 
   async openChat(c: Conversation): Promise<void> {
     this.store.requestOpen(c.id);
-    await this.router.navigateByUrl('/tabs/chat');
+    await this.router.navigateByUrl('/chat');
   }
 
-  deleteChat(c: Conversation, event: Event): void {
+  async deleteChat(c: Conversation, event: Event): Promise<void> {
     event.stopPropagation();
-    this.store.remove(c.id);
-    if (this.store.activeId() === c.id) {
-      this.store.requestNew();
-    }
+    const alert = await this.alerts.create({
+      header: 'Delete this chat?',
+      message: `"${c.title}" will be deleted from this device. This cannot be undone.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: () => {
+            this.store.remove(c.id);
+            if (this.store.activeId() === c.id) {
+              this.store.requestNew();
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 }

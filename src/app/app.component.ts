@@ -27,8 +27,8 @@ export class AppComponent implements AfterViewInit {
     const shown = Date.now() - ((window as unknown as { __splashAt?: number }).__splashAt ?? Date.now());
     setTimeout(() => {
       splash.classList.add('done');
-      setTimeout(() => splash.remove(), 700);
-    }, Math.max(0, 1700 - shown));
+      setTimeout(() => splash.remove(), 600);
+    }, Math.max(0, 2300 - shown));
   }
 
   /**

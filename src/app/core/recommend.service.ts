@@ -152,7 +152,17 @@ export class RecommendService {
   /** Whole flow. `onStep` reports progress to show in the chat. */
   async recommend(resume: string, images: string[] = [], onStep?: (text: string) => void, request = ''): Promise<RecommendResult> {
     onStep?.(resume || images.length ? 'Reading your resume…' : 'Understanding your request…');
-    const profile = await this.profile(resume, images, request);
+    let profile: Profile;
+    try {
+      profile = await this.profile(resume, images, request);
+    } catch (e) {
+      const where = splitPlace(request).place;
+      if (e instanceof AiError && e.kind === 'needinfo' && where) {
+        // the place is known: ask only for what is missing
+        throw new AiError(`I have the place (${where.city ? where.city + ', ' : ''}${where.label}). What kind of work are you looking for there (for example customer support, graphic design, nursing, IT)?`, 'needinfo');
+      }
+      throw e;
+    }
     // a place the person typed wins over what the AI guessed
     profile.place = splitPlace(request).place ?? profile.place ?? null;
     const place = profile.place;

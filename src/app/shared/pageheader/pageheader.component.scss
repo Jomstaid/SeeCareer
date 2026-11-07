@@ -24,9 +24,38 @@ ion-toolbar {
   backdrop-filter: blur(var(--sc-blur)) saturate(150%);
 }
 
-ion-title {
+// the title and (on the chat page) the feature tabs share one row, vertically centred
+.bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+}
+
+.ttl {
+  flex: 0 0 auto;
+  margin: 0;
+  padding-inline: var(--sp-4);
+  font-family: var(--sc-font-head);
   font-size: 19px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  color: var(--sc-text);
+}
+
+// room for something in the middle of the bar (the chat puts its feature tabs here)
+.mid {
+  flex: 1 1 auto;
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+  padding-inline: var(--sp-3);
+
+  &:empty {
+    display: none;
+  }
 }
 
 ion-buttons ion-button {

@@ -6,7 +6,7 @@ const LEAD = /^(sure|certainly|of course|absolutely|okay|ok|great|happy to|here(
 
 /** Closers such as "Want me to customize this?" that the AI puts after a document. */
 const TAIL =
-  /^(let me know|would you like|want me to|do you want|feel free|if you('d| would) like|i hope|hope this|need any|just share|share (your|these)|you can also|note:|tip:|p\.s\.)/i;
+  /^(let me know|would you like|want me to|do you want|feel free|if you('d| would) like|i hope|hope this|need any|just share|share (your|these)|you can also|note:|tip:|p\.s\.|honest note|assumption|heads up|disclaimer)/i;
 
 /**
  * Removes the chat around a document the AI wrote: greetings before it, offers and questions after it,
@@ -26,6 +26,24 @@ export function stripChatter(text: string): string {
     if (preface.length < 700 && (LEAD.test(firstWords) || /[:!]\s*$/.test(firstWords))) {
       lines = lines.slice(heading);
     }
+  }
+
+  // a one-line opener such as "Here is the cover letter:" (and the divider after it) when the text has no heading
+  const blank = (l?: string) => !l || !l.trim() || /^[-*_]{3,}$/.test(l.trim());
+  while (lines.length && blank(lines[0])) {
+    lines.shift();
+  }
+  if (lines[0] && LEAD.test(lines[0].trim()) && /[:!]\s*$/.test(lines[0].trim())) {
+    lines.shift();
+  }
+  // a leading "Assumption: ..." or "Note: ..." paragraph
+  if (lines[0] && /^(assumption|note|honest note)\s*[:\-]/i.test(lines[0].trim().replace(/^[>*_\s]+/, ''))) {
+    while (lines.length && lines[0].trim()) {
+      lines.shift();
+    }
+  }
+  while (lines.length && blank(lines[0])) {
+    lines.shift();
   }
 
   // after the document: the closing offers and questions ("Want me to...? Just share: 1. ...")

@@ -1,15 +1,41 @@
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--sp-4);
-  align-items: start;
-  padding-block: var(--sp-5);
+  gap: var(--sp-3);
+  padding-block: var(--sp-3);
 }
 
-@media (min-width: 1024px) {
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  min-width: 0;
+}
+
+// wide screens: two columns take the whole page and the big cards stretch
+@media (min-width: 900px) {
   .page {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    min-height: 100%;
+    box-sizing: border-box;
+    gap: var(--sp-4);
+    padding-block: var(--sp-4);
   }
+
+  .col {
+    gap: var(--sp-4);
+    min-height: 0;
+  }
+
+  ion-card.grow {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+ion-card {
+  margin: 0 !important;
 }
 
 ion-card {
@@ -71,7 +97,8 @@ ion-item {
 .contrib {
   padding: 4px 16px 14px 66px;
   color: var(--sc-muted);
-  font-size: 13.5px;
+  font-size: 15px;
+  line-height: 1.5;
   background: var(--sc-panel);
 }
 
@@ -82,4 +109,26 @@ ion-item {
     color: var(--sc-accent);
     font-size: 12.5px;
   }
+}
+
+ion-item ion-label {
+  font-size: 15.5px;
+}
+
+ion-item ion-label h3 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+ion-item ion-label p {
+  font-size: 14.5px;
+}
+
+ion-note {
+  font-size: 15px;
+  color: var(--sc-muted);
+}
+
+.api code {
+  font-size: 14px;
 }

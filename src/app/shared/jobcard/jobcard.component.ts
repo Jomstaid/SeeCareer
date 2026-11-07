@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { plainText } from '../../core/job.service';
-import { domainGuesses, faviconUrl } from '../../core/logo';
+import { faviconUrl, logoCandidates } from '../../core/logo';
 import { Job } from '../../core/models';
 
 /** One job in the list. Shows the main info and tells the page when it is tapped or bookmarked. */
@@ -26,8 +26,8 @@ export class JobCardComponent {
     if (this.job.company_logo && !this.logoFailed) {
       return this.job.company_logo;
     }
-    const domain = domainGuesses(this.job.company_name)[this.guess];
-    return domain ? faviconUrl(domain) : null;
+    const pick = logoCandidates(this.job.company_name, this.job.description)[this.guess];
+    return pick ? faviconUrl(pick.domain) : null;
   }
 
   /** The picture did not load, or it is only the default globe: try the next address. */
@@ -41,8 +41,13 @@ export class JobCardComponent {
 
   onLogoLoad(event: Event): void {
     const img = event.target as HTMLImageElement;
-    if (img.naturalWidth < 120 && !(this.job.company_logo && !this.logoFailed)) {
-      this.logoBad(); // a small icon is the default globe or a poor match, not a logo
+    if (this.job.company_logo && !this.logoFailed) {
+      return;
+    }
+    // a small icon is the default globe or a poor match; a website named in the job text is trusted with a smaller one
+    const sure = logoCandidates(this.job.company_name, this.job.description)[this.guess]?.sure;
+    if (img.naturalWidth < (sure ? 32 : 100)) {
+      this.logoBad();
     }
   }
 

@@ -1,110 +1,59 @@
-<app-page-header title="Job board"></app-page-header>
+<app-page-header title="Home"></app-page-header>
 
 <ion-content [fullscreen]="true">
-  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
-    <ion-refresher-content></ion-refresher-content>
-  </ion-refresher>
+  <div class="container wrap">
+    <section class="hero">
+      <p class="eyebrow">Welcome to SeeCareer</p>
+      <h1>Find work that fits you</h1>
+      <p class="sub">
+        Your AI career assistant: find real jobs, build a resume, check how well you match, write cover letters and practice for the interview. No account needed.
+      </p>
+      <div class="cta">
+        <ion-button routerLink="/chat">
+          <ion-icon slot="start" name="sparkles-outline"></ion-icon>
+          Start with the assistant
+        </ion-button>
+        <ion-button fill="outline" routerLink="/jobs">
+          <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+          Browse jobs
+        </ion-button>
+      </div>
+    </section>
 
-  <div class="container">
-  <section class="hero">
-    <h1>Find a job that fits you</h1>
-    <p class="sub">Search {{ total() ? total().toLocaleString() : 'thousands of' }}{{ jobService.source().name !== 'Himalayas' ? '+' : '' }} jobs. Open one and ask SeeCareer AI to match, apply or prepare.</p>
-  </section>
-
-  <a class="ai-cta" routerLink="/tabs/chat" [queryParams]="{ mode: 'finder' }">
-    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
-    <span><strong>Let the AI find jobs for me</strong><small>Upload your resume and get the best matches with a fit score.</small></span>
-    <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
-  </a>
-
-  <div class="filters">
-    <ion-searchbar
-      [(ngModel)]="searchText"
-      (ionInput)="onSearchInput()"
-      placeholder="Search title, skill or company"
-      [debounce]="0"
-      inputmode="search"
-    ></ion-searchbar>
-
-    <div class="filter-row">
-      <ion-select
-        [(ngModel)]="filter"
-        (ionChange)="onFilterChange()"
-        interface="popover"
-        aria-label="Category"
-        fill="outline"
-        class="category"
-      >
-        @for (f of filters; track f.label) {
-          <ion-select-option [value]="f.query">{{ f.label }}</ion-select-option>
-        }
-      </ion-select>
-
-      <ion-toggle [(ngModel)]="savedOnly" (ionChange)="onSavedToggle()" labelPlacement="start">
-        Saved ({{ jobService.savedIds().length }})
-      </ion-toggle>
-    </div>
-  </div>
-
-  @if (loading() && !savedOnly) {
-    <div class="list">
-      @for (n of [1, 2, 3, 4]; track n) {
-        <ion-card class="skeleton">
-          <ion-card-header>
-            <ion-skeleton-text [animated]="true" style="width: 70%"></ion-skeleton-text>
-            <ion-skeleton-text [animated]="true" style="width: 40%"></ion-skeleton-text>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-skeleton-text [animated]="true" style="width: 100%"></ion-skeleton-text>
-            <ion-skeleton-text [animated]="true" style="width: 85%"></ion-skeleton-text>
-          </ion-card-content>
-        </ion-card>
+    <section class="tiles" aria-label="Where to go">
+      @for (s of shortcuts; track s.path) {
+        <button type="button" class="tile" (click)="go(s.path)">
+          <span class="pic" aria-hidden="true"><ion-icon [name]="s.icon"></ion-icon></span>
+          <strong>{{ s.title }}</strong>
+          <small>{{ s.text }}</small>
+        </button>
       }
-    </div>
-  } @else if (error() && !savedOnly) {
-    <div class="state">
-      <ion-icon name="cloud-offline-outline"></ion-icon>
-      <h2>Couldn't load jobs</h2>
-      <p>{{ error() }}</p>
-      <ion-button (click)="loadJobs()">
-        <ion-icon slot="start" name="refresh-outline"></ion-icon>
-        Try again
-      </ion-button>
-    </div>
-  } @else if (visibleJobs().length === 0) {
-    <div class="state">
-      <ion-icon [name]="savedOnly ? 'bookmark-outline' : 'search-outline'"></ion-icon>
-      <h2>{{ savedOnly ? 'No saved jobs yet' : 'No jobs found' }}</h2>
-      <p>{{ savedOnly ? 'Tap the bookmark on a job to save it.' : 'Try a different keyword or category.' }}</p>
-      <ion-button fill="outline" (click)="clearFilters()">Show all jobs</ion-button>
-    </div>
-  } @else {
-    <p class="count">
-      @if (savedOnly) {
-        {{ visibleJobs().length }} saved job(s)
+    </section>
+
+    <section class="latest">
+      <div class="head">
+        <h2>Fresh openings</h2>
+        <ion-button size="small" fill="clear" routerLink="/jobs">See all</ion-button>
+      </div>
+      @if (loading()) {
+        <div class="state"><ion-spinner name="dots"></ion-spinner></div>
+      } @else if (failed()) {
+        <div class="state">
+          <p>Could not load jobs right now.</p>
+          <ion-button size="small" fill="outline" (click)="loadLatest()">Try again</ion-button>
+        </div>
       } @else {
-        Showing {{ visibleJobs().length.toLocaleString() }} of {{ total().toLocaleString() }} jobs
+        <div class="grid">
+          @for (job of latest(); track job.id) {
+            <app-job-card
+              [job]="job"
+              [saved]="jobService.isSaved(job.id)"
+              (open)="openJob($event)"
+              (toggleSave)="jobService.toggleSaved($event.id)"
+            ></app-job-card>
+          }
+        </div>
       }
-    </p>
-    <div class="list">
-      @for (job of visibleJobs(); track trackJob($index, job)) {
-        <app-job-card
-          [job]="job"
-          [saved]="jobService.isSaved(job.id)"
-          (open)="openJob($event)"
-          (toggleSave)="jobService.toggleSaved($event.id)"
-        ></app-job-card>
-      }
-    </div>
-  }
-
-  <ion-infinite-scroll (ionInfinite)="loadMore($event)" [disabled]="!hasMore() || savedOnly || loading()">
-    <ion-infinite-scroll-content loadingSpinner="dots" loadingText="Loading more jobs…"></ion-infinite-scroll-content>
-  </ion-infinite-scroll>
-
-  <p class="credit">
-    Jobs provided by
-    <a [href]="jobService.source().url" target="_blank" rel="noopener">{{ jobService.source().name }}</a>
-  </p>
+    </section>
   </div>
 </ion-content>

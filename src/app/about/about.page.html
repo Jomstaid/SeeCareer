@@ -1,7 +1,8 @@
 <app-page-header title="About Our Group"></app-page-header>
 
 <ion-content [fullscreen]="true">
-  <div class="container page">
+  <div class="container page" appFitPage>
+    <div class="col">
     <ion-card>
       <ion-card-header>
         <ion-card-subtitle>Project</ion-card-subtitle>
@@ -13,7 +14,7 @@
       </ion-card-content>
     </ion-card>
 
-    <ion-card>
+    <ion-card class="grow">
       <ion-card-header>
         <ion-card-subtitle>Course information</ion-card-subtitle>
       </ion-card-header>
@@ -27,7 +28,9 @@
         </ion-list>
       </ion-card-content>
     </ion-card>
+    </div>
 
+    <div class="col">
     <ion-card>
       <ion-card-header>
         <ion-card-subtitle>Group members &amp; roles</ion-card-subtitle>
@@ -48,7 +51,7 @@
       </ion-accordion-group>
     </ion-card>
 
-    <ion-card>
+    <ion-card class="grow">
       <ion-card-header>
         <ion-card-subtitle>Technology &amp; API</ion-card-subtitle>
       </ion-card-header>
@@ -62,11 +65,12 @@
           <strong>{{ project.api }}</strong><br />
           <code>{{ project.endpoint }}</code>
         </p>
-        <ion-button expand="block" fill="outline" routerLink="/tabs/home">
+        <ion-button expand="block" fill="outline" routerLink="/jobs">
           <ion-icon slot="start" name="briefcase-outline"></ion-icon>
           Explore jobs
         </ion-button>
       </ion-card-content>
     </ion-card>
+    </div>
   </div>
 </ion-content>

@@ -1,4 +1,4 @@
-<app-page-header title="Job Details" backHref="/tabs/home">
+<app-page-header title="Job Details" backHref="/jobs">
   @if (job(); as j) {
     <ion-button
       (click)="jobService.toggleSaved(j.id)"
@@ -21,7 +21,7 @@
       <h2>Can't show this job</h2>
       <p>{{ error() }}</p>
       <ion-button (click)="retry()">Try again</ion-button>
-      <ion-button fill="outline" routerLink="/tabs/home">Back to jobs</ion-button>
+      <ion-button fill="outline" routerLink="/jobs">Back to jobs</ion-button>
     </div>
   } @else if (job(); as j) {
     <div class="container narrow wrap">

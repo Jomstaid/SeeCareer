@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 
 import { JOB_TASKS, TaskKey } from '../core/aitasks';
 import { JobService, describeHttpError, fixEncoding } from '../core/job.service';
-import { domainGuesses, faviconUrl } from '../core/logo';
+import { faviconUrl, logoCandidates } from '../core/logo';
 import { Job } from '../core/models';
 import { ResumeService } from '../core/resume.service';
 
@@ -31,8 +31,8 @@ export class JobDetailsPage implements OnInit {
     if (j.company_logo && !this.logoFailed) {
       return j.company_logo;
     }
-    const domain = domainGuesses(j.company_name)[this.guess];
-    return domain ? faviconUrl(domain) : null;
+    const pick = logoCandidates(j.company_name, j.description)[this.guess];
+    return pick ? faviconUrl(pick.domain) : null;
   }
 
   logoBad(j: Job): void {
@@ -45,7 +45,11 @@ export class JobDetailsPage implements OnInit {
 
   logoLoaded(event: Event, j: Job): void {
     const img = event.target as HTMLImageElement;
-    if (img.naturalWidth < 120 && !(j.company_logo && !this.logoFailed)) {
+    if (j.company_logo && !this.logoFailed) {
+      return;
+    }
+    const sure = logoCandidates(j.company_name, j.description)[this.guess]?.sure;
+    if (img.naturalWidth < (sure ? 32 : 100)) {
       this.logoBad(j);
     }
   }
@@ -96,7 +100,7 @@ export class JobDetailsPage implements OnInit {
   askAi(task?: TaskKey): void {
     const job = this.job();
     if (job) {
-      this.router.navigate(['/tabs/chat'], { queryParams: { jobId: job.id, ...(task ? { task } : {}) } });
+      this.router.navigate(['/chat'], { queryParams: { jobId: job.id, ...(task ? { task } : {}) } });
     }
   }
 

@@ -5,7 +5,10 @@
         <ion-back-button [defaultHref]="backHref" text="" aria-label="Go back"></ion-back-button>
       </ion-buttons>
     }
-    <ion-title>{{ title }}</ion-title>
+    <div class="bar">
+      <h1 class="ttl">{{ title }}</h1>
+      <div class="mid"><ng-content select="[center]"></ng-content></div>
+    </div>
     <ion-buttons slot="end">
       <ng-content></ng-content>
     </ion-buttons>

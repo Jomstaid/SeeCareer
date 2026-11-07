@@ -52,7 +52,7 @@ Everything happens in one chat. Pick a feature from the bar at the top, or just 
 - **It can look things up.** The AI models cannot browse, so the app searches **Wikipedia** for questions that need facts ("who is...", "latest...", "search the internet for...") and gives the AI the pages. A resume for a well-known person is built from those facts, and *"add a picture from the internet"* finds their Wikipedia photo.
 - **Always up to date model list.** The app re-checks which AI models work every 10 minutes, when you come back to it and when the internet returns. A model that fails while answering is skipped at once, and only working models are used.
 - **Ask for a file in plain words.** Type things like *"create me a resume"*, *"make a minimal green resume in Word"*, *"write a cover letter for a marketing job"*, *"make me a weekly study schedule as PDF"* or *"make this a PDF"* (turns the last answer into a file). You never have to say which format: it is a PDF unless you say Word, text or Markdown. Documents download straight away; a **resume appears in the chat with Download PDF / Download Word buttons** (nothing is saved until you tap one), and you can keep changing it with messages like *"add picture"*, *"make it red"*, *"add skill Python"* or *"give me a different design"*. A resume uses your saved resume, a file you attach (PDF, Word, or even a **photo** of a resume) or, if you give no details, becomes a ready-to-fill template with [placeholders]. The AI also picks a layout and colour that suit the field, unless you name one. The file contains only the document: chat remarks, emoji and questions are removed before it is built.
-- **Does more than careers.** Ask it to write, explain, summarise a document, draft an email, plan something, or help with code. Careers are the specialty, not the limit.
+- **Focused on your career.** The assistant helps with jobs, resumes, cover letters, applications, interviews, skills and the workplace. Ask it about something else (a celebrity, trivia, a recipe) and it politely says it focuses on careers and offers things it can do for you. It still looks up companies, roles and industries on Wikipedia when you ask about them.
 - **Download what the AI writes** as PDF, Word, TXT or Markdown.
 - **Works on every screen.** Phone and tablet get a floating tab bar. Laptops and desktops get a side menu with your chat list. The look is frosted glass (glassmorphism) with a job-search blue and teal palette, and a short animated start screen.
 - **Light and dark theme**, text size setting, saved chat history, saved jobs.
@@ -240,7 +240,8 @@ SeeCareer/
 │   └── app/
 │       ├── tabs/             main navigation (tab bar + side menu)
 │       ├── chat/             the AI chat page (home)
-│       ├── home/             Jobs page
+│       ├── home/             Home page (welcome, shortcuts, fresh openings)
+│       ├── jobs/             Job board page
 │       ├── jobdetails/      one job
 │       ├── settings/         AI providers and preferences
 │       ├── about/            About Our Group

@@ -10,7 +10,10 @@ export function escapeHtml(text: string): string {
 function inline(text: string): string {
   return escapeHtml(text)
     .replace(/`([^`\n]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>');
+    .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
+    // *italic* and _italic_, but not the stars of a list or the underscores inside a word like snake_case
+    .replace(/(^|[^*\w])\*([^*\s][^*\n]*?)\*(?![*\w])/g, '$1<em>$2</em>')
+    .replace(/(^|[^_\w])_([^_\s][^_\n]*?)_(?![_\w])/g, '$1<em>$2</em>');
 }
 
 export function renderMarkdown(source: string): string {

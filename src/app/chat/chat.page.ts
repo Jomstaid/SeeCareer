@@ -1,6 +1,6 @@
 import { Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ActionSheetController, IonContent, IonTextarea, ToastController } from '@ionic/angular/lazy';
+import { ActionSheetController, AlertController, IonContent, IonTextarea, ToastController } from '@ionic/angular/lazy';
 
 import { AiService, ApiMessage, ContentPart } from '../core/ai.service';
 import { AiTaskService } from '../core/aitask.service';
@@ -23,6 +23,7 @@ import { AiError, Attachment, ChatAction, ChatMessage, ChatMode, Conversation, E
 import { PhotoService } from '../core/photo';
 import { findWebPhoto, isSearchableName } from '../core/webphoto';
 import { needsWeb, personFacts, searchQuery, webContext, webLookup } from '../core/websearch';
+import { OFF_TOPIC_REPLY, SCOPE_QUESTION, obviouslyCareer } from '../core/scope';
 import { Place, splitPlace } from '../core/places';
 import { ProviderService } from '../core/provider.service';
 import { ResumeService } from '../core/resume.service';
@@ -148,6 +149,7 @@ export class ChatPage implements OnDestroy {
     private route: ActivatedRoute,
     private router: Router,
     private toast: ToastController,
+    private alerts: AlertController,
     private sheets: ActionSheetController,
     private rec: RecommendService,
     private photos: PhotoService,
@@ -258,12 +260,26 @@ export class ChatPage implements OnDestroy {
     this.scrollDown();
   }
 
-  deleteConversation(c: Conversation, event: Event): void {
+  async deleteConversation(c: Conversation, event: Event): Promise<void> {
     event.stopPropagation();
-    this.store.remove(c.id);
-    if (this.chat().id === c.id) {
-      this.newChat();
-    }
+    const alert = await this.alerts.create({
+      header: 'Delete this chat?',
+      message: `"${c.title}" will be deleted from this device. This cannot be undone.`,
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        {
+          text: 'Delete',
+          role: 'destructive',
+          handler: () => {
+            this.store.remove(c.id);
+            if (this.chat().id === c.id) {
+              this.newChat();
+            }
+          },
+        },
+      ],
+    });
+    await alert.present();
   }
 
   /** Opened from Job Details ("Match with my resume", "Cover letter"...). */
@@ -1136,11 +1152,13 @@ export class ChatPage implements OnDestroy {
 
   /** The "Get Word / Get PDF" buttons under a made file. */
   private async download(m: ChatMessage, format: ExportFormat): Promise<void> {
-    const heading = /^#\s+(.+)$/m.exec(m.content)?.[1];
-    const title = heading ?? `SeeCareer ${new Date().toISOString().slice(0, 10)}`;
+    const raw = stripChatter(m.content);
+    const body = /^\s*dear\b/im.test(raw) ? letterize(raw) : raw; // a letter has no title and no headings
+    const company = this.job()?.company_name;
+    const title = titleOf(body) ?? (/^\s*dear\b/im.test(body) ? `Cover letter${company ? ' ' + company : ''}` : `SeeCareer ${new Date().toISOString().slice(0, 10)}`);
     let message: string;
     try {
-      message = await exportFile(format, title, stripChatter(m.content));
+      message = await exportFile(format, title, body);
     } catch {
       message = 'Could not create the file.';
     }
@@ -1349,12 +1367,34 @@ export class ChatPage implements OnDestroy {
       return;
     }
     if (this.mode() === 'finder') {
+      // a whole sentence ("can you find something in the philippines") is a request to understand; a few words are a keyword search
+      const sentence = text.trim().split(/\s+/).length > 4 || /\b(can you|could you|please|something|specific\w*|looking|want|need|find)\b/i.test(text);
+      if (sentence) {
+        this.push({ role: 'user', content: text });
+        await this.busy(async () => {
+          await this.runRecommend('', [], undefined, this.requestText(text), false, false);
+        });
+        return;
+      }
       await this.searchJobs(text);
       return;
     }
     const info = this.info();
     this.push({ role: 'user', content: text });
     await this.busy(async () => {
+      // a lookup-style question that is not about work (who is..., latest news...) is declined before anything is searched
+      if (needsWeb(text) && !obviouslyCareer(text) && !(await this.onTopic(text))) {
+        this.push({
+          role: 'assistant',
+          content: OFF_TOPIC_REPLY,
+          actions: [
+            { label: 'Find jobs', icon: 'search', mode: 'finder' },
+            { label: 'Resume Assistant', icon: 'document-text', mode: 'resume' },
+            { label: 'Interview prep', icon: 'chatbubbles', mode: 'interview' },
+          ],
+        });
+        return;
+      }
       let web = '';
       if (needsWeb(text)) {
         this.stepText.set('Searching the web…');
@@ -1366,6 +1406,17 @@ export class ChatPage implements OnDestroy {
       const result = await this.ai.chat(await this.contextMessages(web), Math.max(this.settings.settings().maxTokens, web ? 1000 : 0));
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
+  }
+
+  /** The quick check: is this message about work or careers? When the check itself fails the message is let through. */
+  private async onTopic(text: string): Promise<boolean> {
+    try {
+      this.stepText.set('Checking your question…');
+      const r = await this.ai.chat([{ role: 'system', content: SCOPE_QUESTION }, { role: 'user', content: text.slice(0, 400) }], 700, { fast: true, temperature: 0 });
+      return !/^\W*no\b/i.test(r.content.trim());
+    } catch {
+      return true;
+    }
   }
 
   /** True when the user wants resume/job help (so a non-resume file should be refused). */
@@ -1760,7 +1811,7 @@ export class ChatPage implements OnDestroy {
         return true;
       case '/settings':
         this.inputText = '';
-        await this.router.navigate(['/tabs/settings']);
+        await this.router.navigate(['/settings']);
         return true;
       case '/help':
         this.inputText = '';

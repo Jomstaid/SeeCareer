@@ -7,15 +7,10 @@
   </ion-button>
 </app-page-header>
 
-<!-- the six AI features: Ionic segment control, scrolls sideways on small screens -->
+<!-- the six AI features: a tab bar on big screens and a button grid on phones -->
 <div class="modebar">
   <div class="container narrow">
-    <ion-segment
-      [scrollable]="true"
-      [value]="mode()"
-      (ionChange)="onMode($any($event).detail.value)"
-      aria-label="AI feature"
-    >
+    <ion-segment [scrollable]="true" [value]="mode()" (ionChange)="onMode($any($event).detail.value)" aria-label="AI feature">
       <ion-segment-button value="general">
         <ion-icon name="chatbubble-outline" aria-hidden="true"></ion-icon>
         <ion-label>Chat</ion-label>
@@ -27,6 +22,21 @@
         </ion-segment-button>
       }
     </ion-segment>
+
+
+    <!-- phones: every feature as a button in a grid, so nothing scrolls sideways or gets cut -->
+    <div class="mode-grid" role="tablist" aria-label="AI feature">
+      <button type="button" role="tab" [class.on]="mode() === 'general'" [attr.aria-selected]="mode() === 'general'" (click)="onMode('general')">
+        <ion-icon name="chatbubble-outline" aria-hidden="true"></ion-icon>
+        <span>Chat</span>
+      </button>
+      @for (m of modes; track m.key) {
+        <button type="button" role="tab" [class.on]="mode() === m.key" [attr.aria-selected]="mode() === m.key" (click)="onMode(m.key)">
+          <ion-icon [name]="m.icon + '-outline'" aria-hidden="true"></ion-icon>
+          <span>{{ m.short }}</span>
+        </button>
+      }
+    </div>
   </div>
 </div>
 
@@ -54,7 +64,7 @@
           <span>{{ hasResume() ? 'Your resume is saved. Tap to upload a new one' : 'Upload your resume to unlock job matching and applications' }}</span>
           <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
         </button>
-        <p class="privacy">No account needed. Your resume stays on this device.</p>
+        <p class="privacy">No account needed. Find work today.</p>
       </section>
     }
 
@@ -136,7 +146,7 @@
                   @if (isLast(m)) {
                     <div class="actions">
                       <button type="button" class="act" (click)="retry()"><ion-icon name="refresh-outline"></ion-icon>Try again</button>
-                      <button type="button" class="act ghost" routerLink="/tabs/settings">Open Settings</button>
+                      <button type="button" class="act ghost" routerLink="/settings">Open Settings</button>
                     </div>
                   }
                 } @else {

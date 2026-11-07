@@ -1,32 +1,41 @@
-// Settings: two tidy columns on wide screens, one on phones. Compact glass cards, no wasted space.
+// Settings: on a wide screen three columns take the whole page, and the main cards stretch so there is no empty space.
+// On a phone it is one column that scrolls.
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-3);
-  align-items: start;
-  padding-block: var(--sp-4);
+  padding-block: var(--sp-3);
 }
 
 .col {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--sp-3);
-  align-content: start;
   min-width: 0;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 1000px) {
   .page {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    min-height: 100%;
+    box-sizing: border-box;
     gap: var(--sp-4);
+    padding-block: var(--sp-4);
   }
 
   .col {
     gap: var(--sp-4);
   }
+
+  .card.grow {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+  }
 }
 
 .card {
-  padding: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
   border-radius: var(--sc-radius);
 
   h2 {
@@ -100,7 +109,7 @@
   gap: var(--sp-3);
   min-width: 0;
   min-height: 56px;
-  padding: var(--sp-2) 0;
+  padding: var(--sp-3) 0;
   border: 0;
   background: transparent;
   color: var(--sc-text);
@@ -121,7 +130,9 @@
   .ptext {
     display: flex;
     flex-direction: column;
+    gap: 2px;
     min-width: 0;
+    line-height: 1.35;
 
     strong {
       font-size: 15px;
@@ -141,6 +152,9 @@
 }
 
 .tag {
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1.5;
   margin-left: var(--sp-1);
   padding: 1px 8px;
   border-radius: 99px;
@@ -165,29 +179,27 @@
 
 // ----- model health -----
 .health {
-  max-height: 260px;
-  overflow-y: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 
   li {
     display: flex;
     align-items: center;
-    gap: var(--sp-3);
-    padding: var(--sp-2) 0;
-    border-top: 1px solid var(--sc-border);
-
-    &:first-child {
-      border-top: 0;
-    }
+    gap: var(--sp-2);
+    min-width: 0;
+    padding: 4px 0;
+    border-top: 0;
   }
 
   .badge {
     flex: none;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     display: grid;
     place-items: center;
     border-radius: 50%;
-    font-size: 14px;
+    font-size: 12px;
     background: var(--sc-panel-2);
     color: var(--sc-muted);
 
@@ -206,9 +218,11 @@
     display: flex;
     flex-direction: column;
     min-width: 0;
+    flex: 1;
 
     strong {
-      font-size: 14px;
+      font-size: 12.5px;
+      font-weight: 600;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -216,7 +230,7 @@
 
     small {
       color: var(--sc-muted);
-      font-size: 12.5px;
+      font-size: 11.5px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -224,8 +238,8 @@
   }
 
   .lat {
-    margin-left: auto;
-    font-size: 13px;
+    flex: none;
+    font-size: 11.5px;
     color: var(--sc-muted);
   }
 }
@@ -361,4 +375,38 @@ ion-range {
   min-height: 34px;
   --bar-height: 4px;
   --knob-size: 22px;
+}
+
+
+// the cards that take up leftover height
+@media (min-width: 1000px) {
+  .card.grow .health {
+    flex: 1;
+    align-content: space-evenly;
+  }
+
+  .card.grow ion-textarea.box {
+    flex: 1;
+    min-height: 120px;
+  }
+
+  .card.grow ion-textarea.box ::ng-deep textarea {
+    height: 100% !important;
+    min-height: 100px;
+  }
+}
+
+.health .speed {
+  flex: 0 0 64px;
+  height: 5px;
+  border-radius: 99px;
+  background: var(--sc-panel-2);
+  overflow: hidden;
+
+  i {
+    display: block;
+    height: 100%;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--sc-primary), var(--sc-cta));
+  }
 }

@@ -271,6 +271,16 @@ export class SettingsPage {
     return this.providers.health().filter((h) => h.ok === false && h.model !== '*').length;
   }
 
+  /** The model name without the provider path in front of it. */
+  shortModel(h: { providerId: string; model: string }): string {
+    return h.model === '*' ? this.providerName(h.providerId) : (h.model.split('/').pop() ?? h.model);
+  }
+
+  /** How long the bar for a model is: the faster it answered, the longer the bar (full at 0 s, short at 6 s or more). */
+  speed(latency: number): number {
+    return Math.max(10, Math.min(100, 100 - (latency / 6) * 90));
+  }
+
   providerName(id: string): string {
     return this.providers.get(id)?.name ?? 'Unknown';
   }

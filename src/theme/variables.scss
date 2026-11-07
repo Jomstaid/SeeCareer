@@ -2,12 +2,12 @@
 // Direction from the ui-ux-pro-max skill: glassmorphism (frosted translucent panels, backdrop blur 10-20px,
 // 1px light borders, layered depth) on a vibrant background, with a recruitment palette:
 // trust blue for navigation and actions, teal for "go" (apply, send), warm amber for saved items.
-// Lexend headings + Source Sans 3 body, 4/8 spacing scale, breakpoints 375 / 768 / 1024 / 1440.
+// DM Sans headings + Inter body (the ui-ux-pro-max "premium sans" pairing), 4/8 spacing scale, breakpoints 375 / 768 / 1024 / 1440.
 
 :root {
   // ----- typography -----
-  --sc-font: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-  --sc-font-head: 'Lexend', 'Source Sans 3', system-ui, sans-serif;
+  --sc-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --sc-font-head: 'DM Sans', 'Inter', system-ui, sans-serif;
   --sc-code: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
   --sc-mono: var(--sc-font); // older stylesheets use this name for small labels
   --sc-chat-size: 16px;
@@ -127,6 +127,15 @@
   --sc-chat-size: 18px;
 }
 
+// the text size setting makes the whole app smaller or bigger, not only the chat bubbles
+:root[data-fontsize='small'] ion-app {
+  zoom: 0.9;
+}
+
+:root[data-fontsize='large'] ion-app {
+  zoom: 1.14;
+}
+
 // ----- the background: a soft blue and teal glow that the glass sits on -----
 html,
 body {
@@ -155,12 +164,27 @@ ion-content {
   --background: transparent;
 }
 
+html {
+  font-feature-settings: 'cv11', 'ss01'; // Inter's single-storey a and open digits read friendlier
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-size: 15px;
+  line-height: 1.55;
+  letter-spacing: -0.003em;
+}
+
 h1,
 h2,
 h3,
+h4,
 ion-title {
   font-family: var(--sc-font-head);
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.022em;
+  line-height: 1.2;
 }
 
 ion-segment {
@@ -270,6 +294,9 @@ ion-segment {
 
 ion-segment-button {
   --border-radius: var(--sc-radius-sm);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
 }
 
 ion-searchbar,
@@ -336,7 +363,29 @@ ion-footer ion-toolbar {
 }
 
 // thin glass scrollbars
-* {
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--sc-muted) 45%, transparent) transparent;
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--sc-muted) 45%, transparent) transparent;
+  }
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--sc-muted) 45%, transparent);
 }

@@ -1,7 +1,7 @@
 <app-page-header title="Settings"></app-page-header>
 
 <ion-content [fullscreen]="true">
-  <div class="container page">
+  <div class="container page" appFitPage>
     <div class="col">
       <!-- ================= AI providers ================= -->
       <section class="card">
@@ -48,7 +48,7 @@
       </section>
 
       <!-- ================= Model health ================= -->
-      <section class="card">
+      <section class="card grow">
         <div class="head">
           <h2>Model health</h2>
           <ion-button size="small" fill="outline" (click)="recheck()" [disabled]="ai.scanning()">
@@ -71,10 +71,13 @@
                   <ion-icon [name]="h.ok === true ? 'checkmark' : h.ok === false ? 'close' : 'remove'"></ion-icon>
                 </span>
                 <div class="info">
-                  <strong>{{ h.model === '*' ? providerName(h.providerId) : h.model }}</strong>
-                  <small>{{ providerName(h.providerId) }}{{ h.error ? ' · ' + h.error : '' }}</small>
+                  <strong>{{ shortModel(h) }}</strong>
+                  @if (h.error) {
+                    <small>{{ h.error }}</small>
+                  }
                 </div>
                 @if (h.latency) {
+                  <span class="speed" aria-hidden="true"><i [style.width.%]="speed(h.latency)"></i></span>
                   <span class="lat">{{ h.latency.toFixed(1) }}s</span>
                 }
               </li>
@@ -136,28 +139,6 @@
         </div>
       </section>
 
-      <!-- ================= AI instructions ================= -->
-      <section class="card">
-        <div class="head">
-          <h2>AI instructions</h2>
-          <small class="count">{{ instructions.length }}/{{ maxInstructions }}</small>
-        </div>
-        <p class="muted">Optional. Added to every request, for example "Answer in Filipino" or "Focus on IT jobs".</p>
-        <ion-textarea
-          class="box"
-          [(ngModel)]="instructions"
-          [maxlength]="maxInstructions"
-          [autoGrow]="true"
-          rows="2"
-          placeholder="Your custom instructions"
-          aria-label="Custom AI instructions"
-        ></ion-textarea>
-        <div class="buttons">
-          <ion-button size="small" (click)="saveInstructions()">Save</ion-button>
-          <ion-button size="small" fill="outline" (click)="resetInstructions()">Reset</ion-button>
-        </div>
-      </section>
-
       <!-- ================= Privacy & data ================= -->
       <section class="card">
         <h2>Privacy &amp; data</h2>
@@ -169,6 +150,29 @@
         <div class="buttons">
           <ion-button size="small" fill="outline" color="danger" (click)="confirmClearChats()">Clear chat history</ion-button>
           <ion-button size="small" fill="outline" (click)="confirmReset()">Reset providers</ion-button>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <!-- ================= AI instructions ================= -->
+      <section class="card grow">
+        <div class="head">
+          <h2>AI instructions</h2>
+          <small class="count">{{ instructions.length }}/{{ maxInstructions }}</small>
+        </div>
+        <p class="muted">Optional. Added to every request, for example "Answer in Filipino" or "Focus on IT jobs".</p>
+        <ion-textarea
+          class="box"
+          [(ngModel)]="instructions"
+          [maxlength]="maxInstructions"
+          rows="6"
+          placeholder="Your custom instructions"
+          aria-label="Custom AI instructions"
+        ></ion-textarea>
+        <div class="buttons">
+          <ion-button size="small" (click)="saveInstructions()">Save</ion-button>
+          <ion-button size="small" fill="outline" (click)="resetInstructions()">Reset</ion-button>
         </div>
       </section>
     </div>

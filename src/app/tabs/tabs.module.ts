@@ -11,10 +11,11 @@ const routes: Routes = [
     component: TabsPage,
     children: [
       { path: 'home', loadChildren: () => import('../home/home.module').then((m) => m.HomePageModule) },
+      { path: 'jobs', loadChildren: () => import('../jobs/jobs.module').then((m) => m.JobsPageModule) },
       { path: 'chat', loadChildren: () => import('../chat/chat.module').then((m) => m.ChatPageModule) },
       { path: 'settings', loadChildren: () => import('../settings/settings.module').then((m) => m.SettingsPageModule) },
       { path: 'about', loadChildren: () => import('../about/about.module').then((m) => m.AboutPageModule) },
-      { path: '', redirectTo: 'chat', pathMatch: 'full' },
+      { path: '', redirectTo: 'home', pathMatch: 'full' },
     ],
   },
 ];

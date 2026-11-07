@@ -98,3 +98,38 @@ describe('letters are real letters', () => {
     expect(letterize(messy)).toBe(expected);
   });
 });
+
+describe('stripChatter on a cover letter from a job tool', () => {
+  it('drops the opener, the divider and the honest note', () => {
+    const raw = [
+      'Here is the cover letter:',
+      '',
+      '---',
+      '',
+      '[Your Name]',
+      'eve@example.com | +63 949 000 0000',
+      '',
+      'Dear Hiring Manager,',
+      '',
+      'I am writing to apply for the Front-End Developer position.',
+      '',
+      'Sincerely,',
+      '[Your Name]',
+      '',
+      '---',
+      '',
+      'Honest note: This role requires 4+ years of experience that are not on the resume. Expectations should be realistic.',
+    ].join('\n');
+    const out = stripChatter(raw);
+    expect(out.startsWith('[Your Name]')).toBe(true);
+    expect(out).toContain('Dear Hiring Manager,');
+    expect(out).not.toMatch(/Here is the cover letter/i);
+    expect(out).not.toMatch(/Honest note/i);
+    expect(out.endsWith('[Your Name]')).toBe(true);
+  });
+
+  it('drops a leading assumption line', () => {
+    const out = stripChatter("Assumption: I'm writing this for Jomar applying to the support role.\n\nDear Team,\n\nHello there.\n\nSincerely,\nJomar");
+    expect(out.startsWith('Dear Team,')).toBe(true);
+  });
+});
