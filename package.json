@@ -9,7 +9,8 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint"
+    "lint": "ng lint",
+    "test:worker": "node --test cloudflare/gateway-proxy.test.mjs"
   },
   "private": true,
   "dependencies": {

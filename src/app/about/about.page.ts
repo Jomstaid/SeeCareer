@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 
 import { GroupMember } from '../core/models';
-import { MEMBERS, PROJECT, TECH } from './group-info';
+import { MEMBERS, PROJECT, TECH } from './groupinfo';
 
 /** About Our Group: project info, members, course/year/section and each member's role. */
 @Component({

@@ -7,48 +7,63 @@ import { newId, readJson, writeJson } from './storage';
 const PROVIDERS_KEY = 'seecareer.providers';
 const HEALTH_KEY = 'seecareer.modelHealth';
 
-/** Keeps the list of AI providers (free APIs) and the result of the last model health check. */
+/** A bare-IP address, as saved by early versions of the app. */
+const OLD_ADDRESS = /^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?(\/v1)?\/?$/;
+
+const trimSlash = (url: string) => url.replace(/\/+$/, '');
+
+/**
+ * Keeps the list of AI providers and the result of the last model health check.
+ *
+ * The built-in provider talks to a small proxy that holds the real API key on the server, so the app
+ * never has a key for it: nothing secret is in the source code, the build or the device storage.
+ * Providers the user adds themselves (Groq, OpenRouter, Gemini...) use the user's own key.
+ */
 @Injectable({ providedIn: 'root' })
 export class ProviderService {
   readonly providers = signal<AiProvider[]>(this.load());
-
-  constructor() {
-    void this.applyLocalConfig();
-  }
   readonly health = signal<ModelStatus[]>(readJson<ModelStatus[]>(HEALTH_KEY, []));
   readonly lastScan = signal<number>(readJson<number>(HEALTH_KEY + '.time', 0));
 
-  /** First launch: add the free AI gateway that was given for this project. */
+  // ---------- loading ----------
+  /** First launch: add the built-in provider (address only, no key). */
   private load(): AiProvider[] {
     const saved = readJson<AiProvider[] | null>(PROVIDERS_KEY, null);
     if (saved) {
-      return this.useBuiltInPreset(saved);
+      return this.migrate(saved);
     }
-    const first: AiProvider[] = [
-      {
-        id: newId(),
-        name: DEFAULT_FREE_AI.name,
-        preset: 'free',
-        baseUrl: DEFAULT_FREE_AI.baseUrl,
-        apiKey: DEFAULT_FREE_AI.apiKey,
-        model: '',
-        enabled: true,
-      },
-    ];
+    const first: AiProvider[] = [this.builtIn(newId())];
     writeJson(PROVIDERS_KEY, first);
     return first;
   }
 
+  private builtIn(id: string, model = '', enabled = true): AiProvider {
+    return {
+      id,
+      name: DEFAULT_FREE_AI.name,
+      preset: 'free',
+      baseUrl: DEFAULT_FREE_AI.baseUrl,
+      apiKey: '',
+      model,
+      enabled,
+      builtin: true,
+    };
+  }
+
   /**
-   * Providers saved by older versions: a provider that points at the built-in gateway address
-   * gets the built-in preset and name, so its model list and label stay correct.
+   * Providers saved by older versions. Anything that points at the built-in address, or at the old bare-IP
+   * address, becomes the built-in provider: its address is locked and any key saved with it is deleted,
+   * because it needs none now. The user's model choice and on/off switch are kept.
    */
-  private useBuiltInPreset(list: AiProvider[]): AiProvider[] {
+  private migrate(list: AiProvider[]): AiProvider[] {
     let changed = false;
     const fixed = list.map((p) => {
-      if (p.baseUrl.replace(/\/+$/, '') === DEFAULT_FREE_AI.baseUrl && p.preset !== 'free') {
-        changed = true;
-        return { ...p, preset: 'free', name: DEFAULT_FREE_AI.name };
+      const url = trimSlash(p.baseUrl);
+      if (OLD_ADDRESS.test(url) || url === DEFAULT_FREE_AI.baseUrl) {
+        if (!p.builtin || p.apiKey || p.baseUrl !== DEFAULT_FREE_AI.baseUrl || p.preset !== 'free') {
+          changed = true;
+        }
+        return this.builtIn(p.id, p.model, p.enabled);
       }
       return p;
     });
@@ -58,30 +73,7 @@ export class ProviderService {
     return fixed;
   }
 
-  /**
-   * Optional, git-ignored file src/assets/local-config.json: {"freeAi": {"apiKey": "..."}}.
-   * If the built-in provider has no key yet, the key from this file is used.
-   * A missing file is normal (for example on a fresh clone) and is simply ignored.
-   */
-  private async applyLocalConfig(): Promise<void> {
-    try {
-      const res = await fetch('assets/local-config.json', { cache: 'no-store' });
-      if (!res.ok) {
-        return;
-      }
-      const key = ((await res.json()) as { freeAi?: { apiKey?: unknown } })?.freeAi?.apiKey;
-      if (typeof key !== 'string' || !key.trim()) {
-        return;
-      }
-      const target = this.providers().find((p) => p.preset === 'free' && !p.apiKey);
-      if (target) {
-        this.save({ ...target, apiKey: key.trim() });
-      }
-    } catch {
-      /* no local config: fine */
-    }
-  }
-
+  // ---------- reading ----------
   enabled(): AiProvider[] {
     return this.providers().filter((p) => p.enabled);
   }
@@ -90,11 +82,16 @@ export class ProviderService {
     return this.providers().find((p) => p.id === id);
   }
 
+  // ---------- changing ----------
   /** Adds a new provider, or updates it when it already has an id that exists. */
   save(provider: Omit<AiProvider, 'id'> & { id?: string }): AiProvider {
     const list = [...this.providers()];
     const index = provider.id ? list.findIndex((p) => p.id === provider.id) : -1;
-    const stored: AiProvider = { ...provider, id: provider.id && index >= 0 ? provider.id : newId() };
+    // the built-in provider never stores a key and always keeps its own address
+    const safe: Omit<AiProvider, 'id'> & { id?: string } = provider.builtin
+      ? { ...provider, apiKey: '', baseUrl: DEFAULT_FREE_AI.baseUrl, preset: 'free', name: DEFAULT_FREE_AI.name }
+      : provider;
+    const stored: AiProvider = { ...safe, id: provider.id && index >= 0 ? provider.id : newId() };
     if (index >= 0) {
       list[index] = stored;
     } else {

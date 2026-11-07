@@ -1,19 +1,20 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { Capacitor } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
 
+import { Place, placeByCode, splitPlace } from './places';
 import { HimalayasJob, HimalayasResponse, Job, JobPage } from './models';
 import { readJson, writeJson } from './storage';
 
 /**
  * Himalayas public jobs API (no key, about 100,000+ remote jobs).
- * On the phone the full URL is used (native HTTP, no CORS). In the browser (`ionic serve`)
- * requests go through the dev proxy in proxy.conf.json because Himalayas does not send CORS headers.
+ * On the phone the app calls it with native HTTP, which has no CORS limit, so the full list works.
+ * A browser page is blocked from calling it directly (Himalayas sends no CORS headers); the app then
+ * falls back to a second source (see BACKUP_SOURCE), so the Jobs page still has jobs.
  */
-const BASE = Capacitor.isNativePlatform() ? 'https://himalayas.app' : '/himalayas';
+const BASE = 'https://himalayas.app';
 export const JOBS_SOURCE = { name: 'Himalayas', url: 'https://himalayas.app', endpoint: 'https://himalayas.app/jobs/api' };
-export const BACKUP_SOURCE = { name: 'RemoteOK & Arbeitnow', url: 'https://remoteok.com', endpoint: 'https://remoteok.com/api' };
+export const BACKUP_SOURCE = { name: 'Remotive, Jobicy, RemoteOK & Arbeitnow', url: 'https://remotive.com', endpoint: 'https://remotive.com/api/remote-jobs' };
 
 interface RemoteOkItem {
   id?: string;
@@ -48,6 +49,39 @@ interface ArbeitnowJob {
 interface ArbeitnowResponse {
   data: ArbeitnowJob[];
   links?: { next?: string | null };
+}
+
+interface RemotiveJob {
+  id: number | string;
+  url: string;
+  title: string;
+  company_name: string;
+  company_logo?: string;
+  category?: string;
+  tags?: string[];
+  job_type?: string;
+  publication_date?: string;
+  candidate_required_location?: string;
+  salary?: string;
+  description?: string;
+}
+
+interface JobicyJob {
+  id: number | string;
+  url: string;
+  jobTitle: string;
+  companyName: string;
+  companyLogo?: string;
+  jobIndustry?: string[] | string;
+  jobType?: string[] | string;
+  jobGeo?: string;
+  jobLevel?: string;
+  jobExcerpt?: string;
+  jobDescription?: string;
+  pubDate?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency?: string;
 }
 
 export const PAGE_SIZE = 20;
@@ -88,21 +122,35 @@ export class JobService {
    * No keyword: GET /jobs/api?limit=20&offset=N (the whole feed, 100k+ jobs).
    * Keyword:    GET /jobs/api/search?q=...&page=N
    */
-  async getJobs(search = '', page = 0): Promise<JobPage> {
+  async getJobs(search = '', page = 0, country?: string): Promise<JobPage> {
+    // "developer in Manila" becomes the keyword "developer" limited to the Philippines
+    const split = country ? { query: search, place: null } : splitPlace(search);
+    const keyword = split.query;
+    const code = country ?? split.place?.code;
+    const where: Place | undefined = split.place ?? (country ? placeByCode(country) ?? undefined : undefined);
+    const place = where?.label;
+    const key = `${search}|${code ?? ''}`;
     let result: JobPage;
     if (page > 0 && this.active === 'backup') {
-      result = await this.fromBackup(search, page);
+      result = await this.fromBackup(keyword, page, where);
     } else if (page > 0) {
-      result = await this.fromHimalayas(search, page);
+      result = await this.fromHimalayas(keyword, page, code, !this.loose.has(key));
     } else {
       try {
-        result = await this.fromHimalayas(search, 0);
+        result = await this.fromHimalayas(keyword, 0, code, true);
+        this.loose.delete(key);
+        if (code && result.jobs.length === 0) {
+          // nothing only for that country: also allow remote jobs that are open to anyone
+          this.loose.add(key);
+          result = await this.fromHimalayas(keyword, 0, code, false);
+          result.loose = true;
+        }
         this.active = 'himalayas';
         this.source.set(JOBS_SOURCE);
       } catch (first) {
-        // Himalayas unreachable (no internet, or the dev proxy is not loaded): use the backup source.
+        // Himalayas unreachable (no internet, or blocked in a browser): use the backup source.
         try {
-          result = await this.fromBackup(search, 0);
+          result = await this.fromBackup(keyword, 0, where);
           this.active = 'backup';
           this.source.set(BACKUP_SOURCE);
         } catch {
@@ -110,20 +158,30 @@ export class JobService {
         }
       }
     }
+    result.place = place;
     result.jobs.forEach((j) => this.cache.set(j.id, j));
     this.persist();
     return result;
   }
 
+  /** Searches that had to include "open to anyone" jobs because the country alone gave nothing. */
+  private loose = new Set<string>();
+
   /** Which source answered last (shown in the credit line). */
   readonly source = signal(JOBS_SOURCE);
   private active: 'himalayas' | 'backup' = 'himalayas';
 
-  private async fromHimalayas(search: string, page: number): Promise<JobPage> {
+  private async fromHimalayas(search: string, page: number, country?: string, onlyCountry = false): Promise<JobPage> {
     const q = search.trim();
     let res: HimalayasResponse;
-    if (q) {
-      const params = new HttpParams().set('q', q).set('page', page + 1);
+    if (q || country) {
+      let params = new HttpParams().set('q', q).set('page', page + 1);
+      if (country) {
+        params = params.set('country', country);
+        if (onlyCountry) {
+          params = params.set('exclude_worldwide', 'true');
+        }
+      }
       res = await firstValueFrom(this.http.get<HimalayasResponse>(`${BASE}/jobs/api/search`, { params }));
     } else {
       const params = new HttpParams().set('limit', PAGE_SIZE).set('offset', page * PAGE_SIZE);
@@ -141,26 +199,90 @@ export class JobService {
    * Backup source: Arbeitnow + RemoteOK (both free and allow browser requests). They have no real search,
    * so they are loaded ONCE into a shared pool and the keyword ranks the jobs in memory.
    */
-  private async fromBackup(search: string, page: number): Promise<JobPage> {
-    const pool = await this.loadPool();
+  private async fromBackup(search: string, page: number, place?: Place): Promise<JobPage> {
+    const pool = await this.backupJobs(search, place);
     const words = search
       .toLowerCase()
       .split(/[^a-z0-9+#.]+/)
       .filter((w) => w.length > 1);
-    let list = pool;
+    // a place was named: keep jobs for that place and jobs open to anyone, never jobs tied to another country
+    const here = (j: Job) => !!place && locationMentions(j.candidate_required_location, place);
+    let list = place ? pool.filter((j) => here(j) || isWorldwide(j.candidate_required_location)) : pool;
+    // no place named: jobs open to anyone come first, region-bound ones stay in the list below them
+    const localFirst = (j: Job) => (here(j) ? 4 : 0) + (!place && isWorldwide(j.candidate_required_location) ? 2 : 0);
     if (words.length) {
-      list = pool
+      const scored = list
         .map((job) => {
-          const text = `${job.title} ${job.company_name} ${job.tags.join(' ')} ${job.category} ${plainText(job.description, 400)}`.toLowerCase();
-          const inTitle = words.filter((w) => job.title.toLowerCase().includes(w)).length;
-          return { job, score: words.filter((w) => text.includes(w)).length + inTitle };
+          const title = job.title.toLowerCase();
+          const text = `${title} ${job.company_name} ${job.tags.join(' ')} ${job.category} ${plainText(job.description, 400)}`.toLowerCase();
+          const hits = words.filter((w) => text.includes(w)).length;
+          const inTitle = words.filter((w) => title.includes(w)).length;
+          const phrase = words.length > 1 && title.includes(words.join(' ')) ? 5 : 0;
+          return { job, all: hits === words.length, score: hits + inTitle * 2 + phrase + localFirst(job) };
         })
-        .filter((x) => x.score > 0)
-        .sort((a, b) => b.score - a.score)
-        .map((x) => x.job);
+        .filter((x) => x.score > 0);
+      // every search word must appear somewhere ("graphic designer" is not "task designer"); loosen only when nothing does
+      const strict = scored.filter((x) => x.all);
+      list = (strict.length ? strict : scored).sort((a, b) => b.score - a.score).map((x) => x.job);
+    } else {
+      list = [...list].sort((a, b) => localFirst(b) - localFirst(a));
     }
     const jobs = list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-    return { jobs, total: list.length, hasMore: (page + 1) * PAGE_SIZE < list.length };
+    // none of them is only for the named place: they are remote jobs open to anyone
+    return { jobs, total: list.length, hasMore: (page + 1) * PAGE_SIZE < list.length, ...(place && !list.some(here) ? { loose: true } : {}) };
+  }
+
+  private backupCache = new Map<string, { at: number; jobs: Job[] }>();
+
+  /** Jobs from every backup source for this search, merged and without repeats (kept for a minute so paging is instant). */
+  private async backupJobs(search: string, place?: Place): Promise<Job[]> {
+    const key = `${search.toLowerCase().trim()}|${place?.code ?? ''}`;
+    const hit = this.backupCache.get(key);
+    if (hit && Date.now() - hit.at < 60000) {
+      return hit.jobs;
+    }
+    const [pool, remotive, jobicy] = await Promise.all([
+      this.loadPool().catch(() => [] as Job[]),
+      this.fromRemotive(search).catch(() => [] as Job[]),
+      this.fromJobicy(search, place).catch(() => [] as Job[]),
+    ]);
+    const seen = new Set<string>();
+    const jobs: Job[] = [];
+    for (const j of [...remotive, ...jobicy, ...pool]) {
+      const k = `${j.title}|${j.company_name}`.toLowerCase();
+      if (!seen.has(k)) {
+        seen.add(k);
+        jobs.push(j);
+      }
+    }
+    if (!jobs.length) {
+      throw new Error('Backup jobs unavailable');
+    }
+    this.backupCache.set(key, { at: Date.now(), jobs });
+    return jobs;
+  }
+
+  /** Remotive: real keyword search over remote jobs in every field, with company logos. */
+  private async fromRemotive(search: string): Promise<Job[]> {
+    let params = new HttpParams().set('limit', 100);
+    if (search.trim()) {
+      params = params.set('search', search.trim());
+    }
+    const res = await firstValueFrom(this.http.get<{ jobs?: RemotiveJob[] }>('https://remotive.com/api/remote-jobs', { params }));
+    return (res?.jobs ?? []).map(toJobFromRemotive);
+  }
+
+  /** Jobicy: remote jobs with a country filter and company logos. */
+  private async fromJobicy(search: string, place?: Place): Promise<Job[]> {
+    let params = new HttpParams().set('count', 50);
+    if (search.trim()) {
+      params = params.set('tag', search.trim().split(/\s+/).slice(0, 2).join(' '));
+    }
+    if (place) {
+      params = params.set('geo', place.label.toLowerCase().replace(/\s+/g, '-'));
+    }
+    const res = await firstValueFrom(this.http.get<{ jobs?: JobicyJob[] }>('https://jobicy.com/api/v2/remote-jobs', { params }));
+    return (res?.jobs ?? []).map(toJobFromJobicy);
   }
 
   private pool: Job[] | null = null;
@@ -266,6 +388,45 @@ function money(n: number | null | undefined, currency?: string | null): string {
   return `${currency ?? 'USD'} ${Math.round(n).toLocaleString()}`;
 }
 
+const list = (v: string[] | string | undefined): string[] => (Array.isArray(v) ? v : v ? [v] : []).map(String).filter(Boolean);
+
+/** Converts a Remotive job into the app's Job interface. */
+export function toJobFromRemotive(r: RemotiveJob): Job {
+  return {
+    id: hashId('remotive:' + r.id),
+    url: r.url,
+    title: fixText(r.title),
+    company_name: fixText(r.company_name),
+    company_logo: r.company_logo ?? '',
+    category: r.category || 'Remote',
+    tags: (r.tags ?? []).slice(0, 8),
+    job_type: (r.job_type ?? '').replace('_', ' '),
+    publication_date: r.publication_date ?? '',
+    candidate_required_location: r.candidate_required_location || 'Worldwide',
+    salary: r.salary ?? '',
+    description: fixEncoding(r.description ?? ''),
+  };
+}
+
+/** Converts a Jobicy job into the app's Job interface. */
+export function toJobFromJobicy(j: JobicyJob): Job {
+  const money = j.salaryMin && j.salaryMax ? `${j.salaryCurrency ?? 'USD'} ${Math.round(j.salaryMin).toLocaleString()} – ${Math.round(j.salaryMax).toLocaleString()}` : '';
+  return {
+    id: hashId('jobicy:' + j.id),
+    url: j.url,
+    title: fixText(j.jobTitle),
+    company_name: fixText(j.companyName),
+    company_logo: j.companyLogo ?? '',
+    category: list(j.jobIndustry)[0] ?? 'Remote',
+    tags: [j.jobLevel ?? ''].filter(Boolean),
+    job_type: list(j.jobType)[0] ?? '',
+    publication_date: j.pubDate ?? '',
+    candidate_required_location: j.jobGeo || 'Worldwide',
+    salary: money,
+    description: fixEncoding(j.jobDescription || j.jobExcerpt || ''),
+  };
+}
+
 /** Converts a RemoteOK job into the app's Job interface. */
 export function toJobFromRemoteOk(r: RemoteOkItem): Job {
   const tags = (r.tags ?? []).filter(Boolean);
@@ -273,8 +434,8 @@ export function toJobFromRemoteOk(r: RemoteOkItem): Job {
   return {
     id: hashId('remoteok:' + (r.id ?? r.slug ?? r.position)),
     url: r.apply_url || r.url || 'https://remoteok.com',
-    title: r.position ?? 'Remote job',
-    company_name: r.company ?? '',
+    title: fixText(r.position ?? 'Remote job'),
+    company_name: fixText(r.company ?? ''),
     company_logo: r.company_logo || r.logo || '',
     category: tags[0] ?? 'Remote',
     tags: tags.slice(1, 8),
@@ -282,7 +443,7 @@ export function toJobFromRemoteOk(r: RemoteOkItem): Job {
     publication_date: r.date ?? '',
     candidate_required_location: r.location || 'Worldwide',
     salary,
-    description: r.description ?? '',
+    description: fixEncoding(r.description ?? ''),
   };
 }
 
@@ -293,8 +454,8 @@ export function toJobFromArbeitnow(a: ArbeitnowJob): Job {
   return {
     id: hashId(a.slug || a.url),
     url: a.url,
-    title: a.title,
-    company_name: a.company_name,
+    title: fixText(a.title),
+    company_name: fixText(a.company_name),
     company_logo: '',
     category: tags[0] ?? 'Jobs',
     tags: tags.slice(1, 8),
@@ -302,7 +463,7 @@ export function toJobFromArbeitnow(a: ArbeitnowJob): Job {
     publication_date: a.created_at ? new Date(a.created_at * 1000).toISOString() : '',
     candidate_required_location: where || 'See posting',
     salary: '',
-    description: a.description ?? '',
+    description: fixEncoding(a.description ?? ''),
   };
 }
 
@@ -318,8 +479,8 @@ export function toJob(h: HimalayasJob): Job {
   return {
     id: hashId(h.guid || h.applicationLink || h.title + h.companyName),
     url: h.applicationLink || h.guid,
-    title: h.title,
-    company_name: h.companyName,
+    title: fixText(h.title),
+    company_name: fixText(h.companyName),
     company_logo: h.companyLogo ?? '',
     category: categories[0] ?? 'Remote',
     tags: [...new Set([...(h.seniority ?? []), ...categories.slice(1)])].slice(0, 8),
@@ -327,7 +488,7 @@ export function toJob(h: HimalayasJob): Job {
     publication_date: h.pubDate ? new Date(Number(h.pubDate) * 1000).toISOString() : '',
     candidate_required_location: location,
     salary: min && max ? `${min} – ${max} / ${h.salaryPeriod ?? 'year'}` : min || max,
-    description: h.description || h.excerpt || '',
+    description: fixEncoding(h.description || h.excerpt || ''),
   };
 }
 
@@ -346,9 +507,51 @@ export function describeHttpError(error: unknown): string {
   return 'Something went wrong while loading jobs.';
 }
 
+const CP1252: Record<number, number> = {
+  0x20ac: 0x80, 0x201a: 0x82, 0x0192: 0x83, 0x201e: 0x84, 0x2026: 0x85, 0x2020: 0x86, 0x2021: 0x87, 0x02c6: 0x88, 0x2030: 0x89,
+  0x0160: 0x8a, 0x2039: 0x8b, 0x0152: 0x8c, 0x017d: 0x8e, 0x2018: 0x91, 0x2019: 0x92, 0x201c: 0x93, 0x201d: 0x94, 0x2022: 0x95,
+  0x2013: 0x96, 0x2014: 0x97, 0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f,
+};
+
+/** Repairs text that was decoded twice ("Youâ€™ll" becomes "You’ll", "â" + two control characters becomes a dash). Tags and entities stay as they are. */
+export function fixEncoding(input: string): string {
+  const t = input ?? '';
+  if (!/[ÂÃâð][\u0080-¿€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/.test(t)) {
+    return t;
+  }
+  const bytes: number[] = [];
+  for (const c of t) {
+    const code = c.codePointAt(0)!;
+    if (code < 256) {
+      bytes.push(code);
+    } else if (CP1252[code] !== undefined) {
+      bytes.push(CP1252[code]);
+    } else {
+      // a real character outside both tables: decode the damaged stretches only, keep everything else
+      return t.replace(/[Â-ô][\u0080-¿€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]{1,3}/g, (m) => fixEncoding(m));
+    }
+  }
+  try {
+    return new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes));
+  } catch {
+    return t;
+  }
+}
+
+/** Plain title or name: repaired and with HTML entities turned into characters. */
+export function fixText(input: string): string {
+  return fixEncoding(input ?? '')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&(#39|apos);/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ');
+}
+
 /** Plain-text preview of a job description (the API returns HTML). */
 export function plainText(html: string, max = 160): string {
-  const text = (html ?? '')
+  const text = fixText(html ?? '')
     .replace(/<[^>]*>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
@@ -356,4 +559,17 @@ export function plainText(html: string, max = 160): string {
     .replace(/\s+/g, ' ')
     .trim();
   return text.length > max ? text.slice(0, max).trimEnd() + '…' : text;
+}
+
+
+/** The job's location text names this place (its country or the city the user gave). */
+export function locationMentions(location: string, place: Place): boolean {
+  const t = (location ?? '').toLowerCase();
+  return t.includes(place.label.toLowerCase()) || (!!place.city && t.includes(place.city.toLowerCase()));
+}
+
+/** The location says anyone can apply from anywhere. */
+export function isWorldwide(location: string): boolean {
+  const t = (location ?? '').toLowerCase().trim();
+  return !t || /worldwide|anywhere|global|everywhere|any location|work from anywhere/.test(t) || t === 'remote';
 }

@@ -1,20 +1,29 @@
-import { Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, untracked } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ActionSheetController, IonContent, ToastController } from '@ionic/angular/lazy';
+import { ActionSheetController, IonContent, IonTextarea, ToastController } from '@ionic/angular/lazy';
 
 import { AiService, ApiMessage, ContentPart } from '../core/ai.service';
-import { AiTaskService } from '../core/ai-task.service';
-import { JOB_TASKS, RESUME_TASKS, TaskKey } from '../core/ai-tasks';
-import { EXPORT_LABELS, exportFile } from '../core/file-export';
-import { ACCEPTED_FILES, FileReadError, formatBytes, readAttachment } from '../core/file-reader';
-import { ChatStore } from '../core/chat-store.service';
-import { DOC_LABELS, DocVerdict, jobFromText, looksLikeResume } from '../core/doc-check';
+import { AiTaskService } from '../core/aitask.service';
+import { JOB_TASKS, RESUME_TASKS, TaskKey } from '../core/aitasks';
+import { isLetterRequest, letterize, nameFromRequest, stripChatter, titleOf } from '../core/docclean';
+import { deliverBlob, exportFile, safeFileName } from '../core/fileexport';
+import { Intent, detectDesign, detectIntent, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
+import { ACCEPTED_FILES, FileReadError, formatBytes, readAttachment } from '../core/filereader';
+import { ChatStore } from '../core/chatstore.service';
+import { DOC_LABELS, DocVerdict, jobFromText, looksLikeResume } from '../core/doccheck';
 import { RecommendService } from '../core/recommend.service';
+import { ACCENTS, ResumeData, ResumeTemplate, TEMPLATES, resumeToText } from '../core/resumedata';
+import { buildResumeFile } from '../core/resumerender';
+import { ResumeDesignService } from '../core/resumedesign.service';
 import { SYSTEM_PROMPT } from '../core/defaults';
 import { JobService, describeHttpError, plainText } from '../core/job.service';
 import { renderMarkdown } from '../core/markdown';
 import { MOCK_INTERVIEW_SYSTEM, MODES, ModeInfo, modeInfo } from '../core/modes';
 import { AiError, Attachment, ChatAction, ChatMessage, ChatMode, Conversation, ExportFormat, Job, Recommendation } from '../core/models';
+import { PhotoService } from '../core/photo';
+import { findWebPhoto, isSearchableName } from '../core/webphoto';
+import { needsWeb, personFacts, searchQuery, webContext, webLookup } from '../core/websearch';
+import { Place, splitPlace } from '../core/places';
 import { ProviderService } from '../core/provider.service';
 import { ResumeService } from '../core/resume.service';
 import { SettingsService } from '../core/settings.service';
@@ -38,9 +47,21 @@ const TASK_MODE: Record<TaskKey, ChatMode> = {
 const TASK_NEEDS_JOB: TaskKey[] = ['match', 'cover', 'email', 'gap', 'interview'];
 const MAX_ATTACHMENTS = 5;
 
+/** Used when the user asks for a new document: the answer becomes the file, so it must contain nothing else. */
+const DOCUMENT_SYSTEM =
+  'You write finished documents. Output ONLY the document in clean markdown. Do NOT add a greeting, an explanation, notes to the user, ' +
+  'follow-up questions or closing remarks. Do NOT use emojis. Use only facts the user gave; for anything missing write a short [placeholder]. ' +
+  'Write in the language of the request. Make it complete, professional and ready to use.\n' +
+  'Choose the right shape for the document:\n' +
+  '- A LETTER or EMAIL (cover letter, application, resignation, recommendation, request): use the real letter format with NO title and NO section headings. ' +
+  'Write: the sender block, the date, the recipient block, "Dear [Name],", three or four body paragraphs, a closing such as "Sincerely,", then the name. ' +
+  'Keep it to one page. Put each address line on its own line.\n' +
+  '- A REPORT, PLAN, SCHEDULE, CHECKLIST, STUDY GUIDE or similar: use one # title, then ## section headings, short paragraphs and - bullets; ' +
+  'use a table only when it really helps.';
+
 /** Messages that ask the AI to find / recommend jobs from the resume. */
 const JOB_INTENT =
-  /\b(recommend|suggest|find (me )?(a |an |some |the |any )?(job|work|position|role|opening|vacanc)|get me (a |an )?(job|work)|jobs? (for|that|i|fit|suit)|work (for|that|i) |accept(ed)?|hire[d]?|my chances?|fit(s)? me|suit(s)? me|match me|which jobs?|what jobs?|where (can|should) i apply|apply (for|to))\b/i;
+  /\b(recommend|suggest|find (me )?(a |an |some |the |any )?(job|work|position|role|opening|vacanc)|find (me )?[\w\s/&-]{0,40}?\b(jobs?|work|positions?|roles?|openings?|vacanc\w+)\b|(search|look)( for)? [\w\s/&-]{0,40}?\bjobs?\b|get me (a |an )?(job|work)|jobs? (for|that|i|fit|suit|in|near|at|around)|(work|hiring|openings?|vacancies) (for|that|i|in|near|around) |i (want|need) (a |an )?(new )?(job|work)|looking for (a |an )?([\w-]+ ){0,3}(job|work)|accept(ed)?|hire[d]?|my chances?|fit(s)? me|suit(s)? me|match me|which jobs?|what jobs?|where (can|should) i apply|apply (for|to))\b/i;
 const RESUME_MODES: ChatMode[] = ['resume', 'finder', 'match', 'apply', 'gap', 'interview'];
 
 /**
@@ -56,6 +77,7 @@ const RESUME_MODES: ChatMode[] = ['resume', 'finder', 'match', 'apply', 'gap', '
 export class ChatPage implements OnDestroy {
   @ViewChild(IonContent) content?: IonContent;
   @ViewChild('filePicker') filePicker?: ElementRef<HTMLInputElement>;
+  @ViewChild('msgBox') textarea?: IonTextarea;
 
   readonly accepted = ACCEPTED_FILES;
   readonly formatBytes = formatBytes;
@@ -80,8 +102,20 @@ export class ChatPage implements OnDestroy {
   sending = signal(false);
   elapsed = signal(0);
   historyOpen = signal(false);
-  resumeOpen = signal(false);
+  /** The resume designer (layout, colour, preview, download). */
+  designerOpen = signal(false);
+  designerData = signal<ResumeData | null>(null);
+  designerDesign = signal<{ template: ResumeTemplate; accent: string } | null>(null);
+  private designerMsgId = '';
   inputText = '';
+  /** Messages written while the AI was busy; they are sent one after another when it finishes. */
+  queue = signal<{ text: string; files: Attachment[]; quote?: string }[]>([]);
+  /** The earlier message the next message replies to. */
+  replyQuote = signal<{ id: string; text: string } | null>(null);
+  /** The message being edited: sending it again replaces it and everything after it. */
+  editingId = signal<string | null>(null);
+  private quoteNext?: string;
+  private autoNext = false;
   inputError = '';
 
   info = computed<ModeInfo>(() => modeInfo(this.mode()));
@@ -116,15 +150,44 @@ export class ChatPage implements OnDestroy {
     private toast: ToastController,
     private sheets: ActionSheetController,
     private rec: RecommendService,
-  ) {}
+    private photos: PhotoService,
+    private design: ResumeDesignService,
+  ) {
+    // the chat list in the side navigation: open a chat, or start a new one
+    effect(() => {
+      const r = this.store.request();
+      if (!r) {
+        return;
+      }
+      untracked(() => {
+        this.store.request.set(null);
+        if (this.sending()) {
+          return;
+        }
+        if (r.kind === 'new') {
+          this.newChat();
+        } else {
+          const c = r.id ? this.store.get(r.id) : undefined;
+          if (c) {
+            this.openConversation(c);
+          }
+        }
+      });
+    });
+    effect(() => this.store.activeId.set(this.chat().id));
+  }
 
   ionViewWillEnter(): void {
     const params = this.route.snapshot.queryParamMap;
     const jobId = Number(params.get('jobId'));
     const task = params.get('task') as TaskKey | null;
+    const mode = params.get('mode') as ChatMode | null;
     if (jobId) {
       this.router.navigate([], { queryParams: {}, replaceUrl: true });
       this.startFromJob(jobId, task);
+    } else if (mode && (mode === 'general' || this.modes.some((m) => m.key === mode))) {
+      this.router.navigate([], { queryParams: {}, replaceUrl: true });
+      this.selectMode(mode);
     }
   }
 
@@ -172,6 +235,9 @@ export class ChatPage implements OnDestroy {
     this.job.set(undefined);
     this.mock.set(false);
     this.pending.set([]);
+    this.queue.set([]);
+    this.editingId.set(null);
+    this.replyQuote.set(null);
     this.inputText = '';
     this.inputError = '';
   }
@@ -235,15 +301,24 @@ export class ChatPage implements OnDestroy {
     }
     this.mode.set(key);
     this.mock.set(false);
+    // picking another feature replaces the last "what I can do" message instead of piling up more of them
+    const kept = [...this.chat().messages];
+    while (kept.length && kept[kept.length - 1].intro) {
+      kept.pop();
+    }
+    if (kept.length !== this.chat().messages.length) {
+      this.chat.set({ ...this.chat(), messages: kept });
+    }
     const info = modeInfo(key);
     if (key === 'general') {
+      this.persist();
       return;
     }
     let actions = info.actions;
     if (this.job()) {
       actions = actions.filter((a) => a.mode !== 'finder');
     }
-    this.push({ role: 'assistant', content: info.intro, actions });
+    this.push({ role: 'assistant', content: info.intro, actions, intro: true });
     this.scrollDown();
   }
 
@@ -283,37 +358,31 @@ export class ChatPage implements OnDestroy {
     this.inputError = '';
   }
 
-  onResumeChanged(saved: boolean): void {
-    this.push({
-      role: 'assistant',
-      content: saved
-        ? 'Resume saved on this phone. What would you like to do with it?'
-        : 'Your resume was deleted from this phone.',
-      actions: saved
-        ? [
-            { label: 'Analyze', icon: 'search', task: 'analyze' },
-            { label: 'Improve wording', icon: 'color-wand', task: 'improve' },
-            { label: 'Find jobs I can get', icon: 'rocket', command: 'recommend' },
-            { label: 'Extract skills', icon: 'list', task: 'skills' },
-          ]
-        : [],
-    });
-    this.persist();
-    this.scrollDown();
-  }
-
   // ---------- actions (buttons under assistant messages) ----------
   async onAction(a: ChatAction, m?: ChatMessage): Promise<void> {
+    if (a.url) {
+      window.open(a.url, '_blank', 'noopener');
+      return;
+    }
     if (this.sending()) {
       return;
     }
     if (a.command === 'download' && a.format && m) {
-      await this.download(m, a.format);
+      const target = a.data ? this.chat().messages.find((x) => x.id === a.data) ?? m : m;
+      await this.download(target, a.format);
+    } else if (a.command === 'downloadResume' && (a.format === 'pdf' || a.format === 'docx') && m?.resume) {
+      await this.downloadResume(m, a.format);
     } else if (a.command === 'saveResume' && a.data) {
       this.saveAsResume(a.data);
     } else if (a.command === 'more' && a.data) {
       const { q, page } = JSON.parse(a.data) as { q: string; page: number };
       await this.searchJobs(q, page, false);
+    } else if (a.command === 'design' && m?.resume) {
+      this.openDesigner(m);
+    } else if (a.command === 'pickPhoto') {
+      this.pickPhoto();
+    } else if (a.command === 'findPhotoOnline' && m?.resume) {
+      await this.editResume('add a photo from the internet', [], m);
     } else if (a.command === 'recommend') {
       await this.recommendFromSaved();
     } else if (a.command === 'askAnyway') {
@@ -321,7 +390,7 @@ export class ChatPage implements OnDestroy {
     } else if (a.command === 'useJob' && a.data) {
       this.selectJob(jobFromText(a.data));
     } else if (a.command === 'resume') {
-      this.resumeOpen.set(true);
+      this.pickResume();
     } else if (a.command === 'mock') {
       await this.startMock();
     } else if (a.mode) {
@@ -336,7 +405,7 @@ export class ChatPage implements OnDestroy {
     if (needsResume && !this.hasResume()) {
       this.push({
         role: 'assistant',
-        content: 'I need your resume first. It stays on this phone.',
+        content: 'I need your resume first. It stays on this device.',
         actions: [{ label: 'Add resume', icon: 'create', command: 'resume' }],
       });
       this.scrollDown();
@@ -360,6 +429,10 @@ export class ChatPage implements OnDestroy {
       return;
     }
     this.push({ role: 'user', content: this.actionLabel(task) });
+    if (task === 'generate') {
+      await this.designResume();
+      return;
+    }
     await this.busy(async () => {
       const out = await this.tasks.run(task, { resume: this.resume.resume(), job: this.job() });
       this.push({
@@ -372,31 +445,294 @@ export class ChatPage implements OnDestroy {
     });
   }
 
+  // ---------- make a file straight from a request ----------
+  /**
+   * The user asked for a file ("create me a resume", "write a cover letter as Word", "make this a pdf").
+   * The app writes it, builds the real PDF or Word file and downloads it right away, without asking questions.
+   */
+  private async handleCreate(text: string, files: Attachment[], intent: Intent): Promise<void> {
+    this.pending.set([]);
+    const id = newId();
+    const pictures = files.flatMap((f) => f.images ?? []);
+    if (pictures.length) {
+      this.images.set(id, pictures);
+    }
+    const message: ChatMessage = {
+      id,
+      role: 'user',
+      content: text,
+      time: Date.now(),
+      quote: this.takeQuote(),
+      auto: this.takeAuto(),
+      attachments: files.map(({ images, preview, ...rest }) => rest),
+    };
+    this.chat.set({ ...this.chat(), messages: [...this.chat().messages, message] });
+    if (intent.kind === 'convert') {
+      await this.convertLast(intent);
+    } else if (intent.kind === 'resume') {
+      await this.createResume(text, files, pictures, intent);
+    } else {
+      await this.createDocument(text, files, pictures, intent);
+    }
+  }
+
+  private otherFormats(id: string, current: string): ChatAction[] {
+    const all: { format: ExportFormat; label: string; icon: string }[] = [
+      { format: 'pdf', label: 'Get PDF', icon: 'document' },
+      { format: 'docx', label: 'Get Word', icon: 'document-text' },
+    ];
+    return all.filter((f) => f.format !== current).map((f) => ({ label: f.label, icon: f.icon, command: 'download', format: f.format, data: id }));
+  }
+
+  /** "make this a pdf": the last answer becomes a file, no AI needed. */
+  private async convertLast(intent: Intent): Promise<void> {
+    const source = [...this.chat().messages].reverse().find((m) => m.role === 'assistant' && !m.error && m.content.length > 40);
+    if (!source) {
+      this.push({ role: 'assistant', content: 'There is nothing to turn into a file yet. Ask me to write something first.' });
+      return;
+    }
+    await this.busy(async () => {
+      this.stepText.set('Creating your file…');
+      const doc = stripChatter(source.content);
+      const note = await exportFile(intent.format, titleOf(doc) ?? `SeeCareer ${new Date().toISOString().slice(0, 10)}`, doc);
+      this.push({ role: 'assistant', content: 'Done. I turned my last answer into a file.', fileNote: note, actions: this.otherFormats(source.id, intent.format) });
+    });
+  }
+
+  /** A new document (cover letter, report, schedule...): written clean, then built and downloaded. */
+  private async createDocument(text: string, files: Attachment[], pictures: string[], intent: Intent): Promise<void> {
+    await this.busy(async () => {
+      this.stepText.set('Writing your document…');
+      const fileText = files
+        .filter((f) => f.text)
+        .map((f) => `[File: ${f.name}]\n${f.text}`)
+        .join('\n\n');
+      let extra = '';
+      const job = this.job();
+      if (job) {
+        extra += `\n\nSelected job: ${job.title} at ${job.company_name}. ${plainText(job.description, 1200)}`;
+      }
+      if (this.hasResume() && /\b(my|for me|i am|i'm|mine)\b/i.test(text) && (await this.tasks.ensureConsent())) {
+        extra += `\n\nThe user's resume:\n${this.resume.resume().slice(0, 5000)}`;
+      }
+      const instructions = this.settings.settings().customInstructions.trim();
+      const system = DOCUMENT_SYSTEM + (instructions ? `\nExtra instructions from the user: ${instructions}` : '');
+      const body = text + (fileText ? `\n\nFILES:\n${fileText}` : '') + extra;
+      const content: string | ContentPart[] = pictures.length
+        ? [{ type: 'text', text: body }, ...pictures.slice(0, 3).map((url): ContentPart => ({ type: 'image_url', image_url: { url } }))]
+        : body;
+      const result = await this.ai.chat([{ role: 'system', content: system }, { role: 'user', content }], 2000, { temperature: 0.4 });
+      const cleaned = stripChatter(result.content);
+      const letter = isLetterRequest(text);
+      const doc = letter ? letterize(cleaned) : cleaned;
+      if (doc.length < 20) {
+        throw new AiError('The AI did not write a document. Please try again.', 'models');
+      }
+      const title = (letter ? undefined : titleOf(doc)) ?? nameFromRequest(text);
+      this.stepText.set('Creating your file…');
+      const note = await exportFile(intent.format, title, doc);
+      const id = newId();
+      this.push({ id, role: 'assistant', content: doc, model: result.model, fileNote: note, actions: this.otherFormats(id, intent.format) });
+    });
+  }
+
+  /** A designed resume from the request, a file the user attached, a photo of a resume, or the saved resume. */
+  private async createResume(text: string, files: Attachment[], pictures: string[], intent: Intent): Promise<void> {
+    await this.busy(async () => {
+      const fileText = files
+        .filter((f) => f.text)
+        .map((f) => f.text)
+        .join('\n\n');
+      let info = fileText;
+      let source = files.length ? 'your file' : '';
+      const person = personFromRequest(text); // "for Jahn Paul": not the user's own resume
+      const forRole = !!roleFromRequest(text) && !usesMyResume(text); // "for a nurse": a resume for that job, not the saved one
+      if (!info && !pictures.length && this.hasResume() && person === null && !forRole) {
+        info = this.resume.resume();
+        source = 'your saved resume';
+      }
+      // for a well-known person the app looks them up, so the resume holds real facts instead of placeholders
+      let publicFacts = false;
+      if (!info && !pictures.length && person) {
+        this.stepText.set(`Looking up ${person} online…`);
+        const facts = await personFacts(person);
+        if (facts) {
+          info = `Facts about ${facts.title} from Wikipedia (${facts.url}):\n${facts.text}`;
+          source = 'Wikipedia';
+          publicFacts = true;
+        }
+      }
+      const hasInfo = !!info || pictures.length > 0;
+      if (hasInfo && !publicFacts && !(await this.tasks.ensureConsent())) {
+        throw new AiError('Cancelled. The AI needs your permission to read the resume.', 'config');
+      }
+      this.stepText.set('Designing your resume…');
+      const lookIn = [...pictures, ...files.flatMap((f) => (f.preview ? [f.preview] : []))];
+      const [out, photo] = await Promise.all([
+        this.design.fromInput({
+          text: info,
+          images: pictures,
+          request: text,
+          instructions: this.settings.settings().customInstructions,
+          person: person || undefined,
+        }),
+        hasInfo && lookIn.length ? this.photos.findPhoto(lookIn) : Promise.resolve(null),
+      ]);
+      const d: ResumeData = photo ? { ...out.data, photo } : { ...out.data };
+      // what the user asked for wins, then what suits their field, then the default
+      const template = intent.template ?? d.design?.template ?? 'modern';
+      const accent = intent.accent ?? d.design?.accent ?? ACCENTS[0].hex;
+      const format = intent.format === 'docx' ? 'docx' : 'pdf';
+      // the app has no web access of its own for the AI, so a photo "from the internet" is searched here
+      let webNote = '';
+      let needPhoto = false;
+      if ((wantsPhotoAdded(text) || wantsOnlinePhoto(text)) && !d.photo) {
+        this.stepText.set('Looking for a photo online…');
+        const web = await findWebPhoto(d.name);
+        if (web) {
+          d.photo = await this.photos.fromPicture(web);
+          webNote = ` I added the Wikipedia photo of ${d.name}.`;
+        } else {
+          needPhoto = true;
+          webNote = isSearchableName(d.name) ? ` I could not find a public photo of ${d.name} online, so use the button to choose one.` : ' Use the button to choose a photo.';
+        }
+      }
+      const label = TEMPLATES.find((t) => t.key === template)?.label ?? 'Modern';
+      const actions: ChatAction[] = this.resumeActions(format);
+      const fromUpload = files.length > 0 || pictures.length > 0;
+      if (needPhoto) {
+        actions.unshift({ label: 'Choose photo', icon: 'image', command: 'pickPhoto' });
+      } else if (d.photo && webNote) {
+        actions.push({ label: 'Use my own photo', icon: 'image', command: 'pickPhoto' });
+      }
+      if (fromUpload) {
+        this.resume.save(resumeToText(d).slice(0, 12000));
+      } else if (hasInfo && !publicFacts) {
+        actions.push({ label: 'Use as my resume', icon: 'save', command: 'saveResume', data: resumeToText(d) });
+      }
+      this.push({
+        role: 'assistant',
+        model: out.model,
+        resume: d,
+        resumeDesign: { template, accent },
+        resumeFormat: format,
+        content: hasInfo
+          ? `Done. I made ${publicFacts ? `a resume for ${d.name}` : 'your resume'} from ${source} in the ${label} design${photo ? ', with your photo' : ''}.${webNote} Use a button below to download it, or open the designer to change the layout, colour or wording.`
+          : `I did not have ${person ? person + "'s" : 'your'} details yet, so I made a ready-to-fill **template** in the ${label} design with [placeholders].${webNote} ` +
+            `Send ${person ? 'their' : 'your'} details or a resume file and I will fill it in. You can also say "add picture", "make it red" or "add skill Python", then download it with a button below.`,
+        actions,
+      });
+    });
+  }
+
+  private designOf(d: ResumeData): { template: ResumeTemplate; accent: string } {
+    return { template: d.design?.template ?? 'modern', accent: d.design?.accent ?? ACCENTS[0].hex };
+  }
+
+  private async downloadResume(m: ChatMessage, format: 'pdf' | 'docx'): Promise<void> {
+    const d = m.resume;
+    if (!d) {
+      return;
+    }
+    const design = m.resumeDesign ?? this.designOf(d);
+    let message: string;
+    try {
+      message = await deliverBlob(await buildResumeFile(format, d, design.template, design.accent), `${safeFileName(d.name)} Resume.${format}`);
+    } catch {
+      message = 'Could not create the file.';
+    }
+    const t = await this.toast.create({ message, duration: 2200, position: 'top' });
+    await t.present();
+  }
+
+  /** The designer's layout or colour changed: remember it on the message. */
+  onDesignChanged(design: { template: ResumeTemplate; accent: string }): void {
+    this.designerDesign.set(design);
+    this.chat.set({
+      ...this.chat(),
+      messages: this.chat().messages.map((m) => (m.id === this.designerMsgId ? { ...m, resumeDesign: design } : m)),
+    });
+    this.persist();
+  }
+
+  // ---------- resume designer ----------
+  /** Turns the saved resume into a designed one: the AI returns structured data, the app lays it out. */
+  private async designResume(): Promise<void> {
+    await this.busy(async () => {
+      if (!(await this.tasks.ensureConsent())) {
+        throw new AiError('Cancelled. The AI needs your permission to read the resume.', 'config');
+      }
+      this.stepText.set('Designing your resume…');
+      const out = await this.design.fromText(this.resume.resume(), this.settings.settings().customInstructions);
+      const d = out.data;
+      const msg = this.push({
+        role: 'assistant',
+        model: out.model,
+        resume: d,
+        resumeDesign: this.designOf(d),
+        content:
+          `Your resume is ready: **${d.name}**${d.title ? ', ' + d.title : ''}. It has ${d.experience.length} job${d.experience.length === 1 ? '' : 's'}, ` +
+          `${d.education.length} education entr${d.education.length === 1 ? 'y' : 'ies'} and ${d.skills.reduce((n, g) => n + g.items.length, 0)} skills.\n\n` +
+          'Open the designer to pick a layout and colour, ask me to change anything, and download it as PDF or Word.',
+        resumeFormat: 'pdf',
+        actions: [...this.resumeActions('pdf'), { label: 'Use as my resume', icon: 'save', command: 'saveResume', data: resumeToText(d) }],
+      });
+      this.openDesigner(msg);
+    });
+  }
+
+  openDesigner(m: ChatMessage): void {
+    if (!m.resume) {
+      return;
+    }
+    this.designerMsgId = m.id;
+    this.designerData.set(m.resume);
+    this.designerDesign.set(m.resumeDesign ?? this.designOf(m.resume));
+    this.designerOpen.set(true);
+  }
+
+  /** The AI changed the resume inside the designer: keep the chat message in sync. */
+  onDesignerChanged(d: ResumeData): void {
+    this.designerData.set(d);
+    this.chat.set({
+      ...this.chat(),
+      messages: this.chat().messages.map((m) => (m.id === this.designerMsgId ? { ...m, resume: d } : m)),
+    });
+    this.persist();
+  }
+
+  onDesignerSave(text: string): void {
+    this.saveAsResume(text);
+  }
+
+  /** What to offer after an answer: the next useful steps, never a dead end. */
   private followUps(task: TaskKey, text = ''): ChatAction[] {
+    const resumeTool = (key: TaskKey, label: string, icon: string): ChatAction => ({ label, icon, task: key });
+    const jobTools = (skip: TaskKey[]): ChatAction[] =>
+      JOB_TASKS.filter((t) => !skip.includes(t.key)).map((t) => ({ label: t.label, icon: t.icon.replace('-outline', ''), task: t.key }));
+    const findJobs: ChatAction = { label: 'Find jobs I can get', icon: 'rocket', command: 'recommend' };
     switch (task) {
+      case 'analyze':
+        return [resumeTool('improve', 'Improve wording', 'color-wand'), resumeTool('skills', 'Extract skills', 'list'), resumeTool('generate', 'Design my resume', 'color-palette'), findJobs];
+      case 'skills':
+        return [resumeTool('analyze', 'Analyze', 'search'), resumeTool('improve', 'Improve wording', 'color-wand'), resumeTool('generate', 'Design my resume', 'color-palette'), findJobs];
       case 'generate':
       case 'improve':
         return [
           { label: 'Download PDF', icon: 'document', command: 'download', format: 'pdf' },
           { label: 'Download Word', icon: 'document-text', command: 'download', format: 'docx' },
           { label: 'Use as my resume', icon: 'save', command: 'saveResume', data: text },
+          resumeTool('generate', 'Design my resume', 'color-palette'),
         ];
       case 'match':
-        return [
-          { label: 'Cover letter', icon: 'document', task: 'cover' },
-          { label: 'Skills gap', icon: 'trending-up', task: 'gap' },
-        ];
+        return jobTools(['match']);
       case 'cover':
       case 'email':
-        return [
-          { label: 'Download PDF', icon: 'document', command: 'download', format: 'pdf' },
-          { label: task === 'cover' ? 'Email draft' : 'Cover letter', icon: 'mail', task: task === 'cover' ? 'email' : 'cover' },
-          { label: 'Interview prep', icon: 'chatbubbles', task: 'interview' },
-        ];
+        return [{ label: 'Download PDF', icon: 'document', command: 'download', format: 'pdf' }, ...jobTools([task])];
       case 'gap':
-        return [{ label: 'Interview prep', icon: 'chatbubbles', task: 'interview' }];
+        return jobTools(['gap']);
       case 'interview':
-        return [{ label: 'Start mock interview', icon: 'mic', command: 'mock' }];
+        return [{ label: 'Start mock interview', icon: 'mic', command: 'mock' }, ...jobTools(['interview'])];
       default:
         return [];
     }
@@ -432,20 +768,25 @@ export class ChatPage implements OnDestroy {
           role: 'assistant',
           content:
             page === 0
-              ? `I found **${result.total.toLocaleString()}** openings for “${query}”. Here are the first ${top.length}. Tap **Select** to match, apply or practice for one.`
+              ? `I found **${result.total.toLocaleString()}** openings for “${query}”${
+                  result.place ? (result.loose ? `. None are only for ${result.place}, so these are remote jobs that also accept people there` : ` hiring in ${result.place}`) : ''
+                }. Here are the first ${top.length}. Tap **Select** to match, apply or practice for one.`
               : `More openings for “${query}” (results ${from}–${from + top.length - 1}):`,
           jobs: top,
-          actions: result.hasMore
-            ? [{ label: 'Show more jobs', icon: 'add', command: 'more', data: JSON.stringify({ q: query, page: page + 1 }) }]
-            : [],
+          actions: [
+            ...(result.hasMore ? [{ label: 'Show more jobs', icon: 'add', command: 'more', data: JSON.stringify({ q: query, page: page + 1 }) } as ChatAction] : []),
+            ...(page === 0 ? this.localSearches(splitPlace(query).query, splitPlace(query).place) : []),
+          ],
         });
       } else {
         this.push({
           role: 'assistant',
           content:
             page === 0
-              ? `No openings found for “${query}”. Try a simpler keyword like “developer” or “design”.`
+              ? `No remote openings found${splitPlace(query).query ? ` for “${splitPlace(query).query}”` : ''}${splitPlace(query).place ? ` in ${splitPlace(query).place!.label}` : ''}.` +
+                (splitPlace(query).place ? ' My job feed only lists remote jobs, so for on-site work near that place use these searches.' : ' Try a simpler keyword like “developer” or “design”.')
               : 'No more openings for this search.',
+          actions: page === 0 ? this.localSearches(splitPlace(query).query, splitPlace(query).place) : [],
         });
       }
     } catch (e) {
@@ -463,18 +804,49 @@ export class ChatPage implements OnDestroy {
       header: 'Add to chat',
       buttons: [
         { text: 'Upload file (PDF, Word, image, text)', icon: 'attach', handler: () => this.filePicker?.nativeElement.click() },
-        { text: this.hasResume() ? 'Edit my resume' : 'Add my resume', icon: 'document-text', handler: () => this.resumeOpen.set(true) },
+        { text: this.hasResume() ? 'Upload a new resume' : 'Upload my resume', icon: 'document-text', handler: () => this.pickResume() },
+        ...(this.hasResume() ? [{ text: 'Forget my saved resume', icon: 'trash', role: 'destructive', handler: () => this.forgetResume() }] : []),
         { text: 'Cancel', role: 'cancel' },
       ],
     });
     await sheet.present();
   }
 
+  /** True when the file picker was opened for "upload my resume": the file is sent as soon as it is read. */
+  private resumePick = false;
+  private photoPick = false;
+
+  /** Opens the file picker straight away. The chosen file is read, checked and remembered as the user's resume. */
+  pickResume(): void {
+    this.resumePick = true;
+    this.filePicker?.nativeElement.click();
+  }
+
+  forgetResume(): void {
+    this.resume.clear();
+    this.push({ role: 'assistant', content: 'I forgot your saved resume. Upload a new one any time.' });
+    this.persist();
+    this.scrollDown();
+  }
+
   async onFiles(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const files = Array.from(input.files ?? []);
     input.value = '';
+    const asResume = this.resumePick;
+    this.resumePick = false;
+    const asPhoto = this.photoPick;
+    this.photoPick = false;
+    if (asPhoto) {
+      if (files[0] && !this.sending()) {
+        await this.applyPhotoFile(files[0]);
+      }
+      return;
+    }
     await this.addFiles(files);
+    if (asResume && this.pending().length && !this.inputText.trim()) {
+      await this.send(); // just the file: no words are added to the chat
+    }
   }
 
   // ---------- drag & drop and paste ----------
@@ -568,7 +940,7 @@ export class ChatPage implements OnDestroy {
   }
 
   attachmentIcon(a: Attachment): string {
-    return a.kind === 'pdf' ? 'document' : a.kind === 'docx' ? 'document-text' : a.kind === 'image' ? 'image' : 'code-slash';
+    return a.kind === 'pdf' ? 'document' : a.kind === 'docx' ? 'document-text' : a.kind === 'image' ? 'image' : a.kind === 'other' ? 'document-attach' : 'code-slash';
   }
 
   private saveAsResume(text: string): void {
@@ -588,36 +960,187 @@ export class ChatPage implements OnDestroy {
     this.resume.save(text);
     this.push({
       role: 'assistant',
-      content: 'Saved as your resume on this phone.',
+      content: 'Saved as your resume on this device.',
       actions: [
         { label: 'Analyze', icon: 'search', task: 'analyze' },
         { label: 'Find jobs I can get', icon: 'rocket', command: 'recommend' },
-        { label: 'Generate resume PDF', icon: 'document', task: 'generate' },
+        { label: 'Design my resume', icon: 'color-palette', task: 'generate' },
       ],
     });
     this.persist();
     this.scrollDown();
   }
 
-  // ---------- downloads (generate files) ----------
-  async openDownload(m: ChatMessage): Promise<void> {
-    const formats: ExportFormat[] = ['pdf', 'docx', 'txt', 'md'];
-    const sheet = await this.sheets.create({
-      header: 'Download this answer as',
-      buttons: [
-        ...formats.map((f) => ({ text: EXPORT_LABELS[f], handler: () => void this.download(m, f) })),
-        { text: 'Cancel', role: 'cancel' },
-      ],
-    });
-    await sheet.present();
+
+  // ---------- changing the resume that was just made ----------
+  /** The resume made in the last few messages, so "add picture" or "make it red" know what to change. */
+  private recentResume(): ChatMessage | undefined {
+    return this.chat()
+      .messages.slice(-3)
+      .reverse()
+      .find((m) => m.role === 'assistant' && !!m.resume);
   }
 
+  private formatOf(m: ChatMessage, text: string): 'pdf' | 'docx' {
+    if (/\b(word|docx?)\b/i.test(text)) {
+      return 'docx';
+    }
+    if (/\bpdf\b/i.test(text)) {
+      return 'pdf';
+    }
+    return m.resumeFormat ?? (/\.docx\b/i.test(m.fileNote ?? '') ? 'docx' : 'pdf');
+  }
+
+  /** The buttons under a made resume: download it in the format asked for first, the other format second, and the designer. */
+  private resumeActions(format: 'pdf' | 'docx'): ChatAction[] {
+    const other = format === 'pdf' ? 'docx' : 'pdf';
+    const name = (f: string) => (f === 'pdf' ? 'PDF' : 'Word');
+    return [
+      { label: `Download ${name(format)}`, icon: 'download', command: 'downloadResume', format },
+      { label: `Download ${name(other)}`, icon: 'document-text', command: 'downloadResume', format: other },
+      { label: 'Open designer', icon: 'color-palette', command: 'design' },
+    ];
+  }
+
+  /** Shows the changed resume in the chat. Nothing is downloaded until the user taps a download button. */
+  private async deliverResume(d: ResumeData, template: ResumeTemplate, accent: string, format: 'pdf' | 'docx', model: string | undefined, content: string): Promise<void> {
+    const withDesign = { ...d, design: { ...d.design, template, accent } };
+    this.push({
+      role: 'assistant',
+      model,
+      resume: withDesign,
+      resumeDesign: { template, accent },
+      resumeFormat: format,
+      content,
+      actions: this.resumeActions(format),
+    });
+  }
+
+  private async editResume(text: string, files: Attachment[], last: ChatMessage): Promise<void> {
+    this.pending.set([]);
+    const id = newId();
+    const pictures = files.flatMap((f) => f.images ?? []);
+    if (pictures.length) {
+      this.images.set(id, pictures);
+    }
+    this.chat.set({
+      ...this.chat(),
+      messages: [
+        ...this.chat().messages,
+        { id, role: 'user', content: text, time: Date.now(), quote: this.takeQuote(), auto: this.takeAuto(), attachments: files.map(({ images, preview, ...rest }) => rest) },
+      ],
+    });
+    const base = last.resume!;
+    const design = last.resumeDesign ?? this.designOf(base);
+    const format = this.formatOf(last, text);
+    await this.busy(async () => {
+      let d = base;
+      let template = design.template;
+      let accent = design.accent;
+      let model: string | undefined = last.model;
+      let said = '';
+      if (wantsPhotoRemoved(text)) {
+        const { photo, ...rest } = d;
+        d = rest;
+        said = 'I took the photo off your resume. Download the new version below.';
+      } else if (wantsPhotoAdded(text)) {
+        let picture = pictures[0];
+        let from = 'your photo';
+        if (!picture && isSearchableName(d.name)) {
+          this.stepText.set('Looking for a photo online…');
+          const web = await findWebPhoto(d.name);
+          if (web) {
+            picture = web;
+            from = `the Wikipedia photo of ${d.name}`;
+          } else {
+            this.push({
+              role: 'assistant',
+              content: isSearchableName(d.name)
+                ? `I looked for a public photo of ${d.name} on Wikipedia and found none. Choose a picture yourself and I will place it.`
+                : 'I need the person\'s full name to search for a photo online. Tell me the name, or choose a picture yourself.',
+              actions: [{ label: 'Choose photo', icon: 'image', command: 'pickPhoto' }],
+            });
+            return;
+          }
+        }
+        if (!picture) {
+          this.push({
+            role: 'assistant',
+            content: 'Sure. Choose the picture you want on your resume, attach it here and say "use this as my photo", or I can look for a public photo of a well-known person online.',
+            actions: [
+              { label: 'Choose photo', icon: 'image', command: 'pickPhoto' },
+              ...(isSearchableName(d.name) ? [{ label: 'Find one online', icon: 'globe', command: 'findPhotoOnline' } as ChatAction] : []),
+            ],
+          });
+          return;
+        }
+        this.stepText.set('Placing your photo…');
+        d = { ...d, photo: await this.photos.fromPicture(picture) };
+        said = `I added ${from}. Download the new version below.`;
+      } else {
+        const look = detectDesign(text);
+        if (look.template) {
+          template = look.template;
+        }
+        if (look.accent) {
+          accent = look.accent;
+        }
+        const designOnly = (look.template || look.accent) && text.length < 45;
+        if (wantsDifferentDesign(text) && !look.template) {
+          // the user wants another look but named none: the designer picks one that suits this person
+          this.stepText.set('Choosing a new design…');
+          const pick = await this.design.chooseDesign(d, text, { template, accent });
+          template = pick.template;
+          accent = look.accent ?? pick.accent;
+          said = `I switched to the ${TEMPLATES.find((t) => t.key === template)?.label} design${pick.reason ? ': ' + pick.reason.replace(/\.$/, '') : ''}. Download it below, or say "different" again for another look.`;
+        } else if (designOnly) {
+          said = `I changed the design to ${TEMPLATES.find((t) => t.key === template)?.label ?? 'your choice'}. Download the new version below.`;
+        } else {
+          if (!(await this.tasks.ensureConsent())) {
+            throw new AiError('Cancelled. The AI needs your permission to read the resume.', 'config');
+          }
+          this.stepText.set('Updating your resume…');
+          const out = await this.design.refine(d, text);
+          d = out.data;
+          model = out.model;
+          said = 'Done. I updated your resume. Download the new version below.';
+        }
+      }
+      await this.deliverResume(d, template, accent, format, model, said);
+    });
+  }
+
+  /** The "Choose photo" button: pick a picture and put it on the resume that was just made. */
+  pickPhoto(): void {
+    this.photoPick = true;
+    this.filePicker?.nativeElement.click();
+  }
+
+  private async applyPhotoFile(file: File): Promise<void> {
+    const last = this.chat().messages.slice().reverse().find((m) => m.role === 'assistant' && !!m.resume);
+    if (!last?.resume) {
+      return;
+    }
+    this.push({ role: 'user', content: `Use "${file.name}" as my photo` });
+    await this.busy(async () => {
+      this.stepText.set('Placing your photo…');
+      const picture = (await readAttachment(file)).images?.[0];
+      if (!picture) {
+        throw new AiError('That file is not a picture. Choose a JPG or PNG photo.', 'config');
+      }
+      const design = last.resumeDesign ?? this.designOf(last.resume!);
+      const d = { ...last.resume!, photo: await this.photos.fromPicture(picture) };
+      await this.deliverResume(d, design.template, design.accent, this.formatOf(last, ''), last.model, 'I added your photo. Download the new version below.');
+    });
+  }
+
+  /** The "Get Word / Get PDF" buttons under a made file. */
   private async download(m: ChatMessage, format: ExportFormat): Promise<void> {
     const heading = /^#\s+(.+)$/m.exec(m.content)?.[1];
-    const title = heading ? `${heading} Resume` : `SeeCareer ${new Date().toISOString().slice(0, 10)}`;
+    const title = heading ?? `SeeCareer ${new Date().toISOString().slice(0, 10)}`;
     let message: string;
     try {
-      message = await exportFile(format, title, m.content);
+      message = await exportFile(format, title, stripChatter(m.content));
     } catch {
       message = 'Could not create the file.';
     }
@@ -630,38 +1153,186 @@ export class ChatPage implements OnDestroy {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       this.send();
+    } else if (event.key === 'Escape') {
+      if (this.sending()) {
+        this.stop();
+      } else if (this.editingId() || this.replyQuote()) {
+        this.cancelContext();
+      }
+    } else if (event.key === 'ArrowUp' && !this.inputText && !this.sending()) {
+      const last = [...this.chat().messages].reverse().find((m) => m.role === 'user');
+      if (last) {
+        event.preventDefault();
+        this.startEdit(last);
+      }
     }
   }
 
-  async send(): Promise<void> {
+  /** Stops the answer that is being written. Messages waiting in the queue are still sent afterwards. */
+  stop(): void {
     if (this.sending()) {
+      this.ai.cancelAll();
+      this.stepText.set('Stopping…');
+    }
+  }
+
+  removeQueued(index: number): void {
+    this.queue.update((q) => q.filter((_, i) => i !== index));
+  }
+
+  /** The next message answers this one. */
+  startReply(m: ChatMessage): void {
+    const text = m.content.replace(/[*_`#>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 600);
+    if (!text) {
       return;
     }
+    this.editingId.set(null);
+    this.replyQuote.set({ id: m.id, text });
+    this.focusInput();
+  }
+
+  /** Puts a sent message back in the box. Sending it again replaces it and everything after it. */
+  startEdit(m: ChatMessage): void {
+    if (this.sending() || m.role !== 'user') {
+      return;
+    }
+    this.replyQuote.set(null);
+    this.editingId.set(m.id);
+    this.inputText = m.content;
+    this.inputError = '';
+    const pictures = [...this.imagesOf(m)];
+    this.pending.set(
+      (m.attachments ?? []).map((a) => {
+        const own: string[] = [];
+        if (a.kind === 'image' && pictures.length) {
+          own.push(pictures.shift()!);
+        } else if (!a.text && pictures.length) {
+          own.push(...pictures.splice(0));
+        }
+        return own.length ? { ...a, images: own } : a;
+      }),
+    );
+    this.focusInput();
+  }
+
+  cancelContext(): void {
+    if (this.editingId()) {
+      this.inputText = '';
+      this.pending.set([]);
+    }
+    this.editingId.set(null);
+    this.replyQuote.set(null);
+  }
+
+  /** When a sent message is being edited: drop it and everything after it before it is sent again. */
+  private applyEdit(): void {
+    const id = this.editingId();
+    if (!id) {
+      return;
+    }
+    this.editingId.set(null);
+    const list = this.chat().messages;
+    const at = list.findIndex((m) => m.id === id);
+    if (at >= 0) {
+      list.slice(at).forEach((m) => this.images.delete(m.id));
+      this.chat.set({ ...this.chat(), messages: list.slice(0, at) });
+    }
+  }
+
+  private focusInput(): void {
+    setTimeout(() => this.textarea?.setFocus?.(), 50);
+  }
+
+  /** Sends the next queued message once the AI is free. */
+  private drainQueue(): void {
+    setTimeout(() => {
+      const next = this.queue()[0];
+      if (!next || this.sending()) {
+        return;
+      }
+      this.queue.update((q) => q.slice(1));
+      this.quoteNext = next.quote;
+      void this.dispatch(next.text, next.files);
+    }, 0);
+  }
+
+  async send(): Promise<void> {
     if (this.reading()) {
       return;
     }
     const files = this.pending();
     let text = this.inputText.trim();
+    if (this.sending()) {
+      // the AI is working: keep the message and send it as soon as the AI is free
+      if ((!text && !files.length) || text.startsWith('/')) {
+        return;
+      }
+      if (!text) {
+        text = files.length === 1 ? 'Please read this file and tell me what it says.' : 'Please read these files.';
+      }
+      this.inputError = validateMessage(text);
+      if (this.inputError) {
+        return;
+      }
+      this.queue.update((q) => [...q, { text, files, quote: this.replyQuote()?.text }]);
+      this.inputText = '';
+      this.pending.set([]);
+      this.replyQuote.set(null);
+      this.scrollDown();
+      return;
+    }
     if (text.startsWith('/') && !files.length && (await this.runCommand(text))) {
       return;
     }
     if (!text && files.length) {
       text = files.length === 1 ? 'Please read this file and tell me what it says.' : 'Please read these files.';
+      this.autoNext = true; // the user sent only a file: the app's own wording is not shown in the bubble
     }
     this.inputError = validateMessage(text);
     if (this.inputError) {
+      this.autoNext = false;
       return;
     }
     this.inputText = '';
+    this.quoteNext = this.replyQuote()?.text;
+    this.replyQuote.set(null);
+    this.applyEdit();
+    await this.dispatch(text, files);
+  }
+
+  /** Sends one message (typed now, or taken from the queue) and gets the answer. */
+  private async dispatch(text: string, files: Attachment[]): Promise<void> {
+    // "create me a resume", "write a cover letter as Word", "make this a pdf": make the file and download it
+    const hasPrior = this.chat().messages.some((x) => x.role === 'assistant' && !x.error && x.content.length > 40);
+    const intent = detectIntent(text, hasPrior);
+    if (intent) {
+      await this.handleCreate(text, files, intent);
+      return;
+    }
+
+    const lastResume = this.recentResume();
+    const onlyPictures = files.every((f) => f.kind === 'image');
+    if (lastResume && isResumeEdit(text) && (!files.length || (onlyPictures && wantsPhotoAdded(text)))) {
+      await this.editResume(text, files, lastResume);
+      return;
+    }
 
     if (files.length) {
       await this.sendWithFiles(text, files);
       return;
     }
-    if (JOB_INTENT.test(text) && text.length > 12 && (this.hasResume() || /resume|cv/i.test(text))) {
+    if ((JOB_INTENT.test(text) && text.length > 12) || (looksLikeJobSearch(text) && !this.job())) {
       this.push({ role: 'user', content: text });
-      if (!this.hasResume()) {
+      // every chat has its own focus: the saved resume is used only when the user asks for it
+      const aboutResume = /\b(resume|cv|curriculum vitae)\b/i.test(text);
+      if (aboutResume && !this.hasResume()) {
         this.ready(true, false);
+        return;
+      }
+      if (!aboutResume) {
+        await this.busy(async () => {
+          await this.runRecommend('', [], undefined, this.requestText(text), false, false);
+        });
         return;
       }
       await this.busy(async () => {
@@ -673,7 +1344,7 @@ export class ChatPage implements OnDestroy {
           });
           return;
         }
-        await this.runRecommend(this.resume.resume(), [], undefined);
+        await this.runRecommend(this.resume.resume(), [], undefined, this.requestText(text));
       });
       return;
     }
@@ -682,14 +1353,17 @@ export class ChatPage implements OnDestroy {
       return;
     }
     const info = this.info();
-    if (info.needsJob && !this.job() && !this.mock()) {
-      this.push({ role: 'user', content: text });
-      this.ready(false, true);
-      return;
-    }
     this.push({ role: 'user', content: text });
     await this.busy(async () => {
-      const result = await this.ai.chat(await this.contextMessages(), this.settings.settings().maxTokens);
+      let web = '';
+      if (needsWeb(text)) {
+        this.stepText.set('Searching the web…');
+        const pages = await webLookup(searchQuery(text) || text);
+        web = pages.length
+          ? `WEB RESULTS (Wikipedia, searched just now for the user's last message):\n${webContext(pages)}`
+          : 'WEB RESULTS: the search found nothing for the last message. Say so briefly, then help from what you know.';
+      }
+      const result = await this.ai.chat(await this.contextMessages(web), Math.max(this.settings.settings().maxTokens, web ? 1000 : 0));
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -712,17 +1386,28 @@ export class ChatPage implements OnDestroy {
       role: 'user',
       content: text,
       time: Date.now(),
-      attachments: files.map(({ images, ...rest }) => rest),
+      quote: this.takeQuote(),
+      auto: this.takeAuto(),
+      attachments: files.map(({ images, preview, ...rest }) => rest),
     };
     this.chat.set({ ...this.chat(), messages: [...this.chat().messages, message] });
     const docText = files.filter((f) => f.text).map((f) => f.text).join('\n\n');
     const names = files.map((f) => f.name).join(', ');
 
     await this.busy(async () => {
+      if (!docText && !pictures.length) {
+        // nothing to read in it: skip the resume check and just reply, briefly
+        await this.replyAboutFiles({ type: 'job_related', confidence: 0, reason: '', source: 'rules' }, undefined, '', []);
+        return;
+      }
       this.stepText.set('Checking your file…');
       const verdict = await this.rec.classify(docText, pictures, names);
       const info = { type: verdict.type, label: DOC_LABELS[verdict.type], confidence: verdict.confidence, reason: verdict.reason };
       const wantsJobs = JOB_INTENT.test(text);
+      let remembered = false;
+      if (verdict.type === 'resume') {
+        remembered = await this.remember(docText, pictures);
+      }
 
       if (verdict.type === 'not_job_related' && this.jobIntent(text)) {
         this.push({
@@ -752,10 +1437,10 @@ export class ChatPage implements OnDestroy {
         return;
       }
       if (verdict.type === 'resume' && (wantsJobs || this.mode() === 'finder')) {
-        await this.runRecommend(docText, pictures, info);
+        await this.runRecommend(docText, pictures, info, this.requestText(text), remembered);
         return;
       }
-      await this.replyAboutFiles(verdict, info, docText, pictures);
+      await this.replyAboutFiles(verdict, info, docText, pictures, remembered);
     });
   }
 
@@ -765,22 +1450,55 @@ export class ChatPage implements OnDestroy {
     info: ChatMessage['verdict'],
     docText: string,
     pictures: string[],
+    remembered = false,
   ): Promise<void> {
     this.stepText.set('Reading your file…');
-    const result = await this.ai.chat(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 1000));
+    const hint =
+      verdict.type === 'resume'
+        ? ''
+        : `The attached file is a ${DOC_LABELS[verdict.type].toLowerCase()}. Respond to it on its own terms: say briefly what it is and what you can do with it (review it, improve it, rewrite it, summarize it, turn it into a PDF or Word file). ` +
+          'Do not compare it to a resume and do not say it is the wrong kind of file.';
+    const result = await this.ai.chat(await this.contextMessages(hint), Math.max(this.settings.settings().maxTokens, 1000));
     const actions: ChatAction[] = [];
     if (verdict.type === 'resume') {
-      if (docText) {
-        actions.push({ label: 'Save as my resume', icon: 'save', command: 'saveResume', data: docText });
-      } else if (pictures.length) {
-        actions.push({ label: 'Save this text as my resume', icon: 'save', command: 'saveResume', data: result.content });
-      }
       actions.push(
         { label: 'Find jobs I can get', icon: 'rocket', command: 'recommend' },
-        { label: 'Generate resume PDF', icon: 'document', task: 'generate' },
+        { label: 'Design my resume', icon: 'color-palette', task: 'generate' },
       );
     }
-    this.push({ role: 'assistant', content: result.content, model: result.model, actions, verdict: info });
+    const note = verdict.type === 'resume' && remembered ? '\n\n_I saved this as your resume, so I will remember it in every chat. Upload a new one any time to replace it._' : '';
+    this.push({ role: 'assistant', content: result.content + note, model: result.model, actions, verdict: info });
+  }
+
+  /**
+   * Saves a resume the user sent so the assistant remembers it from now on.
+   * A photo of a resume is first written out as text. Returns false when nothing could be saved.
+   */
+  private async remember(docText: string, pictures: string[]): Promise<boolean> {
+    try {
+      let text = docText;
+      if (!text && pictures.length) {
+        this.stepText.set('Remembering your resume…');
+        text = await this.rec.transcribe(pictures);
+      }
+      text = text.trim().slice(0, 12000);
+      if (!text || validateResume(text)) {
+        return false;
+      }
+      this.resume.save(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** The user's wishes for the job search: this message plus the last few they wrote ("I want to work in Cebu"). */
+  private requestText(text: string): string {
+    const earlier = this.chat()
+      .messages.filter((m) => m.role === 'user' && m.content && m.content !== text)
+      .slice(-3)
+      .map((m) => m.content.slice(0, 300));
+    return [...earlier, text].join('\n');
   }
 
   async askAnyway(): Promise<void> {
@@ -814,28 +1532,77 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  private async runRecommend(resumeText: string, pictures: string[], info?: ChatMessage['verdict']): Promise<void> {
-    if (!(await this.tasks.ensureConsent())) {
+  private async runRecommend(resumeText: string, pictures: string[], info?: ChatMessage['verdict'], request = '', remembered = false, fromResume = true): Promise<void> {
+    if (fromResume && !(await this.tasks.ensureConsent())) {
       this.push({ role: 'assistant', content: 'OK. I need your permission to read the resume before I can recommend jobs.' });
       return;
     }
-    const out = await this.rec.recommend(resumeText, pictures, (t) => this.stepText.set(t));
+    const out = await this.rec.recommend(resumeText, pictures, (t) => this.stepText.set(t), request);
+    if (!out.recs.length) {
+      const role = out.profile.titles[0] ?? '';
+      this.push({
+        role: 'assistant',
+        verdict: info,
+        content:
+          (out.searched === 0
+            ? `I found no remote openings${role ? ` for ${/^[aeiou]/i.test(role) ? 'an' : 'a'} ${role}` : ''}${out.profile.place ? ` in ${out.profile.place.city ? out.profile.place.city + ', ' : ''}${out.profile.place.label}` : ''}. `
+            : `I looked through **${out.searched}** live openings${out.profile.place ? ` for ${out.profile.place.city ? out.profile.place.city + ', ' : ''}${out.profile.place.label}` : ''} and none of them fits ${role ? `${/^[aeiou]/i.test(role) ? 'an' : 'a'} ${role}` : 'this profile'} well enough to recommend. `) +
+          'My job feed lists remote jobs only, so the buttons below open Indeed, LinkedIn and JobStreet already searching for you. You can also browse the full job board.',
+        actions: [...this.localSearches(role, out.profile.place), { label: 'Browse the job board', icon: 'briefcase', mode: 'finder' }],
+      });
+      return;
+    }
     const top = out.recs[0];
     this.push({
       role: 'assistant',
       verdict: info,
       recs: out.recs,
       content:
-        `I read your resume (${out.profile.summary || out.profile.titles[0]}) and checked **${out.searched}** live openings. ` +
-        `Here are the **${out.recs.length} best fits**, strongest first` +
+        (fromResume
+          ? `I read your resume (${out.profile.summary || out.profile.titles[0]}) and checked`
+          : `Based on what you told me (${out.profile.summary || out.profile.titles[0]}), I checked`) +
+        ` **${out.searched}** live openings` +
+        (out.profile.place
+          ? out.loose
+            ? ` for **${out.profile.place.label}**. There were none only for ${out.profile.place.label}, so these are remote jobs that also accept people there. `
+            : ` hiring in **${out.profile.place.label}**. `
+          : '. ') +
+        (out.profile.place?.city ? `My job feed has remote jobs only, so for work in ${out.profile.place.city} itself the buttons below open Indeed, LinkedIn and JobStreet already searching there. ` : '') +
+        (remembered ? 'I saved your resume, so you do not need to send it again. ' : '') +
+        (out.recs.length === 1 ? 'Here is the **best fit**' : `Here are the **${out.recs.length} best fits**, strongest first`) +
         (top ? ` (top match: **${top.job.title}**, ${top.score}% fit)` : '') +
         '. Swipe through them.\n\n' +
         '_The fit % is my estimate from your skills vs. the job. It is not a guarantee, but jobs with a high fit are the ones to apply for first._',
       actions: [
         { label: 'Find more jobs', icon: 'search', mode: 'finder' },
-        { label: 'Improve my resume', icon: 'color-wand', task: 'improve' },
+        ...this.localSearches(out.profile.titles[0] ?? '', out.profile.place),
+        ...(fromResume ? [{ label: 'Improve my resume', icon: 'color-wand', task: 'improve' } as ChatAction] : []),
       ],
     });
+  }
+
+  /**
+   * The job feed has remote jobs only. For on-site work near a place the user named, these buttons open the
+   * big job sites already searching for that role and place.
+   */
+  private localSearches(role: string, place: Place | null | undefined): ChatAction[] {
+    if (!place) {
+      return [];
+    }
+    const where = place.city ? `${place.city}, ${place.label}` : place.label;
+    const q = encodeURIComponent(role.trim());
+    const w = encodeURIComponent(where);
+    const slug = (t: string) => t.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const host = place.code === 'US' ? 'www' : place.code.toLowerCase();
+    const links: ChatAction[] = [
+      { label: 'Indeed', icon: 'open', url: `https://${host}.indeed.com/jobs?q=${q}&l=${w}` },
+      { label: 'LinkedIn', icon: 'open', url: `https://www.linkedin.com/jobs/search/?keywords=${q}&location=${w}` },
+    ];
+    if (place.code === 'PH') {
+      const area = slug(place.city ?? place.label);
+      links.unshift({ label: 'JobStreet', icon: 'open', url: role.trim() ? `https://ph.jobstreet.com/${slug(role)}-jobs/in-${area}` : `https://ph.jobstreet.com/jobs/in-${area}` });
+    }
+    return links.map((l) => ({ ...l, label: `${l.label}: ${role.trim() || 'jobs'} in ${where}` }));
   }
 
   skillPct(r: Recommendation): number {
@@ -855,10 +1622,13 @@ export class ChatPage implements OnDestroy {
   }
 
   /** Builds what is sent to the AI: instructions, resume/job context for this mode, and recent messages. */
-  private async contextMessages(): Promise<ApiMessage[]> {
+  private async contextMessages(extraSystem = ''): Promise<ApiMessage[]> {
     const info = this.info();
     const job = this.job();
-    let system = SYSTEM_PROMPT;
+    let system = SYSTEM_PROMPT + '\n\nReply in the language the user writes in (English unless they write in another language), not in the language of an attached file.';
+    if (extraSystem) {
+      system += `\n\n${extraSystem}`;
+    }
     const extra = this.settings.settings().customInstructions.trim();
     if (extra) {
       system += `\n\nExtra instructions from the user: ${extra}`;
@@ -868,14 +1638,21 @@ export class ChatPage implements OnDestroy {
     } else if (info.system) {
       system += `\n\n${info.system}`;
     }
+    if (info.needsJob && !job && !this.mock()) {
+      system += "\n\nNo job is selected. Work from the role or company the user names in their messages. If they name none, ask which role they mean in one short question.";
+    }
     if (job && this.mode() !== 'finder') {
       system +=
         `\n\nSelected job: ${job.title} at ${job.company_name} (${job.category}, ${job.job_type}). ` +
         `Description: ${plainText(job.description, 1500)}`;
     }
     const wantsResume = (info.needsResume || this.mock()) && this.hasResume();
-    if (wantsResume && (await this.tasks.ensureConsent())) {
-      system += `\n\nThe user's resume:\n${this.resume.resume().slice(0, 6000)}`;
+    const recentUser = this.chat().messages.filter((m) => m.role === 'user').slice(-3).map((m) => m.content).join(' ');
+    const asked = this.hasResume() && this.resume.consent() && /\b(my|saved|the)\s+(resume|cv)\b|\bfrom my (resume|cv)\b/i.test(recentUser);
+    if ((wantsResume && (await this.tasks.ensureConsent())) || asked) {
+      system +=
+        `\n\nThe user's saved resume is below. Use it because this conversation is about it. ` +
+        `Do NOT mention their name or details beyond what the request needs. If you need more information from them, ask a short question.\n${this.resume.resume().slice(0, 6000)}`;
     }
     const recent = this.chat().messages.filter((m) => !m.error && m.content).slice(-20);
     const lastUser = [...recent].reverse().find((m) => m.role === 'user');
@@ -883,11 +1660,13 @@ export class ChatPage implements OnDestroy {
       if (m.role !== 'user') {
         return { role: 'assistant', content: m.content.slice(0, 3000) };
       }
-      let body = m.content.slice(0, 3000);
+      let body = (m.quote ? `(The user is replying to this earlier message: "${m.quote}")\n` : '') + m.content.slice(0, 3000);
       for (const a of m.attachments ?? []) {
         body += a.text
           ? `\n\n[Attached file: ${a.name}]\n${a.text}`
-          : `\n\n[Attached ${a.kind === 'image' ? 'image' : 'scanned file'}: ${a.name}]`;
+          : a.note
+            ? `\n\n[Attached file: ${a.note}]`
+            : `\n\n[Attached ${a.kind === 'image' ? 'image' : 'scanned file'}: ${a.name}]`;
       }
       const pictures = m === lastUser ? this.imagesOf(m) : [];
       if (!pictures.length) {
@@ -902,13 +1681,35 @@ export class ChatPage implements OnDestroy {
     if (recent.some((m) => m.attachments?.length)) {
       system += '\n\nThe user can attach files. Read their content carefully and answer about it.';
     }
+    if (recent.some((m) => m.attachments?.some((a) => a.note && !a.text && a.kind !== 'image'))) {
+      system +=
+        '\n\nSome attached files could not be shown to you; only their name, type and size are known. Do not explain limitations and do not list file types. ' +
+        'Reply in one or two short sentences: say what the file seems to be from its name and type, and ask in one line what the user would like to do with it.';
+    }
     return [{ role: 'system', content: system }, ...history];
   }
 
   // ---------- shared plumbing ----------
-  private push(m: Partial<ChatMessage> & Pick<ChatMessage, 'role' | 'content'>): void {
+  private push(m: Partial<ChatMessage> & Pick<ChatMessage, 'role' | 'content'>): ChatMessage {
     const message: ChatMessage = { id: newId(), time: Date.now(), ...m };
+    if (m.role === 'user') {
+      message.quote = this.takeQuote();
+      message.auto = this.takeAuto();
+    }
     this.chat.set({ ...this.chat(), messages: [...this.chat().messages, message] });
+    return message;
+  }
+
+  private takeAuto(): boolean | undefined {
+    const a = this.autoNext;
+    this.autoNext = false;
+    return a || undefined;
+  }
+
+  private takeQuote(): string | undefined {
+    const q = this.quoteNext;
+    this.quoteNext = undefined;
+    return q;
   }
 
   private persist(): void {
@@ -926,13 +1727,20 @@ export class ChatPage implements OnDestroy {
     try {
       await work();
     } catch (e) {
-      const message = e instanceof AiError ? e.message : 'Something went wrong. Please try again.';
-      this.push({ role: 'assistant', content: message, error: true });
+      if (e instanceof AiError && e.kind === 'cancelled') {
+        this.push({ role: 'assistant', content: 'Stopped.' });
+      } else if (e instanceof AiError && e.kind === 'needinfo') {
+        this.push({ role: 'assistant', content: e.message }); // the AI needs more information: it simply asks
+      } else {
+        const message = e instanceof AiError ? e.message : 'Something went wrong. Please try again.';
+        this.push({ role: 'assistant', content: message, error: true });
+      }
     } finally {
       clearInterval(this.timer);
       this.sending.set(false);
       this.persist();
       this.scrollDown();
+      this.drainQueue();
     }
   }
 
@@ -948,7 +1756,7 @@ export class ChatPage implements OnDestroy {
         return true;
       case '/resume':
         this.inputText = '';
-        this.resumeOpen.set(true);
+        this.pickResume();
         return true;
       case '/settings':
         this.inputText = '';

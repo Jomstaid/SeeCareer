@@ -1,0 +1,577 @@
+// A sheet of paper: always dark text on white, whatever the app theme is.
+:host {
+  display: block;
+  container-type: inline-size; // the layout reacts to the width of the preview, not of the screen
+}
+
+.sheet {
+  --accent: #0369a1;
+  width: 100%;
+  max-width: 680px;
+  margin-inline: auto;
+  background: #fff;
+  color: #1f2937;
+  font-family: var(--sc-font);
+  font-size: 12.5px;
+  line-height: 1.45;
+  border: 1px solid #d5dde6;
+  border-radius: 4px;
+  overflow: hidden;
+  box-sizing: border-box;
+
+  h1,
+  h2,
+  p,
+  ul {
+    margin: 0;
+  }
+
+  ul {
+    padding-left: 16px;
+    margin-bottom: 4px;
+  }
+
+  li {
+    margin: 1px 0;
+  }
+
+  li::marker {
+    color: var(--accent);
+  }
+
+  .entry {
+    margin-bottom: 9px;
+    break-inside: avoid;
+  }
+
+  .sub {
+    font-style: italic;
+    color: #5b6573;
+    font-size: 12px;
+  }
+
+  .row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .dates {
+    flex: none;
+    color: #5b6573;
+    font-size: 12px;
+  }
+
+  .line {
+    margin-bottom: 4px;
+    word-break: break-word;
+  }
+
+  .skill {
+    margin-bottom: 4px;
+  }
+
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 8px;
+
+    span {
+      padding: 1px 7px;
+      font-size: 10.5px;
+      border: 1px solid var(--accent);
+      border-radius: 9px;
+      background: #fff;
+    }
+  }
+
+  .photo {
+    flex: none;
+    width: 64px;
+    height: 64px;
+    object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+  }
+
+  // ----- modern: colour header + side column -----
+  &.modern {
+    .band {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      border-bottom: 4px solid color-mix(in srgb, var(--accent) 75%, #000);
+
+      .photo {
+        width: 70px;
+        height: 70px;
+        border: 3px solid #fff;
+      }
+
+      background: var(--accent);
+      color: #fff;
+      padding: 22px 26px 18px;
+
+      h1 {
+        font-family: var(--sc-font-head);
+        font-size: 25px;
+        font-weight: 700;
+        line-height: 1.15;
+      }
+
+      p {
+        margin-top: 4px;
+        font-size: 14px;
+        opacity: 0.92;
+      }
+    }
+
+    .cols {
+      display: grid;
+      grid-template-columns: 31% 1fr;
+    }
+
+    aside {
+      background: color-mix(in srgb, var(--accent) 9%, #fff);
+      padding: 14px 14px 18px 18px;
+      font-size: 11.5px;
+    }
+
+    .main {
+      padding: 14px 22px 22px 22px;
+    }
+
+    h2 {
+      margin: 12px 0 7px;
+      padding-bottom: 3px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border-bottom: 1.5px solid var(--accent);
+    }
+
+    h2:first-child {
+      margin-top: 0;
+    }
+  }
+
+  // ----- classic: one column, serif -----
+  &.classic {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 13px;
+    color: #000;
+
+    .head {
+      text-align: center;
+      padding: 26px 30px 6px;
+
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      .job {
+        font-style: italic;
+        color: #444;
+        font-size: 14px;
+      }
+
+      .contact {
+        margin-top: 3px;
+        font-size: 11.5px;
+        color: #444;
+      }
+    }
+
+    .main {
+      padding: 4px 30px 28px;
+    }
+
+    h2 {
+      margin: 12px 0 7px;
+      padding-bottom: 2px;
+      font-size: 12.5px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border-bottom: 1px solid #000;
+    }
+  }
+
+  // ----- minimal: clean with space -----
+  &.minimal {
+    .head {
+      padding: 30px 34px 6px;
+
+      h1 {
+        font-family: var(--sc-font-head);
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .job {
+        margin-top: 4px;
+        font-size: 14.5px;
+        color: var(--accent);
+      }
+
+      .contact {
+        margin-top: 6px;
+        font-size: 11.5px;
+        color: #6b7480;
+      }
+    }
+
+    .main {
+      padding: 6px 34px 32px;
+    }
+
+    h2 {
+      margin: 18px 0 8px;
+      font-size: 10.5px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+  }
+
+  // ----- bold: dark side column with the photo and the name -----
+  &.bold {
+    .cols {
+      display: grid;
+      grid-template-columns: 33% 1fr;
+    }
+
+    aside {
+      background: #171c28;
+      color: #e8edf6;
+      padding: 22px 16px 22px 18px;
+      font-size: 11.5px;
+
+      h2 {
+        margin: 14px 0 6px;
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: color-mix(in srgb, var(--accent) 45%, #fff);
+      }
+
+      .sidewho {
+        text-align: center;
+        margin-bottom: 8px;
+
+        .photo {
+          width: 92px;
+          height: 92px;
+          border: 3px solid var(--accent);
+          margin-bottom: 12px;
+        }
+
+        h1 {
+          font-family: var(--sc-font-head);
+          font-size: 20px;
+          line-height: 1.15;
+          color: #fff;
+          text-align: left;
+        }
+
+        p {
+          margin-top: 5px;
+          text-align: left;
+          font-size: 11px;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: color-mix(in srgb, var(--accent) 50%, #fff);
+        }
+      }
+
+      .pills span {
+        background: #262e40;
+        color: #ecf0f7;
+        border-color: color-mix(in srgb, var(--accent) 85%, #fff);
+      }
+    }
+
+    .main {
+      padding: 22px 22px 22px 22px;
+    }
+
+    .main h2 {
+      margin: 12px 0 7px;
+      padding-left: 9px;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border-left: 3px solid var(--accent);
+    }
+  }
+
+  // ----- creative: big colour column, large name, rounded labels -----
+  &.creative {
+    .cols {
+      display: grid;
+      grid-template-columns: 35% 1fr;
+    }
+
+    aside {
+      background: var(--accent);
+      color: #fff;
+      padding: 22px 16px 22px 18px;
+      font-size: 11.5px;
+      border-right: 4px solid color-mix(in srgb, var(--accent) 80%, #000);
+
+      h2 {
+        margin: 14px 0 6px;
+        font-size: 10.5px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: #fff;
+        border-bottom: 1.5px solid rgba(255, 255, 255, 0.5);
+        padding-bottom: 3px;
+      }
+
+      .sidewho {
+        text-align: center;
+        margin-bottom: 10px;
+
+        .photo {
+          width: 104px;
+          height: 104px;
+          border: 3px solid #fff;
+        }
+      }
+
+      .slist {
+        margin: 0 0 8px;
+        padding: 0;
+        list-style: none;
+
+        li {
+          position: relative;
+          padding-left: 11px;
+          margin: 2px 0;
+
+          &::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0.5em;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.75);
+          }
+        }
+      }
+    }
+
+    .main {
+      padding: 22px 22px 22px 24px;
+    }
+
+    .big {
+      margin-bottom: 6px;
+
+      h1 {
+        font-family: var(--sc-font-head);
+        font-size: 33px;
+        line-height: 1.05;
+        color: var(--accent);
+      }
+
+      p {
+        margin-top: 8px;
+        font-size: 12.5px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: #5b6573;
+      }
+
+      i {
+        display: block;
+        width: 46px;
+        height: 4px;
+        margin-top: 10px;
+        background: var(--accent);
+      }
+    }
+
+    .main h2 {
+      display: inline-block;
+      margin: 14px 0 8px;
+      padding: 3px 13px;
+      border-radius: 99px;
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: #fff;
+      background: var(--accent);
+    }
+  }
+
+  // ----- executive: confident, heavy rule under the header -----
+  &.executive {
+    .head {
+      padding: 26px 32px 14px;
+      margin: 0 0 4px;
+      border-bottom: 3px solid var(--accent);
+      margin-inline: 32px;
+      padding-inline: 0;
+
+      h1 {
+        font-family: var(--sc-font-head);
+        font-size: 29px;
+        font-weight: 700;
+        line-height: 1.1;
+      }
+
+      .job {
+        margin-top: 5px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      .contact {
+        margin-top: 6px;
+        font-size: 11px;
+        color: #6b7480;
+      }
+
+      .photo {
+        border-radius: 0;
+        border: 1.5px solid var(--accent);
+      }
+    }
+
+    .main {
+      padding: 6px 32px 30px;
+    }
+
+    h2 {
+      margin: 16px 0 8px;
+      padding-bottom: 3px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border-bottom: 1px solid color-mix(in srgb, var(--accent) 45%, #fff);
+    }
+  }
+
+  // ----- elegant: centred serif with fine lines -----
+  &.elegant {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 13px;
+    color: #26262a;
+
+    .head {
+      flex-direction: column-reverse;
+      justify-content: center;
+      text-align: center;
+      padding: 28px 34px 6px;
+      gap: 10px;
+
+      .photo {
+        border: 2px solid color-mix(in srgb, var(--accent) 55%, #fff);
+      }
+
+      h1 {
+        font-size: 29px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .job {
+        font-style: italic;
+        color: #66605c;
+        font-size: 14px;
+        margin-top: 2px;
+      }
+
+      .contact {
+        margin-top: 10px;
+        padding-top: 8px;
+        font-size: 11.5px;
+        color: #66605c;
+        border-top: 1px solid var(--accent);
+      }
+    }
+
+    .main {
+      padding: 6px 34px 30px;
+    }
+
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0 8px;
+      font-size: 11.5px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--accent);
+
+      &::before,
+      &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: color-mix(in srgb, var(--accent) 45%, #fff);
+      }
+    }
+  }
+}
+
+@container (max-width: 560px) {
+  .sheet {
+    font-size: 12px;
+
+    &.modern .cols,
+    &.bold .cols,
+    &.creative .cols {
+      grid-template-columns: 1fr;
+    }
+
+    &.modern aside,
+    &.bold aside,
+    &.creative aside {
+      padding: 12px 18px;
+    }
+
+    &.modern .band {
+      padding: 18px 20px 14px;
+    }
+
+    &.modern .main,
+    &.bold .main,
+    &.creative .main,
+    &.classic .main,
+    &.minimal .main,
+    &.executive .main,
+    &.elegant .main {
+      padding-inline: 20px;
+    }
+
+    &.classic .head,
+    &.minimal .head,
+    &.elegant .head {
+      padding-inline: 20px;
+    }
+
+    &.executive .head {
+      margin-inline: 20px;
+    }
+  }
+}

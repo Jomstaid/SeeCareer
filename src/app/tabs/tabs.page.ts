@@ -1,10 +1,17 @@
 import { Component } from '@angular/core';
+import { Router } from '@angular/router';
+
+import { ChatStore } from '../core/chatstore.service';
+import { Conversation } from '../core/models';
 
 interface NavItem {
   tab: string;
   path: string;
   label: string;
   icon: string;
+  /** One line shown in the side navigation so each place is clear. */
+  hint: string;
+  group: 'work' | 'app';
 }
 
 /** Main navigation: bottom tab bar on phones/tablets, side navigation on laptops and desktops. */
@@ -15,10 +22,56 @@ interface NavItem {
   standalone: false,
 })
 export class TabsPage {
+  constructor(
+    public store: ChatStore,
+    private router: Router,
+  ) {}
+
   readonly items: NavItem[] = [
-    { tab: 'chat', path: '/tabs/chat', label: 'AI Chat', icon: 'chatbubbles-outline' },
-    { tab: 'home', path: '/tabs/home', label: 'Jobs', icon: 'briefcase-outline' },
-    { tab: 'settings', path: '/tabs/settings', label: 'Settings', icon: 'options-outline' },
-    { tab: 'about', path: '/tabs/about', label: 'About', icon: 'people-outline' },
+    { tab: 'chat', path: '/tabs/chat', label: 'Assistant', icon: 'sparkles-outline', hint: 'Chat, resume, matching, interview', group: 'work' },
+    { tab: 'home', path: '/tabs/home', label: 'Job board', icon: 'briefcase-outline', hint: 'Browse and search all openings', group: 'work' },
+    { tab: 'settings', path: '/tabs/settings', label: 'Settings', icon: 'options-outline', hint: 'AI providers, theme, data', group: 'app' },
+    { tab: 'about', path: '/tabs/about', label: 'About', icon: 'people-outline', hint: 'Our group', group: 'app' },
   ];
+
+  get work(): NavItem[] {
+    return this.items.filter((i) => i.group === 'work');
+  }
+
+  get app(): NavItem[] {
+    return this.items.filter((i) => i.group === 'app');
+  }
+
+  /** Saved chats grouped like ChatGPT: Today, Yesterday, Earlier. */
+  get groups(): { label: string; chats: Conversation[] }[] {
+    const startOfToday = new Date().setHours(0, 0, 0, 0);
+    const day = 86400000;
+    const buckets: { label: string; chats: Conversation[] }[] = [
+      { label: 'Today', chats: [] },
+      { label: 'Yesterday', chats: [] },
+      { label: 'Earlier', chats: [] },
+    ];
+    for (const c of this.store.conversations()) {
+      buckets[c.updated >= startOfToday ? 0 : c.updated >= startOfToday - day ? 1 : 2].chats.push(c);
+    }
+    return buckets.filter((b) => b.chats.length);
+  }
+
+  async newChat(): Promise<void> {
+    this.store.requestNew();
+    await this.router.navigateByUrl('/tabs/chat');
+  }
+
+  async openChat(c: Conversation): Promise<void> {
+    this.store.requestOpen(c.id);
+    await this.router.navigateByUrl('/tabs/chat');
+  }
+
+  deleteChat(c: Conversation, event: Event): void {
+    event.stopPropagation();
+    this.store.remove(c.id);
+    if (this.store.activeId() === c.id) {
+      this.store.requestNew();
+    }
+  }
 }

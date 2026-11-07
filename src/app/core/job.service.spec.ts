@@ -77,3 +77,37 @@ describe('toJob / helpers', () => {
     expect(plainText('a'.repeat(300), 10).length).toBe(11);
   });
 });
+
+describe('fixText', () => {
+  it('repairs text that was decoded twice and decodes entities', async () => {
+    const { fixText } = await import('./job.service');
+    expect(fixText('weâ\u0080\u0099re hiring')).toBe('we’re hiring');
+    expect(fixText('Entry Level Scheduling &amp; Coordinating')).toBe('Entry Level Scheduling & Coordinating');
+    expect(fixText('Plain title')).toBe('Plain title');
+    expect(fixText('Café manager')).toBe('Café manager');
+  });
+});
+
+describe('fixEncoding', () => {
+  it('repairs the Windows-1252 kind of damage and leaves tags alone', async () => {
+    const { fixEncoding } = await import('./job.service');
+    expect(fixEncoding('<p>You\u00e2\u20ac\u2122ll work with us \u00e2\u20ac\u201c remote</p>')).toBe('<p>You\u2019ll work with us \u2013 remote</p>');
+    expect(fixEncoding('<p>Fine &amp; clean</p>')).toBe('<p>Fine &amp; clean</p>');
+    expect(fixEncoding('Caf\u00e9 \u2019 ok')).toBe('Caf\u00e9 \u2019 ok');
+  });
+});
+
+describe('jobs for a named place', () => {
+  it('matches the country or city in the location and knows worldwide jobs', async () => {
+    const { locationMentions, isWorldwide } = await import('./job.service');
+    const ph = { label: 'Philippines', code: 'PH', city: 'Nueva Ecija' };
+    expect(locationMentions('Philippines, Indonesia', ph)).toBe(true);
+    expect(locationMentions('Cabanatuan, Nueva Ecija', ph)).toBe(true);
+    expect(locationMentions('Texas,', ph)).toBe(false);
+    expect(locationMentions('Hamburg, Hamburg, Deutschland', ph)).toBe(false);
+    expect(locationMentions('Anywhere in the World', { label: 'India', code: 'IN' })).toBe(false); // "in" is not India
+    expect(isWorldwide('Anywhere in the World')).toBe(true);
+    expect(isWorldwide('Worldwide')).toBe(true);
+    expect(isWorldwide('Texas,')).toBe(false);
+  });
+});

@@ -1,0 +1,211 @@
+<div class="sheet {{ template }}" [style.--accent]="accent">
+  @if (isSide) {
+    @if (template === 'modern') {
+      <header class="band">
+        <div class="who">
+          <h1>{{ data.name }}</h1>
+          <p>{{ data.title }}</p>
+        </div>
+        @if (data.photo) {
+          <img class="photo" [src]="data.photo" alt="" />
+        }
+      </header>
+    }
+    <div class="cols">
+      <aside>
+        @if (template !== 'modern') {
+          <div class="sidewho">
+            @if (data.photo) {
+              <img class="photo" [src]="data.photo" alt="" />
+            }
+            @if (template === 'bold') {
+              <h1>{{ data.name }}</h1>
+              <p>{{ data.title }}</p>
+            }
+          </div>
+        }
+        <ng-container *ngTemplateOutlet="contactT"></ng-container>
+        <ng-container *ngTemplateOutlet="skillsT"></ng-container>
+        <ng-container *ngTemplateOutlet="langsT"></ng-container>
+        <ng-container *ngTemplateOutlet="certsT"></ng-container>
+      </aside>
+      <section class="main">
+        @if (template === 'creative') {
+          <header class="big">
+            <h1>{{ data.name }}</h1>
+            <p>{{ data.title }}</p>
+            <i></i>
+          </header>
+        }
+        @for (k of mainOrder; track k) {
+          <ng-container *ngTemplateOutlet="part; context: { k: k }"></ng-container>
+        }
+      </section>
+    </div>
+  } @else {
+    <header class="head">
+      <div class="who">
+        <h1>{{ data.name }}</h1>
+        <p class="job">{{ data.title }}</p>
+        <p class="contact">{{ contact.join(template === 'classic' || template === 'elegant' ? '   |   ' : '  |  ') }}</p>
+      </div>
+      @if (data.photo) {
+        <img class="photo" [src]="data.photo" alt="" />
+      }
+    </header>
+    <section class="main">
+      @for (k of fullOrder; track k) {
+        <ng-container *ngTemplateOutlet="part; context: { k: k }"></ng-container>
+      }
+    </section>
+  }
+</div>
+
+<ng-template #part let-k="k">
+  @switch (k) {
+    @case ('summary') {
+      <ng-container *ngTemplateOutlet="summaryT"></ng-container>
+    }
+    @case ('skills') {
+      <ng-container *ngTemplateOutlet="skillsT"></ng-container>
+    }
+    @case ('experience') {
+      <ng-container *ngTemplateOutlet="expT"></ng-container>
+    }
+    @case ('education') {
+      <ng-container *ngTemplateOutlet="eduT"></ng-container>
+    }
+    @case ('projects') {
+      <ng-container *ngTemplateOutlet="projT"></ng-container>
+    }
+    @case ('certifications') {
+      <ng-container *ngTemplateOutlet="certsT"></ng-container>
+    }
+    @case ('languages') {
+      <ng-container *ngTemplateOutlet="langsT"></ng-container>
+    }
+  }
+</ng-template>
+
+<ng-template #contactT>
+  @if (contact.length) {
+    <h2>Contact</h2>
+    @for (c of contact; track c) {
+      <p class="line">{{ c }}</p>
+    }
+  }
+</ng-template>
+
+<ng-template #summaryT>
+  @if (data.summary) {
+    <h2>Profile</h2>
+    <p>{{ data.summary }}</p>
+  }
+</ng-template>
+
+<ng-template #skillsT>
+  @if (data.skills.length) {
+    <h2>Skills</h2>
+    @for (g of data.skills; track g.group) {
+      @if (isSide) {
+        <p class="skill"><strong>{{ g.group }}</strong></p>
+        @if (template === 'creative') {
+          <ul class="slist">
+            @for (i of g.items; track $index) {
+              <li>{{ i }}</li>
+            }
+          </ul>
+        } @else {
+          <p class="pills">
+            @for (i of g.items; track $index) {
+              <span>{{ i }}</span>
+            }
+          </p>
+        }
+      } @else {
+        <p class="skill"><strong>{{ g.group }}:</strong> {{ g.items.join(', ') }}</p>
+      }
+    }
+  }
+</ng-template>
+
+<ng-template #expT>
+  @if (data.experience.length) {
+    <h2>Work experience</h2>
+    @for (e of data.experience; track $index) {
+      <div class="entry">
+        <div class="row">
+          <strong>{{ e.role || e.company }}</strong>
+          @if (!isSide && e.dates) {
+            <span class="dates">{{ e.dates }}</span>
+          }
+        </div>
+        <p class="sub">{{ e.role ? e.company : '' }}{{ e.role && e.location ? ', ' : '' }}{{ e.location }}{{ isSide && e.dates ? '  |  ' + e.dates : '' }}</p>
+        <ul>
+          @for (b of e.bullets; track $index) {
+            <li>{{ b }}</li>
+          }
+        </ul>
+      </div>
+    }
+  }
+</ng-template>
+
+<ng-template #eduT>
+  @if (data.education.length) {
+    <h2>Education</h2>
+    @for (e of data.education; track $index) {
+      <div class="entry">
+        <div class="row">
+          <strong>{{ e.degree || e.school }}</strong>
+          @if (!isSide && e.dates) {
+            <span class="dates">{{ e.dates }}</span>
+          }
+        </div>
+        <p class="sub">{{ e.degree ? e.school : '' }}{{ isSide && e.dates ? '  |  ' + e.dates : '' }}</p>
+        @if (e.details) {
+          <p>{{ e.details }}</p>
+        }
+      </div>
+    }
+  }
+</ng-template>
+
+<ng-template #projT>
+  @if (data.projects.length) {
+    <h2>Projects</h2>
+    @for (p of data.projects; track $index) {
+      <div class="entry">
+        <strong>{{ p.name }}</strong>
+        <p>{{ p.description }}</p>
+        @if (p.tech) {
+          <p class="sub">Tech: {{ p.tech }}</p>
+        }
+      </div>
+    }
+  }
+</ng-template>
+
+<ng-template #langsT>
+  @if (data.languages.length) {
+    <h2>Languages</h2>
+    <p>{{ data.languages.join(', ') }}</p>
+  }
+</ng-template>
+
+<ng-template #certsT>
+  @if (data.certifications.length) {
+    <h2>Certifications</h2>
+    @if (isSide) {
+      @for (c of data.certifications; track c) {
+        <p class="line">{{ c }}</p>
+      }
+    } @else {
+      <ul>
+        @for (c of data.certifications; track c) {
+          <li>{{ c }}</li>
+        }
+      </ul>
+    }
+  }
+</ng-template>

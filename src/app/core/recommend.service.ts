@@ -1,26 +1,32 @@
 import { Injectable } from '@angular/core';
 
 import { AiService, ApiMessage, ContentPart } from './ai.service';
-import { DOC_LABELS, DocVerdict, parseVerdict, ruleVerdict } from './doc-check';
-import { JobService, plainText } from './job.service';
+import { DOC_LABELS, DocVerdict, parseVerdict, ruleVerdict } from './doccheck';
+import { JobService, locationMentions, plainText } from './job.service';
 import { AiError, Job, Recommendation } from './models';
+import { Place, placeFromName, splitPlace } from './places';
 
 export interface Profile {
   titles: string[];
   skills: string[];
   level: string;
   summary: string;
+  /** The place the user asked for, when they named one. */
+  place?: Place | null;
 }
 
 export interface RecommendResult {
   profile: Profile;
   recs: Recommendation[];
   searched: number;
+  /** True when there were no jobs only for the place, so jobs open to anyone are included. */
+  loose: boolean;
 }
 
 const MAX_CANDIDATES = 24;
 const RATE_TOP = 12;
 const SHOW = 8;
+const MIN_FIT = 20;
 
 function extractJson<T>(raw: string, open: '{' | '['): T | null {
   const close = open === '{' ? '}' : ']';
@@ -94,14 +100,20 @@ export class RecommendService {
   }
 
   /** Step 1: who is this person (job titles to search, skills, level). */
-  async profile(resume: string, images: string[] = []): Promise<Profile> {
+  async profile(resume: string, images: string[] = [], request = ''): Promise<Profile> {
     const prompt =
       'Read this resume and answer with JSON only: ' +
       '{"titles":["3 to 4 specific job titles this person should apply for, best first"],' +
       '"skills":["up to 15 key skills, tools and technologies written in lowercase"],' +
-      '"level":"entry|mid|senior","summary":"one line about the person"}. ' +
-      'Titles must be real job titles used in job ads (for example "frontend developer", "customer support specialist").';
-    const body = resume ? `RESUME:\n${resume.slice(0, 7000)}` : '(the resume is in the attached picture)';
+      '"level":"entry|mid|senior","summary":"one line about the person",' +
+      '"location":"the country or city the person ASKED to work in, or empty text if they did not ask","country":"its two-letter ISO country code, or empty"}. ' +
+      'Titles must be real job titles used in job ads (for example "frontend developer", "customer support specialist"). ' +
+      'If the person asked for a kind of job or a place in their request, follow the request first and the resume second. ' +
+      'Never take the location from the resume unless the request says "near me" or "where I live". ' +
+      'If the text does not say what kind of work the person wants or has done, return an empty titles list instead of guessing.';
+    const body =
+      (request ? `THE PERSON'S REQUEST: ${request.slice(0, 600)}\n\n` : '') +
+      (resume ? `RESUME:\n${resume.slice(0, 7000)}` : images.length ? '(the resume is in the attached picture)' : '(no resume was given: use only the request above)');
     const content: string | ContentPart[] = images.length
       ? [{ type: 'text', text: body }, ...images.slice(0, 3).map((url): ContentPart => ({ type: 'image_url', image_url: { url } }))]
       : body;
@@ -113,27 +125,47 @@ export class RecommendService {
       500,
       { temperature: 0.1 },
     );
-    const p = extractJson<Partial<Profile>>(r.content, '{');
+    const p = extractJson<Partial<Profile> & { location?: string; country?: string }>(r.content, '{');
     const titles = (p?.titles ?? []).map(String).filter(Boolean).slice(0, 4);
     if (!titles.length) {
-      throw new AiError('I could not work out which jobs fit this resume. Add more detail about your skills and experience.', 'models');
+      throw new AiError('I need a little more to find the right jobs. What kind of work are you looking for (for example graphic design or customer support), and where? You can also attach your resume.', 'needinfo');
     }
     return {
       titles,
       skills: (p?.skills ?? []).map((s) => String(s).toLowerCase().trim()).filter(Boolean).slice(0, 15),
       level: String(p?.level ?? 'entry'),
       summary: String(p?.summary ?? ''),
+      place: placeFromName(String(p?.location ?? ''), String(p?.country ?? '')),
     };
   }
 
-  /** Whole flow. `onStep` reports progress to show in the chat. */
-  async recommend(resume: string, images: string[] = [], onStep?: (text: string) => void): Promise<RecommendResult> {
-    onStep?.('Reading your resume…');
-    const profile = await this.profile(resume, images);
+  /** Reads a resume from pictures and writes it out as plain text, so the app can remember it. */
+  async transcribe(images: string[]): Promise<string> {
+    const content: ContentPart[] = [
+      { type: 'text', text: 'Write out everything in this resume as plain text: name, contact, summary, skills, work experience, education, certifications. No comments, only the resume text.' },
+      ...images.slice(0, 3).map((url): ContentPart => ({ type: 'image_url', image_url: { url } })),
+    ];
+    const r = await this.ai.chat([{ role: 'user', content }], 1800, { temperature: 0 });
+    return r.content.trim();
+  }
 
-    onStep?.(`Searching jobs for ${profile.titles.slice(0, 2).join(', ')}…`);
+  /** Whole flow. `onStep` reports progress to show in the chat. */
+  async recommend(resume: string, images: string[] = [], onStep?: (text: string) => void, request = ''): Promise<RecommendResult> {
+    onStep?.(resume || images.length ? 'Reading your resume…' : 'Understanding your request…');
+    const profile = await this.profile(resume, images, request);
+    // a place the person typed wins over what the AI guessed
+    profile.place = splitPlace(request).place ?? profile.place ?? null;
+    const place = profile.place;
+
+    onStep?.(`Searching jobs for ${profile.titles.slice(0, 2).join(', ')}${place ? ' in ' + place.label : ''}…`);
+    let failed = 0;
     const lists = await Promise.all(
-      profile.titles.slice(0, 3).map((t) => this.jobs.getJobs(t, 0).catch(() => ({ jobs: [] as Job[], total: 0, hasMore: false }))),
+      profile.titles.slice(0, 3).map((t) =>
+        this.jobs.getJobs(t, 0, place?.code).catch(() => {
+          failed++;
+          return { jobs: [] as Job[], total: 0, hasMore: false };
+        }),
+      ),
     );
     const seen = new Set<number>();
     const candidates: Job[] = [];
@@ -147,8 +179,13 @@ export class RecommendService {
       }
     }
     if (!candidates.length) {
-      throw new AiError('I could not load jobs right now. Check your internet connection and try again.', 'network');
+      if (failed === lists.length) {
+        throw new AiError('I could not load jobs right now. Check your internet connection and try again.', 'network');
+      }
+      return { profile, recs: [], searched: 0, loose: false }; // the feeds answered: there is simply nothing remote for this
     }
+    // true when none of the jobs is really for the place (they are open to anyone)
+    const loose = !!place && !candidates.some((j) => locationMentions(j.candidate_required_location, place));
 
     // quick offline pre-score so only the most promising jobs go to the AI
     const pre = candidates
@@ -171,7 +208,8 @@ export class RecommendService {
       };
     });
     recs.sort((a, b) => b.score - a.score);
-    return { profile, recs: recs.slice(0, SHOW), searched: candidates.length };
+    // a job that barely fits is noise: only real matches are shown
+    return { profile, recs: recs.filter((r) => r.score >= MIN_FIT).slice(0, SHOW), searched: candidates.length, loose };
   }
 
   /** Offline score: how many of the person's skills and titles appear in the job. */
@@ -217,7 +255,9 @@ export class RecommendService {
         role: 'user',
         content:
           `APPLICANT\nLevel: ${profile.level}\nSummary: ${profile.summary}\nSkills: ${profile.skills.join(', ')}\n` +
-          `Target roles: ${profile.titles.join(', ')}\n\nJOBS\n${list}`,
+          `Target roles: ${profile.titles.join(', ')}\n` +
+          (profile.place ? `Wants to work in: ${profile.place.label}. Lower the score a lot for a job that cannot be done from there.\n` : '') +
+          `\nJOBS\n${list}`,
       },
     ];
     const r = await this.ai.chat(messages, 1800, { temperature: 0.1 });

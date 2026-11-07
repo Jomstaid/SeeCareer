@@ -2,15 +2,45 @@
   <!-- Laptop / desktop (1024px and wider): side navigation -->
   <nav class="rail" slot="top" aria-label="Main navigation">
     <div class="brand">
-      <span class="mark"><ion-icon name="briefcase" aria-hidden="true"></ion-icon></span>
+      <img class="mark" src="assets/icon/logo.svg" alt="" width="38" height="38" />
       <span class="name">SeeCareer</span>
     </div>
-    @for (item of items; track item.path) {
+
+    <p class="group">Find work</p>
+    @for (item of work; track item.path) {
       <a class="rail-link" [routerLink]="item.path" routerLinkActive="active">
         <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-        <span>{{ item.label }}</span>
+        <span class="txt"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
       </a>
     }
+
+    <p class="group">App</p>
+    @for (item of app; track item.path) {
+      <a class="rail-link" [routerLink]="item.path" routerLinkActive="active">
+        <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+        <span class="txt"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
+      </a>
+    }
+    <div class="chats">
+      <div class="chats-head">
+        <p class="group">Chats</p>
+        <button type="button" class="newchat" (click)="newChat()"><ion-icon name="add-outline" aria-hidden="true"></ion-icon>New chat</button>
+      </div>
+      @for (g of groups; track g.label) {
+        <p class="when">{{ g.label }}</p>
+        @for (c of g.chats; track c.id) {
+          <div class="chat-row" [class.on]="store.activeId() === c.id">
+            <button type="button" class="chat-open" (click)="openChat(c)" [attr.aria-label]="'Open chat: ' + c.title">
+              <ion-icon name="chatbubble-outline" aria-hidden="true"></ion-icon>
+              <span>{{ c.title }}</span>
+            </button>
+            <button type="button" class="chat-del" (click)="deleteChat(c, $event)" aria-label="Delete chat"><ion-icon name="trash-outline"></ion-icon></button>
+          </div>
+        }
+      } @empty {
+        <p class="none">Your chats will appear here.</p>
+      }
+    </div>
     <p class="rail-note">No account needed. Your resume stays on this device.</p>
   </nav>
 

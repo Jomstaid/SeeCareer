@@ -1,0 +1,37 @@
+<ion-card class="job-card" button (click)="onOpen()">
+  <ion-card-header>
+    <div class="row">
+      <div class="logo" [style.background]="logoUrl ? null : avatar" [class.initial]="!logoUrl">
+        @if (logoUrl; as src) {
+          <img [src]="src" [alt]="job.company_name" loading="lazy" referrerpolicy="no-referrer" (load)="onLogoLoad($event)" (error)="logoBad()" />
+        } @else {
+          <span>{{ initial }}</span>
+        }
+      </div>
+      <div class="titles">
+        <ion-card-title>{{ job.title }}</ion-card-title>
+        <ion-card-subtitle>{{ job.company_name }}</ion-card-subtitle>
+      </div>
+      <ion-button
+        fill="clear"
+        size="small"
+        [attr.aria-label]="saved ? 'Remove bookmark' : 'Bookmark job'"
+        (click)="onSave($event)"
+      >
+        <ion-icon slot="icon-only" [name]="saved ? 'bookmark' : 'bookmark-outline'"></ion-icon>
+      </ion-button>
+    </div>
+  </ion-card-header>
+  <ion-card-content>
+    <p class="preview">{{ preview }}</p>
+    <div class="chips">
+      <ion-chip>{{ job.category }}</ion-chip>
+      @if (job.job_type) {
+        <ion-chip>{{ job.job_type.replace('_', ' ') }}</ion-chip>
+      }
+      @if (job.candidate_required_location) {
+        <ion-chip>{{ job.candidate_required_location }}</ion-chip>
+      }
+    </div>
+  </ion-card-content>
+</ion-card>

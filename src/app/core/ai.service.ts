@@ -1,8 +1,8 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Injectable, signal } from '@angular/core';
-import { firstValueFrom, timeout } from 'rxjs';
+import { EmptyError, Subject, firstValueFrom, takeUntil, timeout } from 'rxjs';
 
-import { MAX_SCAN_PER_PROVIDER, NOT_CHAT_MODELS, PROVIDER_PRESETS } from './defaults';
+import { AUTO_CHECK_MS, MAX_SCAN_PER_PROVIDER, MIN_WORKING, NOT_CHAT_MODELS, PROVIDER_PRESETS } from './defaults';
 import { AiError, AiProvider, ChatResult, ModelStatus } from './models';
 import { ProviderService } from './provider.service';
 
@@ -95,6 +95,13 @@ export class AiService {
     return new AiError((error as Error)?.message || 'Unknown error', 'models');
   }
 
+  private readonly cancel$ = new Subject<void>();
+
+  /** Stops every question that is waiting for an answer (the Stop button). */
+  cancelAll(): void {
+    this.cancel$.next();
+  }
+
   private async complete(
     p: AiProvider,
     model: string,
@@ -104,11 +111,19 @@ export class AiService {
     temperature = 0.4,
   ): Promise<string> {
     const body = { model, messages, max_tokens: maxTokens, temperature, stream: false };
-    const res = await firstValueFrom(
-      this.http
-        .post<CompletionResponse>(this.url(p, '/chat/completions'), body, { headers: this.headers(p) })
-        .pipe(timeout(timeoutMs)),
-    );
+    let res: CompletionResponse;
+    try {
+      res = await firstValueFrom(
+        this.http
+          .post<CompletionResponse>(this.url(p, '/chat/completions'), body, { headers: this.headers(p) })
+          .pipe(timeout(timeoutMs), takeUntil(this.cancel$)),
+      );
+    } catch (e) {
+      if (e instanceof EmptyError) {
+        throw new AiError('Stopped.', 'cancelled');
+      }
+      throw e;
+    }
     const content = res?.choices?.[0]?.message?.content?.trim();
     if (!content) {
       throw new AiError('Empty answer.', 'models');
@@ -191,23 +206,72 @@ export class AiService {
   }
 
   private async scanProvider(p: AiProvider): Promise<ModelStatus[]> {
-    let models: string[];
+    let all: string[];
     try {
-      models = (await this.discoverModels(p)).slice(0, MAX_SCAN_PER_PROVIDER);
+      all = await this.discoverModels(p);
     } catch (e) {
       return [{ providerId: p.id, model: '*', ok: false, error: this.toAiError(e, p).message }];
     }
-    if (!models.length) {
+    if (!all.length) {
       return [{ providerId: p.id, model: '*', ok: false, error: 'No chat models found.' }];
     }
-    return Promise.all(
-      models.map(async (model): Promise<ModelStatus> => {
-        try {
-          return { providerId: p.id, model, ok: true, latency: await this.ping(p, model) };
-        } catch (e) {
-          return { providerId: p.id, model, ok: false, error: this.toAiError(e, p).message };
-        }
-      }),
+    // check the best models first; if too few of them answer, keep going down the list (up to 3 rounds)
+    const results: ModelStatus[] = [];
+    for (let round = 0; round < 3; round++) {
+      const batch = all.slice(round * MAX_SCAN_PER_PROVIDER, (round + 1) * MAX_SCAN_PER_PROVIDER);
+      if (!batch.length) {
+        break;
+      }
+      results.push(
+        ...(await Promise.all(
+          batch.map(async (model): Promise<ModelStatus> => {
+            try {
+              return { providerId: p.id, model, ok: true, latency: await this.ping(p, model) };
+            } catch (e) {
+              return { providerId: p.id, model, ok: false, error: this.toAiError(e, p).message };
+            }
+          }),
+        )),
+      );
+      if (results.filter((r) => r.ok).length >= MIN_WORKING) {
+        break;
+      }
+    }
+    return results;
+  }
+
+  // ---------- automatic checking ----------
+  private autoTimer?: ReturnType<typeof setInterval>;
+
+  /**
+   * Keeps the list of working models fresh without the user doing anything: checks at start (when the last
+   * check is old), every few minutes, when the phone comes back online and when the app is opened again.
+   * Models that stopped answering drop out; models that recovered come back.
+   */
+  startAutoCheck(): void {
+    if (this.autoTimer || typeof window === 'undefined') {
+      return;
+    }
+    const due = (maxAgeMs: number) => Date.now() - this.store.lastScan() > maxAgeMs;
+    const check = (maxAgeMs: number) => {
+      if (!this.scanning() && this.store.enabled().length && due(maxAgeMs)) {
+        void this.scan().catch(() => undefined);
+      }
+    };
+    setTimeout(() => check(AUTO_CHECK_MS / 2), 1500);
+    this.autoTimer = setInterval(() => check(AUTO_CHECK_MS - 5000), AUTO_CHECK_MS);
+    window.addEventListener('online', () => check(0));
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        check(AUTO_CHECK_MS / 2);
+      }
+    });
+  }
+
+  /** A model failed while answering: stop using it until the next check proves it works again. */
+  private demote(providerId: string, model: string, reason: string): void {
+    this.store.setHealth(
+      this.store.health().map((h) => (h.providerId === providerId && h.model === model ? { ...h, ok: false, error: reason } : h)),
     );
   }
 
@@ -228,7 +292,9 @@ export class AiService {
    * Answers a chat. By default it uses the SMARTEST working model first (larger models first, then smaller ones)
    * and falls back to the next one on errors. Pass `fast: true` for quick helper calls.
    */
-  async chat(messages: ApiMessage[], maxTokens = 800, options: ChatOptions = {}): Promise<ChatResult> {
+  async chat(messages: ApiMessage[], requestedTokens = 800, options: ChatOptions = {}, retried = false): Promise<ChatResult> {
+    // models that think before they answer spend part of this budget on thinking: a tiny limit cuts the answer off
+    const maxTokens = Math.max(requestedTokens, 700);
     const providers = this.store.enabled();
     if (!providers.length) {
       throw new AiError('No AI provider is enabled. Open Settings and add or enable one.', 'config');
@@ -264,13 +330,19 @@ export class AiService {
       } catch (e) {
         const err = this.toAiError(e, provider);
         errors.push(`${route.model}: ${err.message}`);
-        if (err.kind === 'key') {
+        if (err.kind === 'key' || err.kind === 'cancelled') {
           throw err;
         }
+        this.demote(route.providerId, route.model, err.message);
       }
     }
-    // everything failed: force a re-check next time
-    this.store.setHealth(this.store.health().map((h) => (routes.some((r) => r.model === h.model) ? { ...h, ok: null } : h)));
-    throw new AiError('All AI models failed: ' + errors.join('; '), 'models');
+    // everything that was working failed: check again right now and try the models that answer today (once)
+    if (!retried) {
+      await this.scan();
+      if (this.store.workingModels().length) {
+        return this.chat(messages, maxTokens, options, true);
+      }
+    }
+    throw new AiError('No AI model is working right now. ' + (errors[0] ?? 'Check your internet and Settings.'), 'models');
   }
 }

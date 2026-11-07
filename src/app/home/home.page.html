@@ -1,4 +1,4 @@
-<app-page-header title="Jobs"></app-page-header>
+<app-page-header title="Job board"></app-page-header>
 
 <ion-content [fullscreen]="true">
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
@@ -10,6 +10,12 @@
     <h1>Find a job that fits you</h1>
     <p class="sub">Search {{ total() ? total().toLocaleString() : 'thousands of' }}{{ jobService.source().name !== 'Himalayas' ? '+' : '' }} jobs. Open one and ask SeeCareer AI to match, apply or prepare.</p>
   </section>
+
+  <a class="ai-cta" routerLink="/tabs/chat" [queryParams]="{ mode: 'finder' }">
+    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+    <span><strong>Let the AI find jobs for me</strong><small>Upload your resume and get the best matches with a fit score.</small></span>
+    <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+  </a>
 
   <div class="filters">
     <ion-searchbar

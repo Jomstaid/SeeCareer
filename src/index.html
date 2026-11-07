@@ -8,12 +8,14 @@
   <base href="/" />
 
   <meta name="color-scheme" content="light dark" />
-  <meta name="theme-color" content="#0a0f1d" />
+  <meta name="theme-color" content="#07122b" />
   <meta name="viewport" content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="format-detection" content="telephone=no" />
   <meta name="msapplication-tap-highlight" content="no" />
 
-  <link rel="icon" type="image/png" href="assets/icon/favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="assets/icon/logo.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon/favicon32.png" />
+  <link rel="apple-touch-icon" href="assets/icon/icon192.png" />
 
   <!-- add to homescreen for ios -->
   <meta name="mobile-web-app-capable" content="yes" />
@@ -21,6 +23,68 @@
 </head>
 
 <body>
+  <script>window.__splashAt = Date.now();</script>
+  <!-- Front page shown while the app starts. Pure CSS, so it appears at once; the app removes it when ready. -->
+  <div id="splash" role="status" aria-label="Loading SeeCareer">
+    <style>
+      #splash {
+        --s-bg1: #eef4ff; --s-bg2: #e4f7f3; --s-text: #0f1f3d; --s-muted: #475a78; --s-a: #1d4ed8; --s-b: #0f766e;
+        position: fixed; inset: 0; z-index: 99999; display: grid; place-items: center; overflow: hidden;
+        background: linear-gradient(160deg, var(--s-bg1), var(--s-bg2));
+        font-family: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        transition: opacity 600ms ease, visibility 600ms ease, transform 600ms ease;
+      }
+      @media (prefers-color-scheme: dark) {
+        #splash { --s-bg1: #07122b; --s-bg2: #0a1e3f; --s-text: #e8f0ff; --s-muted: #a3b6d6; --s-a: #60a5fa; --s-b: #2dd4bf; }
+      }
+      :root.ion-palette-dark #splash { --s-bg1: #07122b; --s-bg2: #0a1e3f; --s-text: #e8f0ff; --s-muted: #a3b6d6; --s-a: #60a5fa; --s-b: #2dd4bf; }
+      #splash.done { opacity: 0; visibility: hidden; transform: scale(1.04); pointer-events: none; }
+      #splash .blob { position: absolute; border-radius: 50%; filter: blur(60px); opacity: .55; animation: s-float 9s ease-in-out infinite; }
+      #splash .b1 { width: 46vmax; height: 46vmax; left: -14vmax; top: -16vmax; background: var(--s-a); }
+      #splash .b2 { width: 42vmax; height: 42vmax; right: -14vmax; bottom: -16vmax; background: var(--s-b); animation-delay: -4s; }
+      #splash .card {
+        position: relative; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 36px 44px 30px;
+        border-radius: 28px; border: 1px solid rgba(255,255,255,.28); background: rgba(255,255,255,.14);
+        -webkit-backdrop-filter: blur(22px) saturate(150%); backdrop-filter: blur(22px) saturate(150%);
+        box-shadow: 0 20px 60px rgba(8, 20, 50, .22); animation: s-rise 700ms cubic-bezier(.2,.8,.2,1) both;
+      }
+      #splash .logo { position: relative; width: 92px; height: 92px; display: grid; place-items: center; }
+      #splash .ring { position: absolute; inset: 0; border-radius: 50%; border: 3px solid transparent;
+        border-top-color: var(--s-a); border-right-color: var(--s-b); animation: s-spin 1.15s linear infinite; }
+      #splash .ring.r2 { inset: 9px; border-top-color: var(--s-b); border-right-color: transparent; border-left-color: var(--s-a);
+        animation-duration: 1.8s; animation-direction: reverse; opacity: .7; }
+      #splash .mark { width: 54px; height: 54px; border-radius: 15px; display: grid; place-items: center; animation: s-pulse 2s ease-in-out infinite;
+        box-shadow: 0 8px 24px rgba(29, 78, 216, .35); }
+      #splash .mark img { display: block; width: 54px; height: 54px; }
+      #splash h1 { margin: 6px 0 0; font: 700 30px/1.1 'Lexend', system-ui, sans-serif; color: var(--s-text); letter-spacing: -.01em; }
+      #splash h1 span { display: inline-block; opacity: 0; animation: s-letter 500ms ease forwards; }
+      #splash p { margin: 0; font-size: 15px; color: var(--s-muted); opacity: 0; animation: s-fade 600ms 900ms ease forwards; }
+      #splash .bar { width: 180px; height: 5px; margin-top: 10px; border-radius: 99px; overflow: hidden; background: rgba(127,127,127,.22); }
+      #splash .bar i { display: block; width: 45%; height: 100%; border-radius: 99px;
+        background: linear-gradient(90deg, var(--s-a), var(--s-b)); animation: s-slide 1.2s ease-in-out infinite; }
+      @keyframes s-spin { to { transform: rotate(360deg); } }
+      @keyframes s-pulse { 50% { transform: scale(1.08); } }
+      @keyframes s-rise { from { opacity: 0; transform: translateY(18px) scale(.97); } }
+      @keyframes s-letter { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+      @keyframes s-fade { to { opacity: 1; } }
+      @keyframes s-slide { 0% { transform: translateX(-110%); } 100% { transform: translateX(260%); } }
+      @keyframes s-float { 50% { transform: translate(3vmax, 2vmax) scale(1.08); } }
+      @media (prefers-reduced-motion: reduce) {
+        #splash *, #splash { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+        #splash p, #splash h1 span { opacity: 1; }
+      }
+    </style>
+    <span class="blob b1"></span><span class="blob b2"></span>
+    <div class="card">
+      <div class="logo">
+        <span class="ring"></span><span class="ring r2"></span>
+        <span class="mark"><img src="assets/icon/logo.svg" alt="" width="54" height="54" /></span>
+      </div>
+      <h1><span style="animation-delay:.25s">S</span><span style="animation-delay:.31s">e</span><span style="animation-delay:.37s">e</span><span style="animation-delay:.43s">C</span><span style="animation-delay:.49s">a</span><span style="animation-delay:.55s">r</span><span style="animation-delay:.61s">e</span><span style="animation-delay:.67s">e</span><span style="animation-delay:.73s">r</span></h1>
+      <p>Find work that fits you</p>
+      <div class="bar"><i></i></div>
+    </div>
+  </div>
   <app-root></app-root>
 </body>
 

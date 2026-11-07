@@ -10,7 +10,7 @@
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.d.ts",
-    "src/test-setup.ts",
+    "src/testsetup.ts",
     "src/**/*.module.ts"
   ]
 }

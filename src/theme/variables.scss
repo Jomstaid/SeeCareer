@@ -1,6 +1,7 @@
 // SeeCareer design tokens.
-// Direction from the ui-ux-pro-max skill for a job/career product:
-// Flat design, professional blue primary (#0369A1), green call-to-action, no gradients or shadows,
+// Direction from the ui-ux-pro-max skill: glassmorphism (frosted translucent panels, backdrop blur 10-20px,
+// 1px light borders, layered depth) on a vibrant background, with a recruitment palette:
+// trust blue for navigation and actions, teal for "go" (apply, send), warm amber for saved items.
 // Lexend headings + Source Sans 3 body, 4/8 spacing scale, breakpoints 375 / 768 / 1024 / 1440.
 
 :root {
@@ -19,86 +20,103 @@
   --sp-5: 24px;
   --sp-6: 32px;
 
-  // ----- shape -----
-  --sc-radius: 12px;
-  --sc-radius-sm: 8px;
-  --sc-shadow: none; // flat style: separation comes from borders, not shadows
-  --sc-gradient: var(--sc-primary); // any leftover gradient becomes a flat color
+  // ----- shape and glass -----
+  --sc-radius: 16px;
+  --sc-radius-sm: 10px;
+  --sc-blur: 18px;
+  --sc-gradient: var(--sc-primary);
 
   // ----- colour (light) -----
-  --sc-bg: #f0f9ff;
-  --sc-panel: #ffffff;
-  --sc-panel-2: #e7f1f8;
-  --sc-border: #bfdcee;
-  --sc-text: #0c2a40;
-  --sc-muted: #475569;
-  --sc-primary: #0369a1;
+  --sc-bg: #eaf1ff; // solid fallback under the gradient
+  --sc-bg-image:
+    radial-gradient(60vmax 60vmax at 8% -10%, rgba(59, 130, 246, 0.35), transparent 60%),
+    radial-gradient(55vmax 55vmax at 105% 105%, rgba(20, 184, 166, 0.32), transparent 60%),
+    radial-gradient(40vmax 40vmax at 100% 0%, rgba(99, 102, 241, 0.2), transparent 60%), linear-gradient(160deg, #eef4ff, #e7f8f5);
+  --sc-panel: rgba(255, 255, 255, 0.62); // frosted glass surface
+  --sc-panel-2: rgba(255, 255, 255, 0.5); // inputs and inner blocks
+  --sc-panel-solid: #f6f9ff; // where text must sit on something opaque (menus, dialogs)
+  --sc-border: rgba(30, 64, 175, 0.16);
+  --sc-edge: rgba(255, 255, 255, 0.85); // bright top edge of glass
+  --sc-shadow: 0 8px 30px rgba(30, 64, 175, 0.1);
+  --sc-text: #0f1f3d;
+  --sc-muted: #475a78;
+  --sc-primary: #1d4ed8;
   --sc-on-primary: #ffffff;
-  --sc-accent: #0369a1;
-  --sc-accent-2: #0369a1;
+  --sc-accent: #1d4ed8;
+  --sc-accent-2: #0f766e;
   --sc-cyan: #0e7490;
-  --sc-cta: #15803d; // green call-to-action (white text 5:1)
+  --sc-cta: #0f766e; // teal "go" colour (white text 5.5:1)
   --sc-on-cta: #ffffff;
+  --sc-saved: #b45309;
   --sc-ok: #15803d;
   --sc-warn: #b45309;
   --sc-danger: #b91c1c;
-  --sc-focus: #0369a1;
+  --sc-focus: #1d4ed8;
 
   // ----- Ionic mapping -----
   --ion-font-family: var(--sc-font);
-  --ion-background-color: var(--sc-bg);
+  --ion-background-color: var(--sc-panel-solid);
   --ion-text-color: var(--sc-text);
-  --ion-color-primary: #0369a1;
-  --ion-color-primary-rgb: 3, 105, 161;
+  --ion-color-primary: #1d4ed8;
+  --ion-color-primary-rgb: 29, 78, 216;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #025d8e;
-  --ion-color-primary-tint: #1a78ab;
-  --ion-color-success: #15803d;
-  --ion-color-success-rgb: 21, 128, 61;
+  --ion-color-primary-shade: #1a45bf;
+  --ion-color-primary-tint: #345fdc;
+  --ion-color-success: #0f766e;
+  --ion-color-success-rgb: 15, 118, 110;
   --ion-color-success-contrast: #ffffff;
   --ion-color-success-contrast-rgb: 255, 255, 255;
-  --ion-color-success-shade: #127035;
-  --ion-color-success-tint: #2c8c50;
-  --ion-toolbar-background: var(--sc-panel);
-  --ion-item-background: var(--sc-panel);
+  --ion-color-success-shade: #0d695f;
+  --ion-color-success-tint: #27857c;
+  --ion-toolbar-background: transparent;
+  --ion-item-background: transparent;
+  --ion-card-background: transparent;
 }
 
 :root.ion-palette-dark {
-  --sc-bg: #0a1824;
-  --sc-panel: #0f2335;
-  --sc-panel-2: #153048;
-  --sc-border: #24445f;
-  --sc-text: #e6f1fa;
-  --sc-muted: #9db2c5;
-  --sc-primary: #38bdf8;
-  --sc-on-primary: #06283d;
-  --sc-accent: #38bdf8;
-  --sc-accent-2: #38bdf8;
+  --sc-bg: #07122b;
+  --sc-bg-image:
+    radial-gradient(60vmax 60vmax at 8% -10%, rgba(37, 99, 235, 0.45), transparent 60%),
+    radial-gradient(55vmax 55vmax at 105% 105%, rgba(13, 148, 136, 0.38), transparent 60%),
+    radial-gradient(40vmax 40vmax at 100% 0%, rgba(99, 102, 241, 0.25), transparent 60%), linear-gradient(160deg, #07122b, #0a1e3f);
+  --sc-panel: rgba(255, 255, 255, 0.075);
+  --sc-panel-2: rgba(255, 255, 255, 0.06);
+  --sc-panel-solid: #0e1d3a;
+  --sc-border: rgba(255, 255, 255, 0.14);
+  --sc-edge: rgba(255, 255, 255, 0.22);
+  --sc-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
+  --sc-text: #e8f0ff;
+  --sc-muted: #a3b6d6;
+  --sc-primary: #60a5fa;
+  --sc-on-primary: #06193d;
+  --sc-accent: #60a5fa;
+  --sc-accent-2: #2dd4bf;
   --sc-cyan: #22d3ee;
-  --sc-cta: #22c55e;
-  --sc-on-cta: #052e16;
+  --sc-cta: #2dd4bf;
+  --sc-on-cta: #042f2b;
+  --sc-saved: #fbbf24;
   --sc-ok: #4ade80;
   --sc-warn: #fbbf24;
   --sc-danger: #f87171;
-  --sc-focus: #7dd3fc;
+  --sc-focus: #93c5fd;
 
-  --ion-background-color: var(--sc-bg);
-  --ion-background-color-rgb: 10, 24, 36;
+  --ion-background-color: var(--sc-panel-solid);
+  --ion-background-color-rgb: 14, 29, 58;
   --ion-text-color: var(--sc-text);
-  --ion-color-primary: #38bdf8;
-  --ion-color-primary-rgb: 56, 189, 248;
-  --ion-color-primary-contrast: #06283d;
-  --ion-color-primary-contrast-rgb: 6, 40, 61;
-  --ion-color-primary-shade: #31a6da;
-  --ion-color-primary-tint: #4ac3f9;
-  --ion-color-success: #22c55e;
-  --ion-color-success-rgb: 34, 197, 94;
-  --ion-color-success-contrast: #052e16;
-  --ion-color-success-contrast-rgb: 5, 46, 22;
-  --ion-toolbar-background: var(--sc-panel);
-  --ion-item-background: var(--sc-panel);
-  --ion-card-background: var(--sc-panel);
+  --ion-color-primary: #60a5fa;
+  --ion-color-primary-rgb: 96, 165, 250;
+  --ion-color-primary-contrast: #06193d;
+  --ion-color-primary-contrast-rgb: 6, 25, 61;
+  --ion-color-primary-shade: #5491dc;
+  --ion-color-primary-tint: #70aefb;
+  --ion-color-success: #2dd4bf;
+  --ion-color-success-rgb: 45, 212, 191;
+  --ion-color-success-contrast: #042f2b;
+  --ion-color-success-contrast-rgb: 4, 47, 43;
+  --ion-toolbar-background: transparent;
+  --ion-item-background: transparent;
+  --ion-card-background: transparent;
 }
 
 :root[data-fontsize='small'] {
@@ -109,9 +127,32 @@
   --sc-chat-size: 18px;
 }
 
+// ----- the background: a soft blue and teal glow that the glass sits on -----
+html,
+body {
+  background-color: var(--sc-bg);
+}
+
+// the glow sits on its own fixed layer, so every part of the page shows exactly the same background
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: var(--sc-bg-image) no-repeat center / cover;
+  pointer-events: none;
+}
+
+ion-app,
+.ion-page,
+ion-router-outlet,
+ion-tabs {
+  background: transparent;
+}
+
 // ----- base elements -----
 ion-content {
-  --background: var(--sc-bg);
+  --background: transparent;
 }
 
 h1,
@@ -127,7 +168,13 @@ ion-segment {
 }
 
 ion-modal {
-  --background: var(--sc-panel);
+  --background: var(--sc-panel-solid);
+}
+
+ion-popover,
+ion-alert,
+ion-action-sheet {
+  --background: var(--sc-panel-solid);
 }
 
 ion-button {
@@ -139,7 +186,7 @@ ion-button {
 }
 
 ion-card {
-  box-shadow: none;
+  box-shadow: var(--sc-shadow);
   border: 1px solid var(--sc-border);
   border-radius: var(--sc-radius);
   margin: 0;
@@ -153,6 +200,48 @@ ion-chip {
 
 a {
   color: var(--sc-primary);
+}
+
+// ----- glass: every surface that floats above the background -----
+.glass,
+.card,
+ion-card,
+.jobcard,
+.ai-bubble,
+.resume-banner,
+.resume-card,
+.modebar,
+.composer .inputbox,
+.ctxbar,
+.queue .qitem,
+.stat-card,
+.job-card,
+.feature,
+.rec,
+.rail,
+ion-tab-bar,
+ion-header ion-toolbar {
+  -webkit-backdrop-filter: blur(var(--sc-blur)) saturate(150%);
+  backdrop-filter: blur(var(--sc-blur)) saturate(150%);
+}
+
+.glass,
+.card,
+.jobcard,
+.ai-bubble,
+.resume-banner,
+.resume-card,
+.job-card,
+.feature {
+  background: var(--sc-panel);
+  border: 1px solid var(--sc-border);
+  border-top-color: var(--sc-edge);
+  box-shadow: var(--sc-shadow), inset 0 1px 0 var(--sc-edge);
+}
+
+ion-modal::part(content) {
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
 }
 
 // ----- accessibility: visible keyboard focus and reduced motion -----
@@ -170,4 +259,84 @@ a {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+// ----- one radius language: every box, field and control is rounded the same way -----
+ion-segment {
+  border-radius: var(--sc-radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--sc-border);
+}
+
+ion-segment-button {
+  --border-radius: var(--sc-radius-sm);
+}
+
+ion-searchbar,
+ion-input,
+ion-textarea,
+ion-select {
+  --border-radius: var(--sc-radius-sm);
+}
+
+ion-popover {
+  --border-radius: var(--sc-radius);
+}
+
+ion-popover::part(content),
+ion-alert .alert-wrapper,
+ion-action-sheet .action-sheet-group {
+  border-radius: var(--sc-radius);
+}
+
+ion-modal::part(content) {
+  border-radius: var(--sc-radius) var(--sc-radius) 0 0;
+}
+
+@media (min-width: 768px) {
+  ion-modal:not(.designer-modal)::part(content) {
+    border-radius: var(--sc-radius);
+  }
+}
+
+.composer .inputbox,
+.ctxbar,
+.queue .qitem,
+.job-card,
+.feature,
+.rec,
+.jobcard {
+  border-radius: var(--sc-radius);
+  overflow: hidden;
+}
+
+ion-footer,
+ion-footer.footer-md,
+ion-footer::before,
+ion-header::after {
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+ion-card {
+  --background: transparent;
+}
+
+// the card's inner button must not paint a second layer of glass over only part of the card
+ion-card::part(native) {
+  background: transparent !important;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+ion-footer ion-toolbar {
+  border-radius: 0;
+}
+
+// thin glass scrollbars
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--sc-muted) 45%, transparent) transparent;
 }

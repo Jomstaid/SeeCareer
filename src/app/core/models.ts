@@ -49,6 +49,10 @@ export interface JobPage {
   jobs: Job[];
   total: number;
   hasMore: boolean;
+  /** The place the search was limited to (when the user named one). */
+  place?: string;
+  /** True when no job was only for that place, so jobs open to anyone are included. */
+  loose?: boolean;
 }
 
 // ---------- AI chat ----------
@@ -61,15 +65,17 @@ export interface ChatAction {
   label: string;
   icon?: string;
   /** Run an AI task (analyze, match, cover letter...). */
-  task?: import('./ai-tasks').TaskKey;
+  task?: import('./aitasks').TaskKey;
   /** Switch to another mode. */
   mode?: ChatMode;
   /** Special commands. */
-  command?: 'resume' | 'mock' | 'saveResume' | 'download' | 'more' | 'recommend' | 'useJob' | 'askAnyway';
+  command?: 'resume' | 'mock' | 'saveResume' | 'download' | 'more' | 'recommend' | 'useJob' | 'askAnyway' | 'design' | 'downloadResume' | 'pickPhoto' | 'findPhotoOnline';
   /** Output format for the download command. */
   format?: ExportFormat;
   /** Extra data (text to save, search query...). */
   data?: string;
+  /** A web address the button opens in the browser. */
+  url?: string;
 }
 
 /** A job suggested for the user, with the numbers behind the suggestion. */
@@ -93,7 +99,7 @@ export interface DocVerdictInfo {
 
 export type ExportFormat = 'pdf' | 'docx' | 'txt' | 'md';
 
-export type AttachmentKind = 'pdf' | 'docx' | 'image' | 'text';
+export type AttachmentKind = 'pdf' | 'docx' | 'image' | 'text' | 'other';
 
 /** A file the user attached to a message. */
 export interface Attachment {
@@ -106,6 +112,10 @@ export interface Attachment {
   /** Pictures sent to the AI (photos, or pages of a scanned PDF). Not saved in history. */
   images?: string[];
   pages?: number;
+  /** Picture of the first page of a PDF (kept in memory to find a profile photo; never saved in history). */
+  preview?: string;
+  /** For a file whose content cannot be shown as text: its name, type and size (all the AI is told). */
+  note?: string;
 }
 
 export interface ChatMessage {
@@ -113,6 +123,14 @@ export interface ChatMessage {
   role: ChatRole;
   content: string;
   time: number;
+  /** The earlier message this one replies to (shown above it, and told to the AI). */
+  quote?: string;
+  /** The short "what I can do here" message shown when a feature is picked. Picking another feature replaces it. */
+  intro?: boolean;
+  /** The format a made resume is offered in first (the other one is the second button). */
+  resumeFormat?: 'pdf' | 'docx';
+  /** The text was added by the app (the user sent only a file), so the bubble shows just the file. */
+  auto?: boolean;
   model?: string;
   error?: boolean;
   /** Job cards shown inside the message (Job Finder). */
@@ -121,6 +139,12 @@ export interface ChatMessage {
   score?: number;
   actions?: ChatAction[];
   attachments?: Attachment[];
+  /** A designed resume that can be opened in the designer. */
+  resume?: import('./resumedata').ResumeData;
+  /** The layout and colour chosen for that resume. */
+  resumeDesign?: { template: import('./resumedata').ResumeTemplate; accent: string };
+  /** Small note above a message, for example that a file was downloaded. */
+  fileNote?: string;
   /** Job recommendations shown as a swipeable carousel. */
   recs?: Recommendation[];
   /** Result of checking an uploaded document. */
@@ -149,6 +173,8 @@ export interface AiProvider {
   /** Empty = "Auto": SeeCareer tests the models and uses the fastest working one. */
   model: string;
   enabled: boolean;
+  /** Comes with the app and its own key: the key and address are locked and never shown. */
+  builtin?: boolean;
 }
 
 export interface ProviderPreset {
@@ -194,7 +220,7 @@ export class GroupMember {
   ) {}
 }
 
-export type AiErrorKind = 'config' | 'key' | 'network' | 'models';
+export type AiErrorKind = 'config' | 'key' | 'network' | 'models' | 'cancelled' | 'needinfo';
 
 export class AiError extends Error {
   constructor(

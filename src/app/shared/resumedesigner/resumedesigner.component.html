@@ -1,0 +1,120 @@
+<ion-modal class="designer-modal" [isOpen]="open" (didDismiss)="closed.emit()">
+  <ng-template>
+    <ion-header class="ion-no-border">
+      <ion-toolbar>
+        <ion-title>Resume designer</ion-title>
+        <ion-buttons slot="end">
+          <ion-button (click)="closed.emit()">Done</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+
+    <ion-content>
+      @if (data; as d) {
+        <div class="layout">
+          <div class="controls">
+            <h3>Design</h3>
+            <ion-segment [scrollable]="true" [value]="template()" (ionChange)="setTemplate($any($event).detail.value)" aria-label="Resume layout">
+              @for (t of templates; track t.key) {
+                <ion-segment-button [value]="t.key">
+                  <ion-label>{{ t.label }}</ion-label>
+                </ion-segment-button>
+              }
+            </ion-segment>
+            <p class="hint">{{ hint() }}</p>
+
+            <h3>Color</h3>
+            <div class="swatches" role="radiogroup" aria-label="Accent color">
+              @for (a of accents; track a.hex) {
+                <button
+                  type="button"
+                  class="swatch"
+                  role="radio"
+                  [attr.aria-checked]="accent() === a.hex"
+                  [attr.aria-label]="a.name"
+                  [class.on]="accent() === a.hex"
+                  [style.background]="a.hex"
+                  (click)="setAccent(a.hex)"
+                >
+                  @if (accent() === a.hex) {
+                    <ion-icon name="checkmark" aria-hidden="true"></ion-icon>
+                  }
+                </button>
+              }
+            </div>
+
+            <h3>Photo</h3>
+            <div class="photo-row">
+              @if (d.photo) {
+                <img class="thumb" [src]="d.photo" alt="Your photo" />
+              }
+              <label class="idea" for="photoFile">{{ d.photo ? 'Change photo' : 'Add photo' }}</label>
+              <input id="photoFile" type="file" accept="image/*" hidden (change)="pickPhoto($event)" />
+              @if (d.photo) {
+                <button type="button" class="idea" (click)="removePhoto()">Remove</button>
+              }
+            </div>
+
+            <h3>Change it with AI</h3>
+            <ion-textarea
+              class="ask"
+              [(ngModel)]="instruction"
+              [autoGrow]="true"
+              rows="2"
+              [maxlength]="300"
+              placeholder='Example: "make it fit one page"'
+              aria-label="What should the AI change?"
+              [disabled]="busy()"
+            ></ion-textarea>
+            <div class="ideas">
+              @for (i of ideas; track i) {
+                <button type="button" class="idea" (click)="useIdea(i)" [disabled]="busy()">{{ i }}</button>
+              }
+            </div>
+            <ion-button expand="block" (click)="applyChange()" [disabled]="busy()">
+              @if (busy()) {
+                <ion-spinner name="dots" slot="start"></ion-spinner>
+                Changing…
+              } @else {
+                <ion-icon slot="start" name="color-wand-outline"></ion-icon>
+                Apply change
+              }
+            </ion-button>
+
+            @if (message()) {
+              <p class="msg" [class.err]="messageIsError()" role="status">{{ message() }}</p>
+            }
+
+            <h3>Download</h3>
+            <div class="dl">
+              <ion-button (click)="download('pdf')" [disabled]="!!working()">
+                @if (working() === 'pdf') {
+                  <ion-spinner name="dots" slot="start"></ion-spinner>
+                } @else {
+                  <ion-icon slot="start" name="document-outline"></ion-icon>
+                }
+                PDF
+              </ion-button>
+              <ion-button (click)="download('docx')" [disabled]="!!working()">
+                @if (working() === 'docx') {
+                  <ion-spinner name="dots" slot="start"></ion-spinner>
+                } @else {
+                  <ion-icon slot="start" name="document-text-outline"></ion-icon>
+                }
+                Word
+              </ion-button>
+              <ion-button fill="outline" (click)="saveAsMine()">
+                <ion-icon slot="start" name="save-outline"></ion-icon>
+                Use as my resume
+              </ion-button>
+            </div>
+          </div>
+
+          <div class="stage">
+            <app-resume-preview [data]="d" [template]="template()" [accent]="accent()"></app-resume-preview>
+          </div>
+        </div>
+      }
+    </ion-content>
+  </ng-template>
+</ion-modal>

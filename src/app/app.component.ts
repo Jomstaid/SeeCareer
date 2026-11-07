@@ -1,5 +1,6 @@
-import { Component, HostListener } from '@angular/core';
+import { AfterViewInit, Component, HostListener } from '@angular/core';
 
+import { AiService } from './core/ai.service';
 import { SettingsService } from './core/settings.service';
 
 @Component({
@@ -8,9 +9,27 @@ import { SettingsService } from './core/settings.service';
   styleUrls: ['app.component.scss'],
   standalone: false,
 })
-export class AppComponent {
+export class AppComponent implements AfterViewInit {
   // Creating the service here applies the saved theme as soon as the app starts.
-  constructor(private settings: SettingsService) {}
+  constructor(
+    private settings: SettingsService,
+    private ai: AiService,
+  ) {
+    this.ai.startAutoCheck(); // keeps the list of working models up to date by itself
+  }
+
+  /** Fades the front page away once the app is ready. It always shows for a moment, so the animation is seen. */
+  ngAfterViewInit(): void {
+    const splash = document.getElementById('splash');
+    if (!splash) {
+      return;
+    }
+    const shown = Date.now() - ((window as unknown as { __splashAt?: number }).__splashAt ?? Date.now());
+    setTimeout(() => {
+      splash.classList.add('done');
+      setTimeout(() => splash.remove(), 700);
+    }, Math.max(0, 1700 - shown));
+  }
 
   /**
    * A file dropped anywhere that is not the chat would make the browser open it and leave the app.

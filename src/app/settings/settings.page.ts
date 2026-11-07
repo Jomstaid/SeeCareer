@@ -2,12 +2,11 @@ import { Component, signal } from '@angular/core';
 import { AlertController, ToastController } from '@ionic/angular/lazy';
 
 import { AiService } from '../core/ai.service';
-import { ChatStore } from '../core/chat-store.service';
+import { ChatStore } from '../core/chatstore.service';
 import { PROVIDER_PRESETS } from '../core/defaults';
 import { AiError, AiProvider, AppSettings, ProviderPreset } from '../core/models';
 import { ProviderService } from '../core/provider.service';
 import { SettingsService } from '../core/settings.service';
-import { ResumeService } from '../core/resume.service';
 import { FieldErrors, MAX_INSTRUCTIONS_LENGTH, validateProvider } from '../core/validators';
 
 type StatusColor = 'muted' | 'ok' | 'warn' | 'danger';
@@ -33,6 +32,11 @@ export class SettingsPage {
   model = '';
   enabled = true;
   showKey = false;
+  /** True for the built-in provider: it needs no key, and its name and address cannot be changed. */
+  locked = false;
+
+  /** The add / edit form is a dialog that opens from the provider list. */
+  formOpen = signal(false);
 
   errors: FieldErrors = {};
   busy = signal(false);
@@ -44,18 +48,16 @@ export class SettingsPage {
     public settings: SettingsService,
     public ai: AiService,
     private chats: ChatStore,
-    public resume: ResumeService,
     private alerts: AlertController,
     private toast: ToastController,
   ) {
     this.instructions = this.settings.settings().customInstructions;
-    const first = this.providers.providers()[0];
-    if (first) {
-      this.select(first);
-      this.setStatus('');
-    } else {
-      this.applyPreset();
-    }
+    this.applyPreset();
+  }
+
+  /** Providers to pick from: the built-in one is only listed while editing it. */
+  get choices(): ProviderPreset[] {
+    return this.presets.filter((p) => p.key !== 'free' || this.locked);
   }
 
   get preset(): ProviderPreset {
@@ -71,6 +73,9 @@ export class SettingsPage {
   }
 
   onPresetChange(): void {
+    if (this.locked) {
+      return;
+    }
     this.applyPreset();
     this.setStatus('');
   }
@@ -81,6 +86,19 @@ export class SettingsPage {
     }
   }
 
+  /** The "Add" button: an empty form in a dialog. */
+  startNew(): void {
+    this.newProvider();
+    this.formOpen.set(true);
+  }
+
+  /** A provider tapped in the list: its settings in a dialog. */
+  edit(p: AiProvider): void {
+    this.select(p);
+    this.setStatus('');
+    this.formOpen.set(true);
+  }
+
   newProvider(): void {
     this.selectedId = '';
     this.presetKey = 'groq';
@@ -89,6 +107,7 @@ export class SettingsPage {
     this.model = '';
     this.enabled = true;
     this.showKey = false;
+    this.locked = false;
     this.setStatus('');
   }
 
@@ -97,15 +116,19 @@ export class SettingsPage {
     this.presetKey = this.presets.some((x) => x.key === p.preset) ? p.preset : 'custom';
     this.name = p.name;
     this.baseUrl = p.baseUrl;
-    this.apiKey = p.apiKey;
+    this.locked = !!p.builtin;
+    this.apiKey = p.builtin ? '' : p.apiKey; // the built-in key never reaches this screen
     this.model = p.model;
     this.enabled = p.enabled;
     this.errors = {};
-    this.setStatus('Editing. Change what you need, then press Test & Save.', 'muted');
   }
 
   /** Validates, tests the connection (finds working models) and saves. */
   async testAndSave(): Promise<void> {
+    if (this.locked) {
+      await this.testAndSaveLocked();
+      return;
+    }
     const others = this.providers.providers().filter((p) => p.id !== this.selectedId).map((p) => p.name);
     const check = validateProvider(
       { name: this.name, baseUrl: this.baseUrl, apiKey: this.apiKey, model: this.model },
@@ -138,6 +161,37 @@ export class SettingsPage {
     }
   }
 
+  /** The built-in provider: only the model and the on/off switch can change. It needs no key. */
+  private async testAndSaveLocked(): Promise<void> {
+    const raw = this.providers.providers().find((p) => p.id === this.selectedId);
+    if (!raw) {
+      return;
+    }
+    const model = this.model.trim();
+    if (/\s/.test(model) || model.length > 100) {
+      this.errors = { model: 'Model name cannot contain spaces and must be under 100 characters.' };
+      this.setStatus('Please fix the highlighted fields.', 'warn');
+      return;
+    }
+    this.errors = {};
+    const data = { ...raw, model, enabled: this.enabled };
+    this.busy.set(true);
+    this.setStatus(`Testing ${raw.name}… finding fast models.`, 'muted');
+    try {
+      const best = await this.ai.testProvider({ ...raw, model, enabled: this.enabled });
+      this.persist(data);
+      this.setStatus(`${raw.name} works (${best.model} answered in ${best.latency?.toFixed(1)}s). Saved.`, 'ok');
+    } catch (e) {
+      const err = e instanceof AiError ? e : new AiError('Unexpected error.', 'models');
+      this.setStatus(err.message, err.kind === 'key' ? 'danger' : 'warn');
+      if (err.kind !== 'key') {
+        await this.askSaveAnyway(data, err.message);
+      }
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
   private async askSaveAnyway(data: Omit<AiProvider, 'id'>, reason: string): Promise<void> {
     const alert = await this.alerts.create({
       header: 'Provider test failed',
@@ -159,6 +213,8 @@ export class SettingsPage {
   private persist(data: Omit<AiProvider, 'id'>): void {
     const saved = this.providers.save({ ...data, id: this.selectedId || undefined });
     this.selectedId = saved.id;
+    this.formOpen.set(false);
+    void this.notify(`${data.name} saved`);
   }
 
   async confirmDelete(): Promise<void> {
@@ -177,7 +233,8 @@ export class SettingsPage {
           handler: () => {
             this.providers.remove(this.selectedId);
             this.newProvider();
-            this.setStatus('Provider deleted.', 'muted');
+            this.formOpen.set(false);
+            void this.notify('Provider deleted');
           },
         },
       ],
@@ -202,6 +259,16 @@ export class SettingsPage {
     await this.ai.scan();
     const n = this.providers.workingModels().length;
     this.notify(n ? `${n} model(s) working` : 'No model answered');
+  }
+
+  /** Models that answered (a provider that could not be reached at all is shown too, so the reason is visible). */
+  get shown() {
+    return this.providers.health().filter((h) => h.ok !== false || h.model === '*');
+  }
+
+  /** Models that did not answer and are not used. */
+  get skipped(): number {
+    return this.providers.health().filter((h) => h.ok === false && h.model !== '*').length;
   }
 
   providerName(id: string): string {
@@ -242,31 +309,11 @@ export class SettingsPage {
     this.saveInstructions();
   }
 
-  async confirmDeleteResume(): Promise<void> {
-    const alert = await this.alerts.create({
-      header: 'Delete resume',
-      message: 'Remove your saved resume and your AI privacy choice from this phone?',
-      buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        {
-          text: 'Delete',
-          role: 'destructive',
-          handler: () => {
-            this.resume.clear();
-            this.resume.setConsent(false);
-            this.notify('Resume deleted');
-          },
-        },
-      ],
-    });
-    await alert.present();
-  }
-
   // ---------- data ----------
   async confirmClearChats(): Promise<void> {
     const alert = await this.alerts.create({
       header: 'Clear chat history',
-      message: 'All saved conversations will be deleted from this phone.',
+      message: 'All saved conversations will be deleted from this device.',
       buttons: [
         { text: 'Cancel', role: 'cancel' },
         {

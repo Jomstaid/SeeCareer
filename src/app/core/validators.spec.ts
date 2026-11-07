@@ -34,7 +34,7 @@ describe('validateProvider', () => {
 
 describe('isValidHttpUrl', () => {
   it('checks the protocol', () => {
-    expect(isValidHttpUrl('http://194.156.90.214:20128/v1')).toBe(true);
+    expect(isValidHttpUrl('http://localhost:8080/v1')).toBe(true);
     expect(isValidHttpUrl('ftp://x.com')).toBe(false);
     expect(isValidHttpUrl('not a url')).toBe(false);
   });

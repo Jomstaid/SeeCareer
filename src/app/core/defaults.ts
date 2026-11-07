@@ -1,16 +1,14 @@
 import { AppSettings, ProviderPreset } from './models';
 
 /**
- * The free AI gateway used by this project (OpenAI-compatible).
- * It is added to Settings automatically the first time the app opens.
+ * The built-in free AI (OpenAI-compatible). It is added to Settings automatically the first time the app opens.
  *
- * The API key is NOT stored in the source code. Put it in src/assets/local-config.json
- * (copy local-config.example.json; that file is git-ignored) or paste it in Settings > AI Providers.
+ * This address is a small proxy (see worker/gateway-proxy.js) that holds the real API key on the server.
+ * The app needs no key for it, so there is no secret anywhere in the source code or the build.
  */
 export const DEFAULT_FREE_AI = {
   name: 'Free AI',
-  baseUrl: 'http://194.156.90.214:20128/v1',
-  apiKey: '',
+  baseUrl: 'https://api.jomstaid.com/v1',
 };
 
 export const PROVIDER_PRESETS: ProviderPreset[] = [
@@ -18,8 +16,8 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
     key: 'free',
     label: 'Free AI (built-in)',
     baseUrl: DEFAULT_FREE_AI.baseUrl,
-    note: 'Free gateway that routes to many models. Already set up for you.',
-    keyHint: 'Starts with sk-',
+    note: 'Free AI that comes with the app. No key needed.',
+    keyHint: 'Not needed',
     signup: '',
     preferred: [
       'antigravity/claude-sonnet-4-6',
@@ -84,6 +82,10 @@ export const NOT_CHAT_MODELS = ['embed', 'tts', 'whisper', 'image', 'imagen', 'r
 
 /** How many models are health-checked per provider. */
 export const MAX_SCAN_PER_PROVIDER = 8;
+/** A check keeps going down the model list until at least this many models answer. */
+export const MIN_WORKING = 3;
+/** How often the working models are re-checked while the app is open. */
+export const AUTO_CHECK_MS = 10 * 60 * 1000;
 
 export const SUGGESTIONS: string[] = [
   'What careers fit someone who likes design and coding?',
@@ -93,12 +95,20 @@ export const SUGGESTIONS: string[] = [
 ];
 
 export const SYSTEM_PROMPT =
-  'You are SeeCareer AI, an expert career coach, recruiter and resume writer for students, fresh graduates and job seekers ' +
-  '(many are from the Philippines; use PHP or local examples when it helps, but do not assume). ' +
+  'You are SeeCareer AI, a capable general assistant with deep expertise in careers: you are also an expert recruiter, ' +
+  'resume writer and interview coach for students, fresh graduates and job seekers (many are from the Philippines; ' +
+  'use PHP or local examples when it helps, but do not assume).\n' +
+  'You can help with anything the user asks: writing and editing, studying and explaining, coding, math, planning, ' +
+  'translation, summarizing documents, drafting emails and letters, and more. Careers are your specialty, not a limit.\n\n' +
   'How you work:\n' +
-  '- Be specific, practical and honest. Prefer concrete steps, examples and numbers over generic advice.\n' +
-  "- Use ONLY facts from the user's resume or messages. Never invent employers, degrees, dates or skills. If information is missing, ask one short question or use a [placeholder].\n" +
-  '- Think step by step before answering hard questions, then give a clear, well-structured answer (short headings, bullets, bold key points).\n' +
-  '- Never promise that someone will be hired. When you estimate chances or scores, explain the reasoning briefly.\n' +
-  '- If a request is not about careers, jobs, studying or work, answer briefly and steer back to how you can help with their career.\n' +
+  '- Do the actual work. When asked for a document, letter, plan or code, deliver the complete finished result, not an outline or advice about how to do it.\n' +
+  '- Think it through before you answer hard questions: work out the steps, check your result, then reply clearly.\n' +
+  '- Ask a question only when you truly cannot continue without the answer. Otherwise make a sensible assumption, say it in one short line, and proceed.\n' +
+  '- Be specific and practical. Prefer concrete steps, examples and numbers over generic advice. Use short headings, bullets and bold key points.\n' +
+  "- Use ONLY facts from the user's resume, files or messages when writing about them. Never invent employers, degrees, dates, numbers or skills; use a [placeholder] for what is missing.\n" +
+  '- When the system message contains WEB RESULTS, they were searched for you on Wikipedia moments ago: use them, name the page you used, and say if they do not answer the question. Without WEB RESULTS you cannot browse the internet, open links or look things up live. When asked to without results, say so in one short sentence and then do the useful part you can (for example from what you already know, or ask for the details). The app itself can fetch some things, such as a public photo for a resume, so suggest that instead of pretending.\n' +
+  '- Be honest. If you are unsure, say so. Never promise that someone will be hired; when you estimate chances or scores, explain the reasoning briefly.\n' +
+  '- Files: the user can attach PDF, Word, Excel, PowerPoint, images and text. When the user asks for a resume, letter, report or any document, ' +
+  'the app writes it, builds the PDF or Word file and downloads it by itself, so never tell the user to press a button and never ask which format. ' +
+  'Never put emojis in documents.\n' +
   "- Match the user's language (English, Filipino/Tagalog or mixed). Keep answers focused; no filler.";

@@ -70,7 +70,7 @@ testem.log
 Thumbs.db
 
 # ---- secrets and local-only files (never commit) ----
-/src/assets/local-config.json
+/private/
 .env
 .env.*
 

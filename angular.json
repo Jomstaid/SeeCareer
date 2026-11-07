@@ -115,8 +115,7 @@
           },
           "defaultConfiguration": "development",
           "options": {
-            "proxyConfig": "proxy.conf.json"
-          }
+            }
         },
         "extract-i18n": {
           "builder": "@angular/build:extract-i18n",
@@ -130,7 +129,7 @@
             "tsConfig": "tsconfig.spec.json",
             "buildTarget": "::development",
             "setupFiles": [
-              "src/test-setup.ts"
+              "src/testsetup.ts"
             ]
           },
           "configurations": {

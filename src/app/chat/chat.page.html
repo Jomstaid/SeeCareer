@@ -1,5 +1,5 @@
-<app-page-header title="AI Chat">
-  <ion-button (click)="historyOpen.set(true)" aria-label="Chat history">
+<app-page-header title="AI Assistant">
+  <ion-button class="hist-btn" (click)="historyOpen.set(true)" aria-label="Chat history">
     <ion-icon slot="icon-only" name="time-outline"></ion-icon>
   </ion-button>
   <ion-button (click)="newChat()" [disabled]="sending()" aria-label="New chat">
@@ -44,14 +44,14 @@
   <div class="container narrow page">
     @if (chat().messages.length === 0) {
       <section class="welcome">
-        <h1>How can I help with your career?</h1>
-        <p class="lead">Pick a feature, or just type a question below. You can also drop in your resume.</p>
+        <h1>What can I help you with?</h1>
+        <p class="lead">Ask me anything, or pick a feature below. Drop in your resume to get job matches and a designed resume.</p>
 
         <app-feature-list [features]="modes" (pick)="selectMode($event)"></app-feature-list>
 
-        <button type="button" class="resume-banner" (click)="resumeOpen.set(true)">
+        <button type="button" class="resume-banner" (click)="pickResume()">
           <ion-icon [name]="hasResume() ? 'checkmark-circle-outline' : 'document-attach-outline'" aria-hidden="true"></ion-icon>
-          <span>{{ hasResume() ? 'Your resume is saved on this device' : 'Add your resume to unlock job matching and applications' }}</span>
+          <span>{{ hasResume() ? 'Your resume is saved. Tap to upload a new one' : 'Upload your resume to unlock job matching and applications' }}</span>
           <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
         </button>
         <p class="privacy">No account needed. Your resume stays on this device.</p>
@@ -84,13 +84,32 @@
                   }
                 </div>
               }
-              <div class="bubble user-bubble">{{ m.content }}</div>
+              @if (m.quote || !(m.auto && m.attachments?.length)) {
+              <div class="bubble user-bubble">
+                @if (m.quote) {
+                  <div class="quote">{{ m.quote }}</div>
+                }
+                @if (!(m.auto && m.attachments?.length)) {
+                  {{ m.content }}
+                }
+              </div>
+              }
+              <div class="mini-actions">
+                <button type="button" (click)="startReply(m)"><ion-icon name="arrow-undo-outline" aria-hidden="true"></ion-icon>Reply</button>
+                <button type="button" (click)="startEdit(m)" [disabled]="sending()"><ion-icon name="create-outline" aria-hidden="true"></ion-icon>Edit</button>
+              </div>
             </div>
           </div>
         } @else {
           <div class="row ai">
             <div class="col">
               <div class="bubble ai-bubble" [class.error]="m.error">
+                @if (m.fileNote) {
+                  <div class="filenote">
+                    <ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon>
+                    <span>{{ m.fileNote }}</span>
+                  </div>
+                }
                 @if (m.verdict; as v) {
                   <div class="verdict {{ v.type }}">
                     <ion-icon
@@ -124,6 +143,17 @@
                   <div class="prose" [innerHTML]="html(m)"></div>
                 }
 
+                @if (m.resume; as r) {
+                  <button type="button" class="resume-card" (click)="openDesigner(m)" [attr.aria-label]="'Open the resume designer for ' + r.name">
+                    <span class="paper" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                    <span class="rc-text">
+                      <strong>{{ r.name }}</strong>
+                      <small>{{ r.title || 'Resume' }} &middot; tap to choose a design</small>
+                    </span>
+                    <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+                  </button>
+                }
+
                 @if (m.jobs?.length) {
                   <div class="jobs">
                     @for (j of m.jobs; track j.id) {
@@ -147,11 +177,11 @@
                   </div>
                 }
 
-                @if (!m.error && (m.model || m.content.length > 120)) {
+                @if (!m.error) {
                   <div class="meta">
                     <span>{{ m.model }}</span>
-                    <button type="button" class="icon-btn" (click)="openDownload(m)" aria-label="Download as a file">
-                      <ion-icon name="download-outline"></ion-icon>
+                    <button type="button" class="icon-btn" (click)="startReply(m)" aria-label="Reply to this message">
+                      <ion-icon name="arrow-undo-outline"></ion-icon>
                     </button>
                     <button type="button" class="icon-btn" (click)="copy(m)" aria-label="Copy answer">
                       <ion-icon name="copy-outline"></ion-icon>
@@ -190,7 +220,7 @@
         <div class="row ai">
           <div class="bubble ai-bubble typing" role="status">
             <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
-            <small>{{ stepText() || 'Thinking…' }} {{ elapsed() }}s</small>
+            <small>{{ stepText() || 'Thinking…' }} {{ elapsed() }}s{{ queue().length ? ' · ' + queue().length + ' waiting' : '' }}</small>
           </div>
         </div>
       }
@@ -245,12 +275,33 @@
       </div>
     }
 
+    @if (editingId() || replyQuote(); as _) {
+      <div class="ctxbar" role="status">
+        <ion-icon [name]="editingId() ? 'create-outline' : 'arrow-undo-outline'" aria-hidden="true"></ion-icon>
+        <span>{{ editingId() ? 'Editing your message. Send it again and I continue from there.' : 'Replying to: ' + replyQuote()!.text }}</span>
+        <button type="button" (click)="cancelContext()" aria-label="Cancel"><ion-icon name="close"></ion-icon></button>
+      </div>
+    }
+
+    @if (queue().length) {
+      <div class="queue">
+        @for (q of queue(); track $index) {
+          <span class="qitem">
+            <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+            <span class="qtext">{{ q.text }}</span>
+            <button type="button" (click)="removeQueued($index)" aria-label="Remove queued message"><ion-icon name="close"></ion-icon></button>
+          </span>
+        }
+      </div>
+    }
+
     <div class="inputbox" [class.invalid]="inputError">
-      <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or add your resume">
+      <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or upload your resume">
         <ion-icon name="attach-outline"></ion-icon>
       </button>
       <input #filePicker type="file" multiple [accept]="accepted" hidden (change)="onFiles($event)" />
       <ion-textarea
+        #msgBox
         [(ngModel)]="inputText"
         (keydown)="onKeydown($event)"
         (paste)="onPaste($any($event))"
@@ -260,9 +311,13 @@
         [maxlength]="maxLength"
         [placeholder]="pending().length ? 'Ask about the file (optional)…' : mock() ? 'Type your answer…' : info().placeholder"
         aria-label="Message"
-        [disabled]="sending()"
       ></ion-textarea>
-      <button type="button" class="send" (click)="send()" [disabled]="sending() || reading()" aria-label="Send message">
+      @if (sending()) {
+        <button type="button" class="stop" (click)="stop()" aria-label="Stop (Esc)">
+          <ion-icon name="stop"></ion-icon>
+        </button>
+      }
+      <button type="button" class="send" (click)="send()" [disabled]="reading()" [attr.aria-label]="sending() ? 'Send after the answer finishes' : 'Send message'">
         <ion-icon name="arrow-up"></ion-icon>
       </button>
     </div>
@@ -310,5 +365,15 @@
   </ng-template>
 </ion-modal>
 
+<!-- resume designer -->
+<app-resume-designer
+  [open]="designerOpen()"
+  [data]="designerData()"
+  [design]="designerDesign()"
+  (designChanged)="onDesignChanged($event)"
+  (closed)="designerOpen.set(false)"
+  (changed)="onDesignerChanged($event)"
+  (saveText)="onDesignerSave($event)"
+></app-resume-designer>
+
 <!-- resume -->
-<app-resume-sheet [open]="resumeOpen()" (closed)="resumeOpen.set(false)" (changed)="onResumeChanged($event)"></app-resume-sheet>
