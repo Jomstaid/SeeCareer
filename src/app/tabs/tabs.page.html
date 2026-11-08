@@ -49,7 +49,7 @@
     @for (item of items; track item.path) {
       <ion-tab-button [tab]="item.tab" [routerLink]="item.path">
         <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-        <ion-label>{{ item.label }}</ion-label>
+        <ion-label>{{ item.short || item.label }}</ion-label>
       </ion-tab-button>
     }
   </ion-tab-bar>

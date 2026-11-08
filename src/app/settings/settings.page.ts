@@ -337,14 +337,17 @@ export class SettingsPage {
   async importChats(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    input.value = '';
     if (!file) {
       return;
     }
     try {
-      const count = this.chats.importChats(chatsFromBackup(await file.text()));
+      // read the file first, then reset the picker so the same file can be chosen again
+      const text = await file.text();
+      input.value = '';
+      const count = this.chats.importChats(chatsFromBackup(text));
       void this.notify(`Imported ${count} chat${count === 1 ? '' : 's'}`);
     } catch (e) {
+      input.value = '';
       void this.notify(e instanceof Error ? e.message : 'Could not import this file.');
     }
   }

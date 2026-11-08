@@ -496,7 +496,7 @@ export function toJob(h: HimalayasJob): Job {
 export function describeHttpError(error: unknown): string {
   const e = error as { status?: number };
   if (e?.status === 0) {
-    return 'No internet connection or the jobs server cannot be reached.';
+    return 'We cannot reach the job sources right now. Check your internet connection and try again.';
   }
   if (e?.status && e.status >= 500) {
     return 'The jobs server is having problems. Please try again later.';

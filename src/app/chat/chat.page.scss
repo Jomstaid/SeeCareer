@@ -127,15 +127,21 @@
 }
 
 .user-bubble {
+  width: fit-content;
   max-width: min(82%, 62ch);
   padding: var(--sp-3) var(--sp-4);
   border-radius: var(--sc-radius) var(--sc-radius) 4px var(--sc-radius);
   background: var(--sc-primary);
   color: var(--sc-on-primary);
-  white-space: pre-wrap;
+
+  .txt {
+    display: block;
+    white-space: pre-wrap;
+  }
 }
 
 .ai-bubble {
+  width: fit-content;
   max-width: 100%;
   padding: var(--sp-4);
   border: 1px solid var(--sc-border);
@@ -162,6 +168,8 @@
 }
 
 .ucol {
+  // full row width, so the bubble's percentage max-width has something steady to measure against
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
@@ -171,30 +179,57 @@
 }
 
 .typing {
-  display: flex;
-  align-items: center;
+  display: grid;
   gap: var(--sp-3);
+  width: min(520px, 100%);
   color: var(--sc-muted);
 
-  .dots {
-    display: inline-flex;
-    gap: 4px;
+  small {
+    font-size: 13px;
+  }
+
+  // a skeleton of a reply: grey lines with a soft light moving across
+  .skel {
+    display: grid;
+    gap: 10px;
 
     i {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--sc-primary);
-      animation: bounce 1.2s infinite ease-in-out;
+      display: block;
+      height: 12px;
+      border-radius: 99px;
+      background: linear-gradient(
+        90deg,
+        color-mix(in srgb, var(--sc-muted) 18%, transparent) 25%,
+        color-mix(in srgb, var(--sc-muted) 38%, transparent) 50%,
+        color-mix(in srgb, var(--sc-muted) 18%, transparent) 75%
+      );
+      background-size: 300% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+
+      &:nth-child(1) {
+        width: 92%;
+      }
 
       &:nth-child(2) {
-        animation-delay: 0.15s;
+        width: 78%;
+        animation-delay: 0.12s;
       }
 
       &:nth-child(3) {
-        animation-delay: 0.3s;
+        width: 54%;
+        animation-delay: 0.24s;
       }
     }
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
   }
 }
 
@@ -214,6 +249,24 @@
   max-width: 75ch;
 
   ::ng-deep {
+    // a line that is only bold works as a small heading: room above it, close to what follows
+    p:has(> strong:only-child) {
+      margin: var(--sp-4) 0 var(--sp-1);
+
+      &:first-child {
+        margin-top: 0;
+      }
+    }
+
+    ul {
+      margin: 0 0 var(--sp-2);
+      padding-left: 1.3em;
+
+      li {
+        margin: 3px 0;
+      }
+    }
+
     p {
       margin: 0 0 var(--sp-2);
 

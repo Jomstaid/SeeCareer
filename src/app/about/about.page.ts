@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 
 import { GroupMember } from '../core/models';
-import { MEMBERS, PROJECT, TECH } from './groupinfo';
+import { APIS, MEMBERS, PROJECT, TECH } from './groupinfo';
 
 /** About Our Group: project info, members, course/year/section and each member's role. */
 @Component({
@@ -14,6 +14,7 @@ export class AboutPage {
   project = PROJECT;
   members: GroupMember[] = MEMBERS;
   tech = TECH;
+  apis = APIS;
 
   initials(name: string): string {
     return name

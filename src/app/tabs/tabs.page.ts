@@ -9,6 +9,8 @@ interface NavItem {
   tab: string;
   path: string;
   label: string;
+  /** A shorter name for the small phone tab bar. */
+  short?: string;
   icon: string;
   /** One line shown in the side navigation so each place is clear. */
   hint: string;
@@ -31,8 +33,8 @@ export class TabsPage {
 
   readonly items: NavItem[] = [
     { tab: 'home', path: '/home', label: 'Home', icon: 'home-outline', hint: 'Start here', group: 'work' },
-    { tab: 'chat', path: '/chat', label: 'Assistant', icon: 'sparkles-outline', hint: 'Chat, resume, matching, interview', group: 'work' },
-    { tab: 'jobs', path: '/jobs', label: 'Job board', icon: 'briefcase-outline', hint: 'Browse and search all openings', group: 'work' },
+    { tab: 'chat', path: '/chat', label: 'Assistant', short: 'Chat', icon: 'sparkles-outline', hint: 'Chat, resume, matching, interview', group: 'work' },
+    { tab: 'jobs', path: '/jobs', label: 'Job board', short: 'Jobs', icon: 'briefcase-outline', hint: 'Browse and search all openings', group: 'work' },
     { tab: 'settings', path: '/settings', label: 'Settings', icon: 'options-outline', hint: 'AI providers, theme, data', group: 'app' },
     { tab: 'about', path: '/about', label: 'About', icon: 'people-outline', hint: 'Our group', group: 'app' },
   ];

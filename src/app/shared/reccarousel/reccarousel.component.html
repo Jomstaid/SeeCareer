@@ -7,8 +7,12 @@
       </header>
 
       <div class="title">
-        <div class="fit {{ tone(r.score) }}" role="img" [attr.aria-label]="'Fit ' + r.score + ' percent'">
-          <strong>{{ r.score }}</strong><small>%</small>
+        <div class="logo" [style.background]="logoUrl(r.job) ? null : avatar(r.job)" [class.initial]="!logoUrl(r.job)">
+          @if (logoUrl(r.job); as src) {
+            <img [src]="src" [alt]="r.job.company_name" loading="lazy" referrerpolicy="no-referrer" (load)="onLogoLoad($event, r.job)" (error)="logoBad(r.job)" />
+          } @else {
+            <span>{{ initial(r.job) }}</span>
+          }
         </div>
         <div class="names">
           <h4>{{ r.job.title }}</h4>

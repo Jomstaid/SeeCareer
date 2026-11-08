@@ -28,3 +28,21 @@ export const MEMBERS: GroupMember[] = [
 ];
 
 export const TECH = ['Ionic 9', 'Angular 22', 'TypeScript', 'Capacitor (Android)', 'RxJS HttpClient'];
+
+/** Every web service the app talks to, so the About page lists them all. */
+export interface ApiInfo {
+  name: string;
+  use: string;
+  url: string;
+}
+
+export const APIS: ApiInfo[] = [
+  { name: 'Himalayas Jobs API', use: 'Remote job listings (main source, HttpClient GET, no key)', url: 'https://himalayas.app/jobs/api' },
+  { name: 'Remotive', use: 'More remote jobs', url: 'https://remotive.com/api/remote-jobs' },
+  { name: 'Jobicy', use: 'More remote jobs, with place filter', url: 'https://jobicy.com/api/v2/remote-jobs' },
+  { name: 'RemoteOK', use: 'More remote jobs', url: 'https://remoteok.com/api' },
+  { name: 'Arbeitnow', use: 'More jobs, including Europe', url: 'https://www.arbeitnow.com/api/job-board-api' },
+  { name: 'Wikipedia', use: 'Web lookup and public photos for the assistant', url: 'https://en.wikipedia.org/w/api.php' },
+  { name: 'Company icons', use: 'Logos of the hiring companies', url: 'https://www.google.com/s2/favicons' },
+  { name: 'SeeCareer free AI', use: 'The built-in AI for chat, resume and matching', url: 'https://api.jomstaid.com/v1' },
+];

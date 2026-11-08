@@ -46,11 +46,18 @@ ion-card {
 }
 
 ion-card-title {
+  font-size: 28px;
+  font-weight: 700;
   color: var(--sc-text);
   font-family: var(--sc-font-head);
 }
 
 ion-card-subtitle {
+  font-family: var(--sc-font-head);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
   color: var(--sc-accent);
 }
 
@@ -176,4 +183,125 @@ ion-note {
     font-size: 14.5px;
     color: var(--sc-muted);
   }
+}
+
+.apis {
+  list-style: none;
+  margin: var(--sp-3) 0;
+  padding: 0;
+  display: grid;
+  gap: var(--sp-2);
+
+  li {
+    display: grid;
+    gap: 0;
+    line-height: 1.3;
+    padding: 6px var(--sp-3);
+    border-radius: 14px;
+    background: var(--sc-panel-2);
+    min-width: 0;
+  }
+
+  strong {
+    font-size: 15px;
+  }
+
+  span {
+    font-size: 14px;
+    color: var(--sc-muted);
+  }
+
+  code {
+    font-size: 12.5px;
+    color: var(--sc-accent);
+    overflow-wrap: anywhere;
+  }
+}
+
+// the course rows share the free height evenly instead of leaving a gap at the bottom
+@media (min-width: 900px) {
+  ion-card.grow ion-card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ion-card.grow ion-card-content ion-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+  }
+}
+
+// the list of APIs: one column on a phone, two on a tablet, four when the card spans the page, one in a narrow third column
+.apis {
+  margin: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 700px) {
+  .apis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) {
+  .third {
+    grid-column: 1 / -1;
+  }
+
+  .apis {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+// a big screen has room for three columns
+@media (min-width: 1250px) {
+  .page {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .third {
+    grid-column: auto;
+  }
+
+  .apis {
+    grid-template-columns: minmax(0, 1fr);
+    align-content: space-evenly;
+    height: 100%;
+  }
+
+  ion-card.grow ion-card-content:has(.apis) {
+    flex: 1;
+  }
+}
+
+// tighter rows so the text can be shown bigger
+ion-card-content ion-item {
+  --min-height: 40px;
+}
+
+// the project name with the app logo beside it
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+
+  img {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    box-shadow: 0 6px 16px rgba(29, 78, 216, 0.3);
+  }
+}
+
+// the technology tags sit in the middle of their card
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--sp-1);
+  margin-bottom: var(--sp-3);
 }

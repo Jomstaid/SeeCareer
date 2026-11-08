@@ -3,72 +3,90 @@
 <ion-content [fullscreen]="true">
   <div class="container page" appFitPage>
     <div class="col">
-    <ion-card>
-      <ion-card-header>
-        <ion-card-subtitle>Project</ion-card-subtitle>
-        <ion-card-title>{{ project.title }}</ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        <p class="tagline">{{ project.tagline }}</p>
-        <p>{{ project.description }}</p>
-      </ion-card-content>
-    </ion-card>
+      <ion-card>
+        <ion-card-header>
+          <ion-card-subtitle>Project</ion-card-subtitle>
+          <ion-card-title class="brand">
+            <img src="assets/icon/logo.svg" alt="" width="40" height="40" />
+            {{ project.title }}
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="tagline">{{ project.tagline }}</p>
+          <p>{{ project.description }}</p>
+        </ion-card-content>
+      </ion-card>
 
-    <ion-card class="grow">
-      <ion-card-header>
-        <ion-card-subtitle>Course information</ion-card-subtitle>
-      </ion-card-header>
-      <ion-card-content>
-        <ion-list lines="none">
-          <ion-item><ion-label>Course</ion-label><ion-note slot="end">{{ project.course }}</ion-note></ion-item>
-          <ion-item><ion-label>Program</ion-label><ion-note slot="end">{{ project.program }}</ion-note></ion-item>
-          <ion-item><ion-label>Year</ion-label><ion-note slot="end">{{ project.year }}</ion-note></ion-item>
-          <ion-item><ion-label>Section</ion-label><ion-note slot="end">{{ project.section }}</ion-note></ion-item>
-          <ion-item><ion-label>School</ion-label><ion-note slot="end" class="wrap">{{ project.school }}</ion-note></ion-item>
-        </ion-list>
-      </ion-card-content>
-    </ion-card>
+      <ion-card class="grow">
+        <ion-card-header>
+          <ion-card-subtitle>Course information</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-list lines="none">
+            <ion-item><ion-label>Course</ion-label><ion-note slot="end">{{ project.course }}</ion-note></ion-item>
+            <ion-item><ion-label>Program</ion-label><ion-note slot="end">{{ project.program }}</ion-note></ion-item>
+            <ion-item><ion-label>Year</ion-label><ion-note slot="end">{{ project.year }}</ion-note></ion-item>
+            <ion-item><ion-label>Section</ion-label><ion-note slot="end">{{ project.section }}</ion-note></ion-item>
+            <ion-item><ion-label>School</ion-label><ion-note slot="end" class="wrap">{{ project.school }}</ion-note></ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
     </div>
 
     <div class="col">
-    <ion-card>
-      <ion-card-header>
-        <ion-card-subtitle>Group members &amp; roles</ion-card-subtitle>
-      </ion-card-header>
-      <ul class="members">
-        @for (m of members; track m.name) {
-          <li>
-            <span class="avatar" aria-hidden="true">{{ initials(m.name) }}</span>
-            <div class="who">
-              <h3>{{ m.name }}</h3>
-              <p class="role">{{ m.role }}</p>
-              <p class="did">{{ m.contribution }}</p>
-            </div>
-          </li>
-        }
-      </ul>
-    </ion-card>
-
-    <ion-card class="grow">
-      <ion-card-header>
-        <ion-card-subtitle>Technology &amp; API</ion-card-subtitle>
-      </ion-card-header>
-      <ion-card-content>
-        <div class="chips">
-          @for (t of tech; track t) {
-            <ion-chip outline color="primary">{{ t }}</ion-chip>
+      <ion-card>
+        <ion-card-header>
+          <ion-card-subtitle>Group members &amp; roles</ion-card-subtitle>
+        </ion-card-header>
+        <ul class="members">
+          @for (m of members; track m.name) {
+            <li>
+              <span class="avatar" aria-hidden="true">{{ initials(m.name) }}</span>
+              <div class="who">
+                <h3>{{ m.name }}</h3>
+                <p class="role">{{ m.role }}</p>
+                <p class="did">{{ m.contribution }}</p>
+              </div>
+            </li>
           }
-        </div>
-        <p class="api">
-          <strong>{{ project.api }}</strong><br />
-          <code>{{ project.endpoint }}</code>
-        </p>
-        <ion-button expand="block" fill="outline" routerLink="/jobs">
-          <ion-icon slot="start" name="briefcase-outline"></ion-icon>
-          Explore jobs
-        </ion-button>
-      </ion-card-content>
-    </ion-card>
+        </ul>
+      </ion-card>
+
+      <ion-card class="grow">
+        <ion-card-header>
+          <ion-card-subtitle>Technology</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="chips">
+            @for (t of tech; track t) {
+              <ion-chip outline color="primary">{{ t }}</ion-chip>
+            }
+          </div>
+          <ion-button expand="block" fill="outline" routerLink="/jobs">
+            <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+            Explore jobs
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <div class="col third">
+      <ion-card class="grow">
+        <ion-card-header>
+          <ion-card-subtitle>APIs used</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <ul class="apis">
+            @for (a of apis; track a.name) {
+              <li>
+                <strong>{{ a.name }}</strong>
+                <span>{{ a.use }}</span>
+                <code>{{ a.url }}</code>
+              </li>
+            }
+          </ul>
+        </ion-card-content>
+      </ion-card>
     </div>
   </div>
 </ion-content>

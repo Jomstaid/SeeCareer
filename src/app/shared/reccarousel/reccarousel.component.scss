@@ -269,3 +269,31 @@
     display: none;
   }
 }
+
+// the company logo beside the job title
+.logo {
+  flex: 0 0 52px;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 14px;
+  color: #fff;
+  font-family: var(--sc-font-head);
+  font-weight: 700;
+  font-size: 20px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.logo:not(.initial) {
+  background: #fff;
+  padding: 5px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}

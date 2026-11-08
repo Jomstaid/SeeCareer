@@ -14,7 +14,7 @@
   min-width: 0;
 }
 
-@media (min-width: 1000px) {
+@media (min-width: 900px) {
   .page {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     min-height: 100%;
@@ -379,7 +379,7 @@ ion-range {
 
 
 // the cards that take up leftover height
-@media (min-width: 1000px) {
+@media (min-width: 900px) {
   .card.grow .health {
     flex: 1;
     align-content: space-evenly;
@@ -408,5 +408,12 @@ ion-range {
     height: 100%;
     border-radius: 99px;
     background: linear-gradient(90deg, var(--sc-primary), var(--sc-cta));
+  }
+}
+
+// the appearance card spreads its rows over the height it gets
+@media (min-width: 900px) {
+  .card.grow:has(.switch) {
+    justify-content: space-between;
   }
 }

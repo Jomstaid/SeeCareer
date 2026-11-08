@@ -100,7 +100,7 @@
                   <div class="quote">{{ m.quote }}</div>
                 }
                 @if (!(m.auto && m.attachments?.length)) {
-                  {{ m.content }}
+                  <span class="txt">{{ m.content }}</span>
                 }
               </div>
               }
@@ -229,7 +229,7 @@
       @if (sending()) {
         <div class="row ai">
           <div class="bubble ai-bubble typing" role="status">
-            <span class="dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <div class="skel" aria-hidden="true"><i></i><i></i><i></i></div>
             <small>{{ stepText() || 'Thinking…' }} {{ elapsed() }}s{{ queue().length ? ' · ' + queue().length + ' waiting' : '' }}</small>
           </div>
         </div>
@@ -335,7 +335,7 @@
       @if (inputError) {
         <span class="err" role="alert">{{ inputError }}</span>
       } @else {
-        <span>{{ mock() ? 'Mock interview running. Type /new to stop.' : 'Drop or attach PDF, Word, Excel, images or text. Type /help for commands.' }}</span>
+        <span>{{ mock() ? 'Mock interview running. Type /new to stop.' : 'Drop a file here, or type /help for commands.' }}</span>
       }
       <span [class.err]="remaining < 100">{{ remaining }}</span>
     </div>

@@ -1818,8 +1818,15 @@ export class ChatPage implements OnDestroy {
         this.push({
           role: 'assistant',
           content:
-            '**Commands**\n- `/new` new chat\n- `/clear` clear this chat\n- `/resume` add or edit your resume\n- `/settings` open Settings\n\n' +
-            'Pick a mode above to use the Resume Assistant, Job Finder, Job Matching, Application Assistant, Skills Gap or Interview Prep.',
+            '**What I can do**\n' +
+            'Pick a feature from the tabs above: Resume, Find jobs, Match, Apply, Skills gap or Interview. Or just ask me about your career.\n\n' +
+            '**Commands**\n' +
+            '- `/new` start a new chat\n' +
+            '- `/clear` clear this chat\n' +
+            '- `/resume` add or update your resume\n' +
+            '- `/settings` open Settings\n\n' +
+            '**Files**\n' +
+            'Drop a file into the chat, or use the clip button, and I will read it.',
         });
         this.scrollDown();
         return true;
