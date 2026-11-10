@@ -7,7 +7,7 @@ import { AiTaskService } from '../core/aitask.service';
 import { JOB_TASKS, RESUME_TASKS, TaskKey } from '../core/aitasks';
 import { isLetterRequest, letterize, nameFromRequest, stripChatter, titleOf } from '../core/docclean';
 import { deliverBlob, exportFile, safeFileName } from '../core/fileexport';
-import { Intent, detectDesign, detectIntent, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
+import { Intent, detectDesign, detectIntent, isQuestion, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
 import { ACCEPTED_FILES, FileReadError, formatBytes, readAttachment } from '../core/filereader';
 import { ChatStore } from '../core/chatstore.service';
 import { DOC_LABELS, DocVerdict, jobFromText, looksLikeResume } from '../core/doccheck';
@@ -404,7 +404,12 @@ export class ChatPage implements OnDestroy {
     } else if (a.command === 'askAnyway') {
       await this.askAnyway();
     } else if (a.command === 'useJob' && a.data) {
-      this.selectJob(jobFromText(a.data));
+      const shown = this.recentJobs(30).find((j) => String(j.id) === a.data);
+      if (shown) {
+        this.selectJob(shown);
+      } else {
+        this.selectJob(jobFromText(a.data.replace(/^role:/, '')));
+      }
     } else if (a.command === 'resume') {
       this.pickResume();
     } else if (a.command === 'mock') {
@@ -414,6 +419,39 @@ export class ChatPage implements OnDestroy {
     } else if (a.task) {
       await this.runTask(a.task);
     }
+  }
+
+  /** The jobs shown in this chat recently (search results and recommendations), newest first, without repeats. */
+  private recentJobs(max = 10): Job[] {
+    const seen = new Set<number>();
+    const out: Job[] = [];
+    for (const m of [...this.chat().messages].reverse()) {
+      const list = [...(m.jobs ?? []), ...(m.recs ?? []).map((r) => r.job)];
+      for (const j of list) {
+        if (!seen.has(j.id)) {
+          seen.add(j.id);
+          out.push(j);
+        }
+      }
+      if (out.length >= max) {
+        break;
+      }
+    }
+    return out.slice(0, max);
+  }
+
+  /** The recent jobs as text for the AI, with their links, so it can answer questions about them. */
+  private recentJobsContext(): string {
+    const jobs = this.recentJobs();
+    if (!jobs.length) {
+      return '';
+    }
+    const lines = jobs.map(
+      (j, i) =>
+        `${i + 1}. ${j.title} at ${j.company_name}. Place: ${j.candidate_required_location || 'not listed'}. Type: ${j.job_type || 'not listed'}. ` +
+        `Pay: ${j.salary || 'not listed'}. Apply: ${j.url || 'no link'}. About: ${plainText(j.description, 220)}`,
+    );
+    return `RECENT JOB RESULTS (the jobs this user is looking at, newest search first):\n${lines.join('\n')}`;
   }
 
   /** Checks the resume / job that a feature needs; tells the user what is missing. */
@@ -428,10 +466,17 @@ export class ChatPage implements OnDestroy {
       return false;
     }
     if (needsJob && !this.job()) {
+      const recent = this.recentJobs(4);
+      const lastSearch = [...this.chat().messages].reverse().find((m) => m.role === 'user' && !m.auto && m.content.length < 80 && !isQuestion(m.content))?.content;
+      const actions: ChatAction[] = recent.map((j) => ({ label: `${j.title} - ${j.company_name}`.slice(0, 48), icon: 'briefcase', command: 'useJob' as const, data: String(j.id) }));
+      if (lastSearch && !recent.length) {
+        actions.push({ label: `Use "${lastSearch.slice(0, 30)}"`, icon: 'create', command: 'useJob', data: `role:${lastSearch}` });
+      }
+      actions.push({ label: 'Find a job', icon: 'search', mode: 'finder' });
       this.push({
         role: 'assistant',
-        content: 'Choose a job first. Search for one and tap **Select**.',
-        actions: [{ label: 'Find a job', icon: 'search', mode: 'finder' }],
+        content: recent.length ? 'Which job is this for? Pick one of the jobs I just showed, or find another.' : 'Which job is this for? Search for one and tap **Select**.',
+        actions,
       });
       this.scrollDown();
       return false;
@@ -1339,6 +1384,15 @@ export class ChatPage implements OnDestroy {
       await this.sendWithFiles(text, files);
       return;
     }
+    // a request to find work ("can you find me something in cebu") is still a search; other questions, and words that point at
+    // the jobs on screen ("give me the links of those jobs"), are answered from the jobs that were shown
+    const wantsNew = /\b(find|search|look(ing)? for|show me|get me|recommend|suggest|need a job|want a job|hiring|vacanc\w+)\b/i.test(text);
+    const pointsAtShown = /\b(those|these|them|above|first one|second one|third one|that job|this job|that one)\b/i.test(text);
+    const question = !wantsNew && (isQuestion(text) || pointsAtShown);
+    if (question && (this.mode() === 'finder' || this.recentJobs(1).length)) {
+      await this.answerFromChat(text);
+      return;
+    }
     if ((JOB_INTENT.test(text) && text.length > 12) || (looksLikeJobSearch(text) && !this.job())) {
       this.push({ role: 'user', content: text });
       // every chat has its own focus: the saved resume is used only when the user asks for it
@@ -1404,6 +1458,19 @@ export class ChatPage implements OnDestroy {
           : 'WEB RESULTS: the search found nothing for the last message. Say so briefly, then help from what you know.';
       }
       const result = await this.ai.chat(await this.contextMessages(web), Math.max(this.settings.settings().maxTokens, web ? 1000 : 0));
+      this.push({ role: 'assistant', content: result.content, model: result.model });
+    });
+  }
+
+  /** Answers a question in the chat, knowing the jobs that were just shown (so it can talk about them and give their links). */
+  private async answerFromChat(text: string): Promise<void> {
+    this.push({ role: 'user', content: text });
+    await this.busy(async () => {
+      if (needsWeb(text) && !obviouslyCareer(text) && !(await this.onTopic(text))) {
+        this.push({ role: 'assistant', content: OFF_TOPIC_REPLY });
+        return;
+      }
+      const result = await this.ai.chat(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 900));
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -1696,6 +1763,10 @@ export class ChatPage implements OnDestroy {
       system +=
         `\n\nSelected job: ${job.title} at ${job.company_name} (${job.category}, ${job.job_type}). ` +
         `Description: ${plainText(job.description, 1500)}`;
+    }
+    const shownJobs = this.recentJobsContext();
+    if (shownJobs) {
+      system += `\n\n${shownJobs}`;
     }
     const wantsResume = (info.needsResume || this.mock()) && this.hasResume();
     const recentUser = this.chat().messages.filter((m) => m.role === 'user').slice(-3).map((m) => m.content).join(' ');

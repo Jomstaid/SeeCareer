@@ -443,7 +443,22 @@
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--sc-border);
   border-radius: var(--sc-radius-sm);
-  background: var(--sc-panel);
+  // cards inside a message share one tint, so they look the same however many layers sit under them
+  background: color-mix(in srgb, var(--sc-panel-solid) 62%, transparent);
+
+  .jhead {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    min-width: 0;
+  }
+
+  .jtitles {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
 
   &.picked {
     border-color: var(--sc-primary);

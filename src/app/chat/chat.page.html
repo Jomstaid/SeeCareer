@@ -168,8 +168,13 @@
                   <div class="jobs">
                     @for (j of m.jobs; track j.id) {
                       <div class="jobcard" [class.picked]="job()?.id === j.id">
-                        <strong>{{ j.title }}</strong>
-                        <small>{{ j.company_name }}</small>
+                        <div class="jhead">
+                          <app-company-logo [job]="j" [size]="44"></app-company-logo>
+                          <div class="jtitles">
+                            <strong>{{ j.title }}</strong>
+                            <small>{{ j.company_name }}</small>
+                          </div>
+                        </div>
                         <div class="jchips">
                           <span>{{ j.category }}</span>
                           @if (j.candidate_required_location) {

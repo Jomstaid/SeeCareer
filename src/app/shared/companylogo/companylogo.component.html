@@ -1,0 +1,7 @@
+<div class="logo" [class.initial]="!url" [style.width.px]="size" [style.height.px]="size" [style.background]="url ? null : avatar">
+  @if (url; as src) {
+    <img [src]="src" [alt]="job.company_name" loading="lazy" referrerpolicy="no-referrer" (load)="loaded($event)" (error)="bad()" />
+  } @else {
+    <span [style.font-size.px]="size * 0.4">{{ initial }}</span>
+  }
+</div>

@@ -202,3 +202,18 @@ export function looksLikeJobSearch(text: string): boolean {
   }
   return /\b(jobs?|vacanc\w+|openings?|hiring|careers?)\b/i.test(t);
 }
+
+/**
+ * A question (about the results, about work, about anything) rather than a few keywords to search.
+ * "are these hybrid working?", "which one pays more", "tell me about the first job".
+ */
+export function isQuestion(text: string): boolean {
+  const t = (text ?? '').trim();
+  if (!t) {
+    return false;
+  }
+  if (/\?\s*$/.test(t)) {
+    return true;
+  }
+  return /^\s*(are|is|do|does|did|can|could|will|would|should|what|which|how|why|who|when|where|tell me|explain|compare|show me the details|ano|alin|paano|bakit|sino|saan|pwede|meron|may)\b/i.test(t);
+}

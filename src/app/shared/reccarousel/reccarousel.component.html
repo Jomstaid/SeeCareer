@@ -7,13 +7,7 @@
       </header>
 
       <div class="title">
-        <div class="logo" [style.background]="logoUrl(r.job) ? null : avatar(r.job)" [class.initial]="!logoUrl(r.job)">
-          @if (logoUrl(r.job); as src) {
-            <img [src]="src" [alt]="r.job.company_name" loading="lazy" referrerpolicy="no-referrer" (load)="onLogoLoad($event, r.job)" (error)="logoBad(r.job)" />
-          } @else {
-            <span>{{ initial(r.job) }}</span>
-          }
-        </div>
+        <app-company-logo [job]="r.job" [size]="52"></app-company-logo>
         <div class="names">
           <h4>{{ r.job.title }}</h4>
           <p>{{ r.job.company_name }}</p>

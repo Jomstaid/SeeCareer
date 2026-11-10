@@ -58,7 +58,7 @@ describe('detectIntent: does the message ask for a file?', () => {
   });
 });
 
-import { isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsPhotoAdded, wantsPhotoRemoved } from './intent';
+import { isQuestion, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsPhotoAdded, wantsPhotoRemoved } from './intent';
 
 describe('resume for someone else and edits to a made resume', () => {
   it('finds who the resume is for', () => {
@@ -150,5 +150,20 @@ describe('design words', () => {
     expect(wantsDifferentDesign('another question about interviews')).toBe(false);
     expect(wantsDifferentDesign('add skill python')).toBe(false);
     expect(isResumeEdit('give me a different design')).toBe(true);
+  });
+});
+
+describe('isQuestion', () => {
+  it('sees questions about the jobs on screen', () => {
+    expect(isQuestion('are these hybrid working?')).toBe(true);
+    expect(isQuestion('which one pays more')).toBe(true);
+    expect(isQuestion('tell me about the first job')).toBe(true);
+    expect(isQuestion('meron bang remote dyan')).toBe(true);
+  });
+
+  it('leaves keyword searches alone', () => {
+    expect(isQuestion('data analyst')).toBe(false);
+    expect(isQuestion('frontend developer remote')).toBe(false);
+    expect(isQuestion('customer support')).toBe(false);
   });
 });
