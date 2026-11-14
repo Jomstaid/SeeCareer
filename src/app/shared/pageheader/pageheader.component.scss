@@ -1,6 +1,6 @@
 // A floating glass bar with rounded corners, not a flat band across the screen.
 ion-header {
-  padding: var(--sp-2) var(--sp-3) 0;
+  padding: var(--sp-2) var(--sp-2) 0;
   background: transparent;
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
@@ -11,17 +11,22 @@ ion-header::after {
 }
 
 ion-toolbar {
-  --background: var(--sc-panel);
+  --background: var(--sc-nav-bg, var(--sc-panel));
   --border-width: 0;
   --color: var(--sc-text);
-  --min-height: 56px;
-  border: 1px solid var(--sc-border);
-  border-top-color: var(--sc-edge);
-  border-radius: var(--sc-radius);
-  box-shadow: var(--sc-shadow), inset 0 1px 0 var(--sc-edge);
+  --min-height: 52px;
+  border: 3px outset var(--sc-frame-color);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--sc-frame-accent), inset 0 -2px 0 var(--sc-frame-shadow);
   overflow: hidden;
   -webkit-backdrop-filter: blur(var(--sc-blur)) saturate(150%);
   backdrop-filter: blur(var(--sc-blur)) saturate(150%);
+}
+
+:host-context(:root.ion-palette-dark) ion-toolbar {
+  --sc-frame-color: #6330cf;
+  --sc-frame-accent: #6330cf;
+  --sc-frame-shadow: #290044;
 }
 
 // the title and (on the chat page) the feature tabs share one row, vertically centred
@@ -29,14 +34,14 @@ ion-toolbar {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 56px;
+  min-height: 52px;
 }
 
 .ttl {
   flex: 0 0 auto;
   margin: 0;
   padding-inline: var(--sp-4);
-  font-family: var(--sc-font-head);
+  font-family: var(--sc-font-pixel);
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;

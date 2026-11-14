@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, HostListener } from '@angular/core';
+import { AfterViewInit, Component, HostListener, inject } from '@angular/core';
 
 import { AiService } from './core/ai.service';
 import { SettingsService } from './core/settings.service';
@@ -10,11 +10,11 @@ import { SettingsService } from './core/settings.service';
   standalone: false,
 })
 export class AppComponent implements AfterViewInit {
+  private settings = inject(SettingsService);
+  private ai = inject(AiService);
+
   // Creating the service here applies the saved theme as soon as the app starts.
-  constructor(
-    private settings: SettingsService,
-    private ai: AiService,
-  ) {
+  constructor() {
     this.ai.startAutoCheck(); // keeps the list of working models up to date by itself
   }
 

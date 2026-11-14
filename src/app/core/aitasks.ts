@@ -20,6 +20,11 @@ export interface TaskInfo {
   icon: string;
 }
 
+export interface JobTaskInfo extends TaskInfo {
+  image: string;
+  darkImage: string;
+}
+
 export const RESUME_TASKS: TaskInfo[] = [
   { key: 'analyze', label: 'Analyze resume', icon: 'search-outline' },
   { key: 'improve', label: 'Improve wording', icon: 'create-outline' },
@@ -27,12 +32,12 @@ export const RESUME_TASKS: TaskInfo[] = [
   { key: 'generate', label: 'Design my resume (PDF / Word)', icon: 'document-outline' },
 ];
 
-export const JOB_TASKS: TaskInfo[] = [
-  { key: 'match', label: 'Match score', icon: 'speedometer-outline' },
-  { key: 'cover', label: 'Cover letter', icon: 'document-text-outline' },
-  { key: 'email', label: 'Email draft', icon: 'mail-outline' },
-  { key: 'gap', label: 'Skills gap', icon: 'trending-up-outline' },
-  { key: 'interview', label: 'Interview prep', icon: 'chatbubbles-outline' },
+export const JOB_TASKS: JobTaskInfo[] = [
+  { key: 'match', label: 'Match score', icon: 'speedometer-outline', image: 'assets/icon/mode-match.png', darkImage: 'assets/icon/dark-mode-match.png' },
+  { key: 'cover', label: 'Cover letter', icon: 'document-text-outline', image: 'assets/icon/mode-resume.png', darkImage: 'assets/icon/dark-mode-resume.png' },
+  { key: 'email', label: 'Email draft', icon: 'mail-outline', image: 'assets/icon/mode-apply.png', darkImage: 'assets/icon/dark-mode-apply.png' },
+  { key: 'gap', label: 'Skills gap', icon: 'trending-up-outline', image: 'assets/icon/mode-skills.png', darkImage: 'assets/icon/dark-mode-skills.png' },
+  { key: 'interview', label: 'Interview prep', icon: 'chatbubbles-outline', image: 'assets/icon/mode-interview.png', darkImage: 'assets/icon/dark-mode-interview.png' },
 ];
 
 const TASK_TITLES: Record<TaskKey, string> = {

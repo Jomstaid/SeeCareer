@@ -67,6 +67,13 @@ ion-card-content {
   line-height: 1.5;
 }
 
+.explore-jobs-icon {
+  width: 20px;
+  height: 20px;
+  margin-inline-end: 8px;
+  object-fit: contain;
+}
+
 .tagline {
   color: var(--sc-muted);
   margin-top: 0;
@@ -99,6 +106,8 @@ ion-item {
   color: var(--sc-accent);
   font-family: var(--sc-font-head);
   font-weight: 700;
+  object-fit: cover;
+  object-position: center 20%;
 }
 
 .contrib {

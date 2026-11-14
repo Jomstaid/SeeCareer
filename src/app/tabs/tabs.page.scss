@@ -1,40 +1,95 @@
 // ----- phone / tablet: floating glass tab bar -----
 ion-tab-bar {
-  --background: var(--sc-panel);
+  --background: var(--sc-nav-bg, var(--sc-panel));
   --border: 0;
-  --color: var(--sc-muted);
-  --color-selected: var(--sc-primary);
+  --color: var(--sc-unselected, var(--sc-primary));
+  --color-selected: var(--sc-selected, var(--sc-primary));
   margin: 0 var(--sp-2) calc(var(--sp-2) + env(safe-area-inset-bottom));
-  border: 1px solid var(--sc-border);
-  border-top-color: var(--sc-edge);
-  border-radius: 22px;
-  box-shadow: var(--sc-shadow), inset 0 1px 0 var(--sc-edge);
+  border: 3px outset var(--sc-frame-color);
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px var(--sc-frame-accent), inset 0 -2px 0 var(--sc-frame-shadow);
   overflow: hidden;
   contain: none;
 }
 
+:host-context(:root.ion-palette-dark) ion-tab-bar,
+:host-context(:root.ion-palette-dark) .rail {
+  --sc-frame-color: #6330cf;
+  --sc-frame-accent: #6330cf;
+  --sc-frame-shadow: #290044;
+}
+
 ion-tab-button {
-  font-size: 11.5px;
   min-width: 0;
-  font-weight: 600;
   min-height: 58px;
-  --padding-top: 6px;
+  --padding-top: 0;
+  transition: transform 220ms ease;
+
+  &:hover {
+    transform: translateY(-3px);
+  }
+
+  .nav-icon-wrap {
+    position: relative;
+    display: grid;
+    place-items: center;
+
+    &::before {
+      content: '';
+      position: absolute;
+      width: 56px;
+      height: 38px;
+      border-radius: 999px;
+      background-color: transparent;
+      transition: background-color 180ms ease;
+      pointer-events: none;
+    }
+
+    .nav-icon {
+      position: relative;
+      z-index: 1;
+      display: block;
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+    }
+
+  }
+
+  .nav-icon-wrap-about .nav-icon {
+    width: 34px;
+    height: 34px;
+  }
+
+  .nav-icon-wrap-home .nav-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  &.tab-selected .nav-icon-wrap::before,
+  &:active .nav-icon-wrap::before {
+    background-color: #dff3ff;
+  }
 
   ion-icon {
+    display: none;
     font-size: 24px;
     padding: 2px 12px;
     border-radius: 14px;
-    transition: background-color 180ms ease;
   }
+}
 
-  &.tab-selected {
-    ion-icon {
-      background: color-mix(in srgb, var(--sc-primary) 18%, transparent);
-    }
+:host-context(:root.ion-palette-dark) ion-tab-button {
+  &.tab-selected .nav-icon-wrap::before {
+    background-color: color-mix(in srgb, var(--sc-selected, var(--sc-primary)) 24%, transparent);
+  }
+}
 
-    ion-label {
-      font-weight: 700;
-    }
+:host-context(:root:not(.ion-palette-dark)) ion-tab-button {
+  .nav-icon-wrap-chat .nav-icon,
+  .nav-icon-wrap-jobs .nav-icon {
+    width: 24px;
+    height: 24px;
   }
 }
 
@@ -59,11 +114,10 @@ ion-tab-button {
     gap: var(--sp-1);
     margin: var(--sp-3);
     padding: var(--sp-4) var(--sp-3);
-    background: var(--sc-panel);
-    border: 1px solid var(--sc-border);
-    border-top-color: var(--sc-edge);
-    border-radius: var(--sc-radius);
-    box-shadow: var(--sc-shadow);
+    background: var(--sc-nav-bg, var(--sc-panel));
+    border: 3px outset var(--sc-frame-color);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 1px var(--sc-frame-accent), inset 0 -2px 0 var(--sc-frame-shadow);
     box-sizing: border-box;
     overflow-y: auto;
     scrollbar-width: none;
@@ -104,6 +158,7 @@ ion-tab-button {
 
   .group {
     margin: var(--sp-3) var(--sp-3) var(--sp-1);
+    font-family: var(--sc-font-pixel);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.08em;
@@ -121,12 +176,12 @@ ion-tab-button {
     color: var(--sc-text);
     text-decoration: none;
     border: 1px solid transparent;
-    transition: background-color 150ms ease, border-color 150ms ease;
+    transition: background-color 150ms ease, border-color 150ms ease, transform 220ms ease;
 
     ion-icon {
       flex: none;
       font-size: 22px;
-      color: var(--sc-muted);
+      color: var(--sc-unselected, var(--sc-primary));
     }
 
     .txt {
@@ -149,15 +204,16 @@ ion-tab-button {
 
     &:hover {
       background: var(--sc-panel-2);
+      transform: translateY(-3px);
     }
 
     &.active {
-      background: color-mix(in srgb, var(--sc-primary) 16%, transparent);
-      border-color: color-mix(in srgb, var(--sc-primary) 40%, transparent);
+      background: color-mix(in srgb, var(--sc-selected, var(--sc-primary)) 16%, transparent);
+      border-color: color-mix(in srgb, var(--sc-selected, var(--sc-primary)) 40%, transparent);
 
       ion-icon,
       strong {
-        color: var(--sc-primary);
+        color: var(--sc-selected, var(--sc-primary));
       }
     }
   }
@@ -193,6 +249,7 @@ ion-tab-button {
     border-radius: 99px;
     background: color-mix(in srgb, var(--sc-primary) 16%, transparent);
     color: var(--sc-primary);
+    font-family: var(--sc-font-pixel);
     font-size: 13px;
     font-weight: 700;
 

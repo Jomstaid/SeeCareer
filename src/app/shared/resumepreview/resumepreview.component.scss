@@ -164,9 +164,9 @@
     }
   }
 
-  // ----- classic: one column, serif -----
+  // ----- classic: one column -----
   &.classic {
-    font-family: 'Times New Roman', Times, serif;
+    font-family: var(--sc-font);
     font-size: 13px;
     color: #000;
 
@@ -436,6 +436,7 @@
 
       .job {
         margin-top: 5px;
+        font-family: var(--sc-font-pixel);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -470,9 +471,9 @@
     }
   }
 
-  // ----- elegant: centred serif with fine lines -----
+  // ----- elegant: centred layout with fine lines -----
   &.elegant {
-    font-family: 'Times New Roman', Times, serif;
+    font-family: var(--sc-font);
     font-size: 13px;
     color: #26262a;
 

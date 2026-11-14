@@ -1,12 +1,14 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { JobService } from '../core/job.service';
 import { Job } from '../core/models';
+import { SettingsService } from '../core/settings.service';
 
 /** One shortcut card on the Home page. */
 interface Shortcut {
-  icon: string;
+  image: string;
+  darkImage: string;
   title: string;
   text: string;
   path: string;
@@ -20,21 +22,20 @@ interface Shortcut {
   standalone: false,
 })
 export class HomePage implements OnInit {
+  jobService = inject(JobService);
+  settings = inject(SettingsService);
+  private router = inject(Router);
+
   readonly shortcuts: Shortcut[] = [
-    { icon: 'sparkles-outline', title: 'AI Assistant', text: 'Chat, build a resume, check your match, write cover letters and practice interviews.', path: '/chat' },
-    { icon: 'briefcase-outline', title: 'Job board', text: 'Browse and search thousands of remote openings.', path: '/jobs' },
-    { icon: 'options-outline', title: 'Settings', text: 'AI providers, theme, text size and your data.', path: '/settings' },
-    { icon: 'people-outline', title: 'About our group', text: 'The project, the course and the team behind it.', path: '/about' },
+    { image: 'assets/icon/nav-chat.png', darkImage: 'assets/icon/dark-nav-chat.png', title: 'AI Assistant', text: 'Chat, build a resume, check your match, write cover letters and practice interviews.', path: '/chat' },
+    { image: 'assets/icon/nav-jobs.png', darkImage: 'assets/icon/dark-nav-jobs.png', title: 'Job board', text: 'Browse and search thousands of remote openings.', path: '/jobs' },
+    { image: 'assets/icon/nav-settings.png', darkImage: 'assets/icon/dark-nav-settings.png', title: 'Settings', text: 'AI providers, theme, text size and your data.', path: '/settings' },
+    { image: 'assets/icon/nav-about.png', darkImage: 'assets/icon/dark-nav-about.png', title: 'About our group', text: 'The project, the course and the team behind it.', path: '/about' },
   ];
 
   latest = signal<Job[]>([]);
   loading = signal(true);
   failed = signal(false);
-
-  constructor(
-    public jobService: JobService,
-    private router: Router,
-  ) {}
 
   ngOnInit(): void {
     this.loadLatest();

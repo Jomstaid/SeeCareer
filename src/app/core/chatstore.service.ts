@@ -1,4 +1,4 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 
 import { ChatMessage, Conversation, Job } from './models';
 import { newId, readJson, removeKey, writeJson } from './storage';
@@ -10,14 +10,14 @@ const MAX_CONVERSATIONS = 30;
 /** Saves chat conversations on the phone (localStorage) so they survive closing the app. */
 @Injectable({ providedIn: 'root' })
 export class ChatStore {
+  private settings = inject(SettingsService);
+
   readonly conversations = signal<Conversation[]>(readJson<Conversation[]>(KEY, []));
 
   /** The conversation that is open in the chat page (highlighted in the side list). */
   readonly activeId = signal('');
   /** A click in the side list that the chat page has not handled yet. */
   readonly request = signal<{ kind: 'new' | 'open'; id?: string } | null>(null);
-
-  constructor(private settings: SettingsService) {}
 
   requestNew(): void {
     this.request.set({ kind: 'new' });

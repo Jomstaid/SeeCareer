@@ -8,17 +8,15 @@
 </app-page-header>
 
 <!-- the six AI features: a tab bar on big screens and a button grid on phones -->
-<div class="modebar">
+<div class="modebar" [class.dark-theme]="settings.darkMode()">
   <div class="container narrow">
     <ion-segment [scrollable]="true" [value]="mode()" (ionChange)="onMode($any($event).detail.value)" aria-label="AI feature">
-      <ion-segment-button value="general">
-        <ion-icon name="chatbubble-outline" aria-hidden="true"></ion-icon>
-        <ion-label>Chat</ion-label>
+      <ion-segment-button value="general" layout="icon-only" aria-label="Chat">
+        <img class="mode-icon" [src]="settings.darkMode() ? generalMode.darkImage : generalMode.image" alt="" aria-hidden="true" />
       </ion-segment-button>
       @for (m of modes; track m.key) {
-        <ion-segment-button [value]="m.key">
-          <ion-icon [name]="m.icon + '-outline'" aria-hidden="true"></ion-icon>
-          <ion-label>{{ m.short }}</ion-label>
+        <ion-segment-button [value]="m.key" layout="icon-only" [attr.aria-label]="m.short">
+          <img class="mode-icon" [class.mode-icon-interview]="m.key === 'interview'" [src]="settings.darkMode() ? m.darkImage : m.image" alt="" aria-hidden="true" />
         </ion-segment-button>
       }
     </ion-segment>
@@ -26,14 +24,12 @@
 
     <!-- phones: every feature as a button in a grid, so nothing scrolls sideways or gets cut -->
     <div class="mode-grid" role="tablist" aria-label="AI feature">
-      <button type="button" role="tab" [class.on]="mode() === 'general'" [attr.aria-selected]="mode() === 'general'" (click)="onMode('general')">
-        <ion-icon name="chatbubble-outline" aria-hidden="true"></ion-icon>
-        <span>Chat</span>
+      <button type="button" role="tab" aria-label="Chat" [class.on]="mode() === 'general'" [attr.aria-selected]="mode() === 'general'" (click)="onMode('general')">
+        <img class="mode-icon" [src]="settings.darkMode() ? generalMode.darkImage : generalMode.image" alt="" aria-hidden="true" />
       </button>
       @for (m of modes; track m.key) {
-        <button type="button" role="tab" [class.on]="mode() === m.key" [attr.aria-selected]="mode() === m.key" (click)="onMode(m.key)">
-          <ion-icon [name]="m.icon + '-outline'" aria-hidden="true"></ion-icon>
-          <span>{{ m.short }}</span>
+        <button type="button" role="tab" [attr.aria-label]="m.short" [class.on]="mode() === m.key" [attr.aria-selected]="mode() === m.key" (click)="onMode(m.key)">
+          <img class="mode-icon" [class.mode-icon-interview]="m.key === 'interview'" [src]="settings.darkMode() ? m.darkImage : m.image" alt="" aria-hidden="true" />
         </button>
       }
     </div>
@@ -210,7 +206,7 @@
                   [recs]="m.recs!"
                   [selectedId]="job()?.id"
                   (details)="openJob($event)"
-                  (select)="selectJob($event)"
+                  (jobSelected)="selectJob($event)"
                 ></app-rec-carousel>
               }
 
@@ -311,30 +307,32 @@
     }
 
     <div class="inputbox" [class.invalid]="inputError">
-      <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or upload your resume">
-        <ion-icon name="attach-outline"></ion-icon>
-      </button>
       <input #filePicker type="file" multiple [accept]="accepted" hidden (change)="onFiles($event)" />
       <ion-textarea
         #msgBox
         [(ngModel)]="inputText"
         (keydown)="onKeydown($event)"
         (paste)="onPaste($any($event))"
-        (ionInput)="inputError = ''"
+        (ionInput)="onMessageInput()"
         [autoGrow]="true"
         rows="1"
         [maxlength]="maxLength"
         [placeholder]="pending().length ? 'Ask about the file (optional)…' : mock() ? 'Type your answer…' : info().placeholder"
         aria-label="Message"
       ></ion-textarea>
-      @if (sending()) {
-        <button type="button" class="stop" (click)="stop()" aria-label="Stop (Esc)">
-          <ion-icon name="stop"></ion-icon>
+      <div class="composer-actions">
+        <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or upload your resume">
+          <ion-icon name="attach-outline"></ion-icon>
         </button>
-      }
-      <button type="button" class="send" (click)="send()" [disabled]="reading()" [attr.aria-label]="sending() ? 'Send after the answer finishes' : 'Send message'">
-        <ion-icon name="arrow-up"></ion-icon>
-      </button>
+        @if (sending()) {
+          <button type="button" class="stop" (click)="stop()" aria-label="Stop (Esc)">
+            <ion-icon name="stop"></ion-icon>
+          </button>
+        }
+        <button type="button" class="send" (click)="send()" [disabled]="reading()" [attr.aria-label]="sending() ? 'Send after the answer finishes' : 'Send message'">
+          <ion-icon name="arrow-up"></ion-icon>
+        </button>
+      </div>
     </div>
     <div class="hint">
       @if (inputError) {
@@ -348,7 +346,7 @@
 </ion-footer>
 
 <!-- history -->
-<ion-modal [isOpen]="historyOpen()" (didDismiss)="historyOpen.set(false)" [initialBreakpoint]="0.7" [breakpoints]="[0, 0.7, 1]">
+<ion-modal class="history-modal" [isOpen]="historyOpen()" (didDismiss)="historyOpen.set(false)" [initialBreakpoint]="0.7" [breakpoints]="[0, 0.7, 1]">
   <ng-template>
     <ion-header class="ion-no-border">
       <ion-toolbar>

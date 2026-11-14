@@ -78,6 +78,7 @@
 
 .note a {
   margin-left: var(--sp-1);
+  font-family: var(--sc-font-pixel);
   font-weight: 600;
 }
 
@@ -160,6 +161,7 @@
   border-radius: 99px;
   font-size: 11.5px;
   font-style: normal;
+  font-family: var(--sc-font-pixel);
   font-weight: 600;
   color: var(--sc-cta);
   background: color-mix(in srgb, var(--sc-cta) 16%, transparent);
@@ -251,6 +253,7 @@
   margin-top: var(--sp-3);
 
   .label {
+    font-family: var(--sc-font-pixel);
     font-size: 13.5px;
     font-weight: 600;
     color: var(--sc-muted);
@@ -320,6 +323,7 @@
 
   .lbl {
     margin: var(--sp-3) 0 var(--sp-1);
+    font-family: var(--sc-font-pixel);
     font-size: 13.5px;
     font-weight: 600;
     color: var(--sc-muted);

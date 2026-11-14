@@ -31,13 +31,13 @@
         --s-bg: #f3f7ff; --s-text: #0f1f3d; --s-muted: #52627f; --s-a: #2f6bff; --s-b: #0fb5a3;
         position: fixed; inset: 0; z-index: 99999; display: grid; place-items: center; overflow: hidden;
         background: var(--s-bg);
-        font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-family: 'VT323', monospace;
         transition: opacity 500ms ease, visibility 500ms ease;
       }
       @media (prefers-color-scheme: dark) {
-        #splash { --s-bg: #07122b; --s-text: #e8f0ff; --s-muted: #9fb2d3; }
+        #splash { --s-bg: #000000; --s-text: #e8f0ff; --s-muted: #9fb2d3; }
       }
-      :root.ion-palette-dark #splash { --s-bg: #07122b; --s-text: #e8f0ff; --s-muted: #9fb2d3; }
+      :root.ion-palette-dark #splash { --s-bg: #000000; --s-text: #e8f0ff; --s-muted: #9fb2d3; }
       #splash.done { opacity: 0; visibility: hidden; pointer-events: none; }
       #splash .stack { display: flex; flex-direction: column; align-items: center; gap: 20px; }
       #splash svg { width: 108px; height: 108px; display: block; filter: drop-shadow(0 16px 28px rgba(47, 107, 255, .28)); animation: s-pop 600ms cubic-bezier(.2, .9, .3, 1.15) both; }
@@ -46,7 +46,7 @@
       #splash .b1 { animation-delay: 950ms; }
       #splash .b2 { animation-delay: 1070ms; }
       #splash .b3 { animation-delay: 1190ms; }
-      #splash h1 { margin: 0; font: 700 30px/1 'DM Sans', system-ui, sans-serif; letter-spacing: -.02em; color: var(--s-text); opacity: 0; animation: s-up 600ms 1150ms ease forwards; }
+      #splash h1 { margin: 0; font: 700 30px/1 'VT323', monospace; letter-spacing: -.02em; color: var(--s-text); opacity: 0; animation: s-up 600ms 1150ms ease forwards; }
       #splash p { margin: -8px 0 0; font-size: 14px; color: var(--s-muted); opacity: 0; animation: s-up 600ms 1350ms ease forwards; }
       #splash .line { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; overflow: hidden; }
       #splash .line i { display: block; height: 100%; width: 32%; background: linear-gradient(90deg, transparent, var(--s-a), var(--s-b), transparent); animation: s-slide 1.5s ease-in-out infinite; }

@@ -2,7 +2,14 @@
   @for (f of features; track f.key) {
     <li>
       <button type="button" class="feature" (click)="pick.emit(f.key)">
-        <span class="icon" aria-hidden="true"><ion-icon [name]="f.icon + '-outline'"></ion-icon></span>
+        <span class="icon" aria-hidden="true">
+          <img
+            class="feature-icon"
+            [class.feature-icon-interview]="f.key === 'interview'"
+            [src]="settings.darkMode() ? f.darkImage : f.image"
+            alt=""
+          />
+        </span>
         <span class="text">
           <strong>{{ f.label }}</strong>
           <small>{{ f.blurb }}</small>

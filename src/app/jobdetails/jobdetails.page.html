@@ -60,11 +60,19 @@
       </div>
 
       <div class="ai-box">
-        <h3><ion-icon name="sparkles"></ion-icon> Ask SeeCareer AI about this job</h3>
+        <h3>
+          <img
+            class="ai-icon"
+            [src]="settings.darkMode() ? 'assets/icon/dark-nav-chat.png' : 'assets/icon/nav-chat.png'"
+            alt=""
+            aria-hidden="true"
+          />
+          Ask SeeCareer AI about this job
+        </h3>
         <div class="tools">
           @for (t of tasks; track t.key) {
             <ion-button size="small" fill="outline" (click)="askAi(t.key)">
-              <ion-icon slot="start" [name]="t.icon"></ion-icon>
+              <img class="task-icon" slot="start" [src]="settings.darkMode() ? t.darkImage : t.image" alt="" aria-hidden="true" />
               {{ t.label }}
             </ion-button>
           }

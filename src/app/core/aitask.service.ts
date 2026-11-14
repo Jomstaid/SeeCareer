@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { AlertController } from '@ionic/angular/lazy';
 
 import { AiService } from './ai.service';
@@ -16,12 +16,11 @@ export interface TaskOutput {
 /** Runs the AI career tools (resume, match, cover letter, gap, interview) and handles the privacy consent. */
 @Injectable({ providedIn: 'root' })
 export class AiTaskService {
-  constructor(
-    private ai: AiService,
-    private resume: ResumeService,
-    private settings: SettingsService,
-    private alerts: AlertController,
-  ) {}
+  private ai = inject(AiService);
+  private resume = inject(ResumeService);
+  private settings = inject(SettingsService);
+  private alerts = inject(AlertController);
+
 
   /** Tells the user their resume goes to an external AI provider and asks once for permission. */
   async ensureConsent(): Promise<boolean> {

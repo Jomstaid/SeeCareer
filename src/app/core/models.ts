@@ -217,6 +217,7 @@ export class GroupMember {
     public name: string,
     public role: string,
     public contribution: string,
+    public photo: string,
   ) {}
 }
 

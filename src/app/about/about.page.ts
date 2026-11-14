@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 
 import { GroupMember } from '../core/models';
+import { SettingsService } from '../core/settings.service';
 import { APIS, MEMBERS, PROJECT, TECH } from './groupinfo';
 
 /** About Our Group: project info, members, course/year/section and each member's role. */
@@ -11,17 +12,9 @@ import { APIS, MEMBERS, PROJECT, TECH } from './groupinfo';
   standalone: false,
 })
 export class AboutPage {
+  settings = inject(SettingsService);
   project = PROJECT;
   members: GroupMember[] = MEMBERS;
   tech = TECH;
   apis = APIS;
-
-  initials(name: string): string {
-    return name
-      .split(' ')
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join('');
-  }
 }

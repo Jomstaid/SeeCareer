@@ -47,7 +47,7 @@
           </a>
         }
         <button type="button" class="btn" (click)="details.emit(r.job)">Details</button>
-        <button type="button" class="btn" (click)="select.emit(r.job)">
+        <button type="button" class="btn" (click)="jobSelected.emit(r.job)">
           {{ selectedId === r.job.id ? 'Selected' : 'Select' }}
         </button>
       </div>

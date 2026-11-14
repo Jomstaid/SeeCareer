@@ -1,4 +1,4 @@
-import { Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, untracked } from '@angular/core';
+import { Component, ElementRef, HostListener, OnDestroy, ViewChild, computed, effect, signal, untracked, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ActionSheetController, AlertController, IonContent, IonTextarea, ToastController } from '@ionic/angular/lazy';
 
@@ -18,7 +18,7 @@ import { ResumeDesignService } from '../core/resumedesign.service';
 import { SYSTEM_PROMPT } from '../core/defaults';
 import { JobService, describeHttpError, plainText } from '../core/job.service';
 import { renderMarkdown } from '../core/markdown';
-import { MOCK_INTERVIEW_SYSTEM, MODES, ModeInfo, modeInfo } from '../core/modes';
+import { GENERAL_MODE, MOCK_INTERVIEW_SYSTEM, MODES, ModeInfo, modeInfo } from '../core/modes';
 import { AiError, Attachment, ChatAction, ChatMessage, ChatMode, Conversation, ExportFormat, Job, Recommendation } from '../core/models';
 import { PhotoService } from '../core/photo';
 import { findWebPhoto, isSearchableName } from '../core/webphoto';
@@ -76,6 +76,22 @@ const RESUME_MODES: ChatMode[] = ['resume', 'finder', 'match', 'apply', 'gap', '
   standalone: false,
 })
 export class ChatPage implements OnDestroy {
+  private ai = inject(AiService);
+  private tasks = inject(AiTaskService);
+  store = inject(ChatStore);
+  providers = inject(ProviderService);
+  settings = inject(SettingsService);
+  resume = inject(ResumeService);
+  private jobs = inject(JobService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private toast = inject(ToastController);
+  private alerts = inject(AlertController);
+  private sheets = inject(ActionSheetController);
+  private rec = inject(RecommendService);
+  private photos = inject(PhotoService);
+  private design = inject(ResumeDesignService);
+
   @ViewChild(IonContent) content?: IonContent;
   @ViewChild('filePicker') filePicker?: ElementRef<HTMLInputElement>;
   @ViewChild('msgBox') textarea?: IonTextarea;
@@ -94,6 +110,7 @@ export class ChatPage implements OnDestroy {
   private images = new Map<string, string[]>();
 
   readonly modes = MODES;
+  readonly generalMode = GENERAL_MODE;
   readonly maxLength = MAX_MESSAGE_LENGTH;
 
   chat = signal<Conversation>({ id: newId(), title: 'New chat', updated: Date.now(), messages: [] });
@@ -138,23 +155,7 @@ export class ChatPage implements OnDestroy {
 
   private timer?: ReturnType<typeof setInterval>;
 
-  constructor(
-    private ai: AiService,
-    private tasks: AiTaskService,
-    public store: ChatStore,
-    public providers: ProviderService,
-    public settings: SettingsService,
-    public resume: ResumeService,
-    private jobs: JobService,
-    private route: ActivatedRoute,
-    private router: Router,
-    private toast: ToastController,
-    private alerts: AlertController,
-    private sheets: ActionSheetController,
-    private rec: RecommendService,
-    private photos: PhotoService,
-    private design: ResumeDesignService,
-  ) {
+  constructor() {
     // the chat list in the side navigation: open a chat, or start a new one
     effect(() => {
       const r = this.store.request();
@@ -1212,6 +1213,22 @@ export class ChatPage implements OnDestroy {
   }
 
   // ---------- sending free text ----------
+  async onMessageInput(): Promise<void> {
+    this.inputError = '';
+    const component = this.textarea;
+    if (!component) {
+      return;
+    }
+
+    const textarea = await component.getInputElement();
+    textarea.style.maxHeight = '90px';
+    textarea.style.overflowY = 'auto';
+    textarea.style.paddingBottom =
+      textarea.scrollHeight > 90
+        ? 'var(--padding-top)'
+        : '0px';
+  }
+
   onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();

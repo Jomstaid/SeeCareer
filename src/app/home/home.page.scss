@@ -15,6 +15,7 @@
 
   .eyebrow {
     margin: 0 0 var(--sp-1);
+    font-family: var(--sc-font-pixel);
     font-size: 13px;
     font-weight: 600;
     color: var(--sc-primary);
@@ -37,6 +38,15 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
+
+    .cta-icon {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      margin-inline-end: 8px;
+      object-fit: contain;
+    }
+
   }
 }
 
@@ -75,9 +85,15 @@
     width: 42px;
     height: 42px;
     border-radius: 14px;
-    font-size: 22px;
-    color: var(--sc-primary);
     background: var(--sc-panel-2);
+
+    img {
+      display: block;
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
   }
 
   strong {

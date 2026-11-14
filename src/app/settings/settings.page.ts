@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
 import { AlertController, ToastController } from '@ionic/angular/lazy';
 
 import { AiService } from '../core/ai.service';
@@ -21,6 +21,13 @@ type StatusColor = 'muted' | 'ok' | 'warn' | 'danger';
   standalone: false,
 })
 export class SettingsPage {
+  providers = inject(ProviderService);
+  settings = inject(SettingsService);
+  ai = inject(AiService);
+  private chats = inject(ChatStore);
+  private alerts = inject(AlertController);
+  private toast = inject(ToastController);
+
   readonly presets = PROVIDER_PRESETS;
   readonly maxInstructions = MAX_INSTRUCTIONS_LENGTH;
   instructions = '';
@@ -45,14 +52,7 @@ export class SettingsPage {
   statusText = signal('');
   statusColor = signal<StatusColor>('muted');
 
-  constructor(
-    public providers: ProviderService,
-    public settings: SettingsService,
-    public ai: AiService,
-    private chats: ChatStore,
-    private alerts: AlertController,
-    private toast: ToastController,
-  ) {
+  constructor() {
     this.instructions = this.settings.settings().customInstructions;
     this.applyPreset();
   }

@@ -10,11 +10,11 @@
       </p>
       <div class="cta">
         <ion-button routerLink="/chat">
-          <ion-icon slot="start" name="sparkles-outline"></ion-icon>
+          <img class="cta-icon" slot="start" [src]="settings.darkMode() ? 'assets/icon/dark-nav-chat.png' : 'assets/icon/nav-chat.png'" alt="" aria-hidden="true" />
           Start with the assistant
         </ion-button>
         <ion-button fill="outline" routerLink="/jobs">
-          <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+          <img class="cta-icon" slot="start" [src]="settings.darkMode() ? 'assets/icon/dark-nav-jobs.png' : 'assets/icon/nav-jobs.png'" alt="" aria-hidden="true" />
           Browse jobs
         </ion-button>
       </div>
@@ -23,7 +23,9 @@
     <section class="tiles" aria-label="Where to go">
       @for (s of shortcuts; track s.path) {
         <button type="button" class="tile" (click)="go(s.path)">
-          <span class="pic" aria-hidden="true"><ion-icon [name]="s.icon"></ion-icon></span>
+          <span class="pic" aria-hidden="true">
+            <img [src]="settings.darkMode() ? s.darkImage : s.image" alt="" />
+          </span>
           <strong>{{ s.title }}</strong>
           <small>{{ s.text }}</small>
         </button>

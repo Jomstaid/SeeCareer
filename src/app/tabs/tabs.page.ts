@@ -1,9 +1,10 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { AlertController } from '@ionic/angular/lazy';
 
 import { ChatStore } from '../core/chatstore.service';
 import { Conversation } from '../core/models';
+import { SettingsService } from '../core/settings.service';
 
 interface NavItem {
   tab: string;
@@ -12,6 +13,8 @@ interface NavItem {
   /** A shorter name for the small phone tab bar. */
   short?: string;
   icon: string;
+  image: string;
+  darkImage: string;
   /** One line shown in the side navigation so each place is clear. */
   hint: string;
   group: 'work' | 'app';
@@ -25,18 +28,18 @@ interface NavItem {
   standalone: false,
 })
 export class TabsPage {
-  constructor(
-    public store: ChatStore,
-    private router: Router,
-    private alerts: AlertController,
-  ) {}
+  store = inject(ChatStore);
+  settings = inject(SettingsService);
+  private router = inject(Router);
+  private alerts = inject(AlertController);
+
 
   readonly items: NavItem[] = [
-    { tab: 'home', path: '/home', label: 'Home', icon: 'home-outline', hint: 'Start here', group: 'work' },
-    { tab: 'chat', path: '/chat', label: 'Assistant', short: 'Chat', icon: 'sparkles-outline', hint: 'Chat, resume, matching, interview', group: 'work' },
-    { tab: 'jobs', path: '/jobs', label: 'Job board', short: 'Jobs', icon: 'briefcase-outline', hint: 'Browse and search all openings', group: 'work' },
-    { tab: 'settings', path: '/settings', label: 'Settings', icon: 'options-outline', hint: 'AI providers, theme, data', group: 'app' },
-    { tab: 'about', path: '/about', label: 'About', icon: 'people-outline', hint: 'Our group', group: 'app' },
+    { tab: 'home', path: '/home', label: 'Home', icon: 'home-outline', image: 'assets/icon/nav-home.png', darkImage: 'assets/icon/dark-nav-home.png', hint: 'Start here', group: 'work' },
+    { tab: 'chat', path: '/chat', label: 'Assistant', short: 'Chat', icon: 'sparkles-outline', image: 'assets/icon/nav-chat.png', darkImage: 'assets/icon/dark-nav-chat.png', hint: 'Chat, resume, matching, interview', group: 'work' },
+    { tab: 'jobs', path: '/jobs', label: 'Job board', short: 'Jobs', icon: 'briefcase-outline', image: 'assets/icon/nav-jobs.png', darkImage: 'assets/icon/dark-nav-jobs.png', hint: 'Browse and search all openings', group: 'work' },
+    { tab: 'settings', path: '/settings', label: 'Settings', icon: 'options-outline', image: 'assets/icon/nav-settings.png', darkImage: 'assets/icon/dark-nav-settings.png', hint: 'AI providers, theme, data', group: 'app' },
+    { tab: 'about', path: '/about', label: 'About', icon: 'people-outline', image: 'assets/icon/nav-about.png', darkImage: 'assets/icon/dark-nav-about.png', hint: 'Our group', group: 'app' },
   ];
 
   get work(): NavItem[] {

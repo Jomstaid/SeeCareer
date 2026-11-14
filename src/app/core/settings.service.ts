@@ -10,6 +10,7 @@ const KEY = 'seecareer.settings';
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   readonly settings = signal<AppSettings>({ ...DEFAULT_SETTINGS, ...readJson<Partial<AppSettings>>(KEY, {}) });
+  readonly darkMode = signal(false);
 
   constructor() {
     this.apply();
@@ -30,6 +31,7 @@ export class SettingsService {
     const dark = theme === 'dark' || (theme === 'system' && prefersDark);
     const root = document.documentElement;
     root.classList.toggle('ion-palette-dark', dark);
+    this.darkMode.set(dark);
     root.dataset['fontsize'] = fontSize;
   }
 }

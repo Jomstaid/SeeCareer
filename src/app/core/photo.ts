@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { AiService, ContentPart } from './ai.service';
 
@@ -101,7 +101,8 @@ export function parsePhotoAnswer(raw: string, imageCount: number): { image: numb
 /** Finds the profile photo in the pictures of an uploaded resume, using the AI's eyes. */
 @Injectable({ providedIn: 'root' })
 export class PhotoService {
-  constructor(private ai: AiService) {}
+  private ai = inject(AiService);
+
 
   /** The user's own picture, cropped around the face when the AI can find it. */
   async fromPicture(url: string): Promise<string> {

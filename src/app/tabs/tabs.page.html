@@ -47,9 +47,17 @@
   <!-- Phone / tablet: bottom tab bar -->
   <ion-tab-bar slot="bottom">
     @for (item of items; track item.path) {
-      <ion-tab-button [tab]="item.tab" [routerLink]="item.path">
+      <ion-tab-button [tab]="item.tab" [routerLink]="item.path" [attr.aria-label]="item.short || item.label">
         <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-        <ion-label>{{ item.short || item.label }}</ion-label>
+        <span
+          class="nav-icon-wrap"
+          [class.nav-icon-wrap-about]="item.tab === 'about'"
+          [class.nav-icon-wrap-home]="item.tab === 'home'"
+          [class.nav-icon-wrap-chat]="item.tab === 'chat'"
+          [class.nav-icon-wrap-jobs]="item.tab === 'jobs'"
+        >
+          <img class="nav-icon" [src]="settings.darkMode() ? item.darkImage : item.image" alt="" aria-hidden="true" />
+        </span>
       </ion-tab-button>
     }
   </ion-tab-bar>

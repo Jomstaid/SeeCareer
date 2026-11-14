@@ -41,8 +41,18 @@
     display: grid;
     place-items: center;
     background: color-mix(in srgb, var(--sc-primary) 12%, transparent);
-    color: var(--sc-primary);
-    font-size: 24px;
+  }
+
+  .feature-icon {
+    display: block;
+    width: 26px;
+    height: 26px;
+    object-fit: contain;
+  }
+
+  .feature-icon-interview {
+    width: 27px;
+    height: 27px;
   }
 
   .text {

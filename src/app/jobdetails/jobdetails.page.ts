@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 
 import { JOB_TASKS, TaskKey } from '../core/aitasks';
@@ -6,6 +6,7 @@ import { JobService, describeHttpError, fixEncoding } from '../core/job.service'
 import { faviconUrl, logoCandidates } from '../core/logo';
 import { Job } from '../core/models';
 import { ResumeService } from '../core/resume.service';
+import { SettingsService } from '../core/settings.service';
 
 /** Details page: shows one job. The id comes from the route /job/:id. */
 @Component({
@@ -15,6 +16,12 @@ import { ResumeService } from '../core/resume.service';
   standalone: false,
 })
 export class JobDetailsPage implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  jobService = inject(JobService);
+  resume = inject(ResumeService);
+  settings = inject(SettingsService);
+
   job = signal<Job | undefined>(undefined);
   loading = signal(true);
   error = signal('');
@@ -53,13 +60,6 @@ export class JobDetailsPage implements OnInit {
       this.logoBad(j);
     }
   }
-
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    public jobService: JobService,
-    public resume: ResumeService,
-  ) {}
 
   /** The AI buttons shown on this page. */
   readonly tasks = JOB_TASKS;

@@ -1,14 +1,12 @@
 // SeeCareer design tokens.
-// Direction from the ui-ux-pro-max skill: glassmorphism (frosted translucent panels, backdrop blur 10-20px,
-// 1px light borders, layered depth) on a vibrant background, with a recruitment palette:
-// trust blue for navigation and actions, teal for "go" (apply, send), warm amber for saved items.
-// DM Sans headings + Inter body (the ui-ux-pro-max "premium sans" pairing), 4/8 spacing scale, breakpoints 375 / 768 / 1024 / 1440.
+// Pixel typography with a 4/8 spacing scale and breakpoints at 375 / 768 / 1024 / 1440.
 
 :root {
   // ----- typography -----
-  --sc-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
-  --sc-font-head: 'DM Sans', 'Inter', system-ui, sans-serif;
-  --sc-code: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+  --sc-font: 'VT323', monospace;
+  --sc-font-pixel: 'Pixelify Sans', monospace;
+  --sc-font-head: var(--sc-font-pixel);
+  --sc-code: 'VT323', monospace;
   --sc-mono: var(--sc-font); // older stylesheets use this name for small labels
   --sc-chat-size: 16px;
 
@@ -36,33 +34,68 @@
   --sc-panel-2: rgba(255, 255, 255, 0.5); // inputs and inner blocks
   --sc-panel-solid: #f6f9ff; // where text must sit on something opaque (menus, dialogs)
   --sc-border: rgba(30, 64, 175, 0.16);
+  --sc-frame-color: #76c0ec;
+  --sc-frame-accent: #76c0ec;
+  --sc-frame-shadow: #b8b8f1;
+  --sc-frame-clip: polygon(
+    18px 0,
+    calc(100% - 18px) 0,
+    calc(100% - 18px) 6px,
+    calc(100% - 12px) 6px,
+    calc(100% - 12px) 12px,
+    calc(100% - 6px) 12px,
+    calc(100% - 6px) 18px,
+    100% 18px,
+    100% calc(100% - 18px),
+    calc(100% - 6px) calc(100% - 18px),
+    calc(100% - 6px) calc(100% - 12px),
+    calc(100% - 12px) calc(100% - 12px),
+    calc(100% - 12px) calc(100% - 6px),
+    calc(100% - 18px) calc(100% - 6px),
+    calc(100% - 18px) 100%,
+    18px 100%,
+    18px calc(100% - 6px),
+    12px calc(100% - 6px),
+    12px calc(100% - 12px),
+    6px calc(100% - 12px),
+    6px calc(100% - 18px),
+    0 calc(100% - 18px),
+    0 18px,
+    6px 18px,
+    6px 12px,
+    12px 12px,
+    12px 6px,
+    18px 6px
+  );
   --sc-edge: rgba(255, 255, 255, 0.85); // bright top edge of glass
   --sc-shadow: 0 8px 30px rgba(30, 64, 175, 0.1);
   --sc-text: #0f1f3d;
   --sc-muted: #475a78;
-  --sc-primary: #1d4ed8;
-  --sc-on-primary: #ffffff;
-  --sc-accent: #1d4ed8;
-  --sc-accent-2: #0f766e;
+  --sc-primary: #76c0ec;
+  --sc-on-primary: #0f1f3d;
+  --sc-accent: #76c0ec;
+  --sc-accent-2: #76c0ec;
   --sc-cyan: #0e7490;
-  --sc-cta: #0f766e; // teal "go" colour (white text 5.5:1)
-  --sc-on-cta: #ffffff;
+  --sc-cta: #76c0ec;
+  --sc-on-cta: #0f1f3d;
   --sc-saved: #b45309;
   --sc-ok: #15803d;
   --sc-warn: #b45309;
   --sc-danger: #b91c1c;
-  --sc-focus: #1d4ed8;
+  --sc-focus: #0077b6;
+  --sc-selected: #0077b6;
+  --sc-unselected: #76c0ec;
 
   // ----- Ionic mapping -----
   --ion-font-family: var(--sc-font);
   --ion-background-color: var(--sc-panel-solid);
   --ion-text-color: var(--sc-text);
-  --ion-color-primary: #1d4ed8;
-  --ion-color-primary-rgb: 29, 78, 216;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #1a45bf;
-  --ion-color-primary-tint: #345fdc;
+  --ion-color-primary: #76c0ec;
+  --ion-color-primary-rgb: 118, 192, 236;
+  --ion-color-primary-contrast: #0f1f3d;
+  --ion-color-primary-contrast-rgb: 15, 31, 61;
+  --ion-color-primary-shade: #68a9cf;
+  --ion-color-primary-tint: #84c7ed;
   --ion-color-success: #0f766e;
   --ion-color-success-rgb: 15, 118, 110;
   --ion-color-success-contrast: #ffffff;
@@ -75,41 +108,44 @@
 }
 
 :root.ion-palette-dark {
-  --sc-bg: #07122b;
-  --sc-bg-image:
-    radial-gradient(60vmax 60vmax at 8% -10%, rgba(37, 99, 235, 0.45), transparent 60%),
-    radial-gradient(55vmax 55vmax at 105% 105%, rgba(13, 148, 136, 0.38), transparent 60%),
-    radial-gradient(40vmax 40vmax at 100% 0%, rgba(99, 102, 241, 0.25), transparent 60%), linear-gradient(160deg, #07122b, #0a1e3f);
+  --sc-bg: #000000;
+  --sc-bg-image: linear-gradient(160deg, #000000, #000000);
+  --sc-nav-bg: #212529;
   --sc-panel: rgba(255, 255, 255, 0.075);
   --sc-panel-2: rgba(255, 255, 255, 0.06);
   --sc-panel-solid: #0e1d3a;
   --sc-border: rgba(255, 255, 255, 0.14);
+  --sc-frame-color: #6330cf;
+  --sc-frame-accent: #6330cf;
+  --sc-frame-shadow: #6b3690;
   --sc-edge: rgba(255, 255, 255, 0.22);
   --sc-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
   --sc-text: #e8f0ff;
   --sc-muted: #a3b6d6;
-  --sc-primary: #60a5fa;
-  --sc-on-primary: #06193d;
-  --sc-accent: #60a5fa;
-  --sc-accent-2: #2dd4bf;
+  --sc-primary: #6330cf;
+  --sc-on-primary: #ffffff;
+  --sc-accent: #6330cf;
+  --sc-accent-2: #6330cf;
   --sc-cyan: #22d3ee;
-  --sc-cta: #2dd4bf;
-  --sc-on-cta: #042f2b;
+  --sc-cta: #6330cf;
+  --sc-on-cta: #ffffff;
   --sc-saved: #fbbf24;
   --sc-ok: #4ade80;
   --sc-warn: #fbbf24;
   --sc-danger: #f87171;
-  --sc-focus: #93c5fd;
+  --sc-focus: #6330cf;
+  --sc-selected: #6330cf;
+  --sc-unselected: #6330cf;
 
   --ion-background-color: var(--sc-panel-solid);
   --ion-background-color-rgb: 14, 29, 58;
   --ion-text-color: var(--sc-text);
-  --ion-color-primary: #60a5fa;
-  --ion-color-primary-rgb: 96, 165, 250;
-  --ion-color-primary-contrast: #06193d;
-  --ion-color-primary-contrast-rgb: 6, 25, 61;
-  --ion-color-primary-shade: #5491dc;
-  --ion-color-primary-tint: #70aefb;
+  --ion-color-primary: #6330cf;
+  --ion-color-primary-rgb: 99, 48, 207;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #572ab6;
+  --ion-color-primary-tint: #7449d5;
   --ion-color-success: #2dd4bf;
   --ion-color-success-rgb: 45, 212, 191;
   --ion-color-success-contrast: #042f2b;
@@ -165,7 +201,6 @@ ion-content {
 }
 
 html {
-  font-feature-settings: 'cv11', 'ss01'; // Inter's single-storey a and open digits read friendlier
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -180,6 +215,8 @@ h1,
 h2,
 h3,
 h4,
+h5,
+h6,
 ion-title {
   font-family: var(--sc-font-head);
   font-weight: 700;
@@ -195,6 +232,29 @@ ion-modal {
   --background: var(--sc-panel-solid);
 }
 
+ion-modal.history-modal,
+ion-modal.history-modal ion-content {
+  --background: #E8F9FF;
+}
+
+:root.ion-palette-dark ion-modal.history-modal {
+  --background: #111111;
+  --sc-frame-color: #6330cf;
+  --sc-frame-accent: #6330cf;
+  --sc-frame-shadow: #290044;
+}
+
+:root.ion-palette-dark ion-modal.history-modal ion-content {
+  --background: #111111;
+}
+
+ion-modal.history-modal::part(content) {
+  border: 2px solid var(--sc-frame-color);
+  border-image: linear-gradient(135deg, var(--sc-frame-color), var(--sc-frame-accent), var(--sc-frame-color)) 1;
+  clip-path: var(--sc-frame-clip);
+  box-shadow: 3px 5px 0 var(--sc-frame-shadow);
+}
+
 ion-popover,
 ion-alert,
 ion-action-sheet {
@@ -203,6 +263,7 @@ ion-action-sheet {
 
 ion-button {
   --border-radius: var(--sc-radius-sm);
+  --ion-font-family: var(--sc-font-pixel);
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
@@ -294,6 +355,7 @@ ion-segment {
 
 ion-segment-button {
   --border-radius: var(--sc-radius-sm);
+  --ion-font-family: var(--sc-font-pixel);
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
@@ -326,7 +388,6 @@ ion-modal::part(content) {
   }
 }
 
-.composer .inputbox,
 .ctxbar,
 .queue .qitem,
 .job-card,

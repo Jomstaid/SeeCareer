@@ -1,11 +1,7 @@
-/* Fonts bundled with the app (work offline in the Android app): DM Sans for headings, Inter for text */
-@import '@fontsource/dm-sans/latin-500.css';
-@import '@fontsource/dm-sans/latin-600.css';
-@import '@fontsource/dm-sans/latin-700.css';
-@import '@fontsource/inter/latin-400.css';
-@import '@fontsource/inter/latin-500.css';
-@import '@fontsource/inter/latin-600.css';
-@import '@fontsource/inter/latin-700.css';
+/* Pixel font bundled with the app (works offline in the Android app). */
+@import '@fontsource/vt323/latin-400.css';
+@import '@fontsource/vt323/latin-ext-400.css';
+@import '@fontsource/pixelify-sans/latin-700.css';
 
 /*
  * App Global CSS
@@ -54,6 +50,11 @@ body {
   font-family: var(--sc-font);
   font-size: 16px;
   line-height: 1.5;
+}
+
+strong,
+b {
+  font-family: var(--sc-font-pixel);
 }
 
 .container {
@@ -131,4 +132,10 @@ ion-modal.designer-modal {
     --height: 92vh;
     --border-radius: var(--sc-radius);
   }
+}
+
+body :not(app-page-header *):not(ion-header *) {
+  font-family: var(--sc-font) !important;
+  font-weight: 400 !important;
+  --ion-font-family: var(--sc-font) !important;
 }

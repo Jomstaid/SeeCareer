@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, OnChanges, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, signal, inject } from '@angular/core';
 
 import { AiError } from '../../core/models';
 import { deliverBlob, safeFileName } from '../../core/fileexport';
@@ -18,6 +18,8 @@ const PREF_KEY = 'seecareer.resumeDesign';
   standalone: false,
 })
 export class ResumeDesignerComponent implements OnChanges {
+  private designService = inject(ResumeDesignService);
+
   @Input() open = false;
   @Input() data: ResumeData | null = null;
   /** The layout and colour to start with (for example the ones the resume was already made in). */
@@ -41,8 +43,6 @@ export class ResumeDesignerComponent implements OnChanges {
   message = signal('');
   messageIsError = signal(false);
   instruction = '';
-
-  constructor(private designService: ResumeDesignService) {}
 
   ngOnChanges(): void {
     if (this.open && this.design) {

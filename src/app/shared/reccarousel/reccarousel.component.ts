@@ -18,7 +18,7 @@ export class RecCarouselComponent {
   /** Id of the job the user already picked. */
   @Input() selectedId?: number;
   @Output() details = new EventEmitter<Job>();
-  @Output() select = new EventEmitter<Job>();
+  @Output() jobSelected = new EventEmitter<Job>();
 
   tone(score: number): 'good' | 'mid' | 'low' {
     return score >= 75 ? 'good' : score >= 55 ? 'mid' : 'low';

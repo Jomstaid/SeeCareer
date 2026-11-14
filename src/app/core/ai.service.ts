@@ -1,5 +1,5 @@
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { EmptyError, Subject, firstValueFrom, takeUntil, timeout } from 'rxjs';
 
 import { AUTO_CHECK_MS, MAX_SCAN_PER_PROVIDER, MIN_WORKING, NOT_CHAT_MODELS, PROVIDER_PRESETS } from './defaults';
@@ -53,12 +53,10 @@ const PING_TIMEOUT_MS = 25000;
  */
 @Injectable({ providedIn: 'root' })
 export class AiService {
-  readonly scanning = signal(false);
+  private http = inject(HttpClient);
+  private store = inject(ProviderService);
 
-  constructor(
-    private http: HttpClient,
-    private store: ProviderService,
-  ) {}
+  readonly scanning = signal(false);
 
   // ---------- low-level calls ----------
   private headers(p: AiProvider): HttpHeaders {

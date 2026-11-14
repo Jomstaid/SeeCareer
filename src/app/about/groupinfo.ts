@@ -21,10 +21,10 @@ export const PROJECT = {
 };
 
 export const MEMBERS: GroupMember[] = [
-  new GroupMember('Member 1 (replace with real name)', 'Project Lead / Developer', 'Planned the app, built the pages and routing.'),
-  new GroupMember('Member 2 (replace with real name)', 'UI/UX Designer', 'Designed the interface and the Ionic components used.'),
-  new GroupMember('Member 3 (replace with real name)', 'API Developer', 'Connected the Himalayas jobs API and the AI assistant.'),
-  new GroupMember('Member 4 (replace with real name)', 'Tester / Documentation', 'Tested the main user flow and wrote the documentation.'),
+  new GroupMember('Jomar Alcantara', 'Leader / Developer', '', 'assets/team/jomar-alcantara.png'),
+  new GroupMember('Evia Cassandra Eliz Sindac', 'Member / Designer', '', 'assets/team/evia-cassandra-eliz-sindac.png'),
+  new GroupMember('Anjo Adriano', 'Member / Developer', '', 'assets/team/anjo-adriano.png'),
+  new GroupMember('Khimberly Bautista', 'Member / Developer', '', 'assets/team/khimberly-bautista.png'),
 ];
 
 export const TECH = ['Ionic 9', 'Angular 22', 'TypeScript', 'Capacitor (Android)', 'RxJS HttpClient'];

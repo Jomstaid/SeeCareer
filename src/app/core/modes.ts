@@ -8,6 +8,8 @@ export interface ModeInfo {
   blurb: string;
   short: string;
   icon: string;
+  image: string;
+  darkImage: string;
   /** Tile / chip colour (CSS colour). */
   color: string;
   intro: string;
@@ -27,6 +29,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'Analyze, improve and generate your resume as PDF or Word.',
     short: 'Resume',
     icon: 'document-text',
+    image: 'assets/icon/mode-resume.png',
+    darkImage: 'assets/icon/dark-mode-resume.png',
     color: '#6366f1',
     intro:
       'I can **analyze** your resume, **improve** it, **extract your skills**, and **generate a new resume as PDF or Word**. Add your resume (or upload a PDF, Word file or photo of it with the paperclip button), then pick an action.',
@@ -48,8 +52,10 @@ export const MODES: ModeInfo[] = [
     key: 'finder',
     label: 'Job Finder',
     blurb: 'Search real jobs, or get picks that fit your resume.',
-    short: 'Find jobs',
+    short: 'Jobs',
     icon: 'search',
+    image: 'assets/icon/mode-jobs.png',
+    darkImage: 'assets/icon/dark-mode-jobs.png',
     color: '#06b6d4',
     intro:
       'Tell me what job you want, for example **“python developer”** or **“customer support”**. Or upload your resume and say **“find me a job I will get accepted for”**: I will pick the jobs you fit best and show your fit %.',
@@ -66,6 +72,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'See how well you fit a job, with a score.',
     short: 'Match',
     icon: 'speedometer',
+    image: 'assets/icon/mode-match.png',
+    darkImage: 'assets/icon/dark-mode-match.png',
     color: '#10b981',
     intro:
       'I compare your resume with a job and give a **compatibility score**, why it fits, and what does not. Choose a job first (use Job Finder), then tap Match.',
@@ -85,6 +93,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'Cover letters, emails and application answers.',
     short: 'Apply',
     icon: 'mail',
+    image: 'assets/icon/mode-apply.png',
+    darkImage: 'assets/icon/dark-mode-apply.png',
     color: '#f59e0b',
     intro:
       'I write a **cover letter** or **application email** for the selected job using only facts from your resume. Paste an application question and I will answer it too.',
@@ -103,8 +113,10 @@ export const MODES: ModeInfo[] = [
     key: 'gap',
     label: 'Skills Gap Analyzer',
     blurb: 'Find missing skills and get a learning plan.',
-    short: 'Skills gap',
+    short: 'Skills',
     icon: 'trending-up',
+    image: 'assets/icon/mode-skills.png',
+    darkImage: 'assets/icon/dark-mode-skills.png',
     color: '#ec4899',
     intro:
       'I find the skills you are **missing** for the selected job and build an **8-week learning roadmap**. Pick a job first.',
@@ -124,6 +136,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'Likely questions, plus a mock interview with scores.',
     short: 'Interview',
     icon: 'chatbubbles',
+    image: 'assets/icon/mode-interview.png',
+    darkImage: 'assets/icon/dark-mode-interview.png',
     color: '#8b5cf6',
     intro:
       'Get a **list of likely questions** with suggested answers, or start a **mock interview**: I ask one question at a time and score each answer.',
@@ -145,6 +159,8 @@ export const GENERAL_MODE: ModeInfo = {
     blurb: '',
   short: 'Chat',
   icon: 'sparkles',
+  image: 'assets/icon/mode-chat.png',
+  darkImage: 'assets/icon/dark-mode-chat.png',
   color: '#6366f1',
   intro: '',
   placeholder: 'Ask anything, or ask about your career…',

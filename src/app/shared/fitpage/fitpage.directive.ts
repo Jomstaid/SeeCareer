@@ -1,4 +1,4 @@
-import { AfterViewInit, Directive, ElementRef, OnDestroy, OnInit } from '@angular/core';
+import { AfterViewInit, Directive, ElementRef, OnDestroy, OnInit, inject } from '@angular/core';
 
 /**
  * Makes a page fill the whole screen on a big display, with no empty space and no scrolling:
@@ -11,6 +11,8 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, OnInit } from '@angula
   standalone: false,
 })
 export class FitPageDirective implements OnInit, AfterViewInit, OnDestroy {
+  private ref = inject<ElementRef<HTMLElement>>(ElementRef);
+
   /** The most the content may be enlarged. */
   private readonly maxZoom = 1.45;
   /** The least the content may be shrunk (for large text on a small screen). */
@@ -19,8 +21,6 @@ export class FitPageDirective implements OnInit, AfterViewInit, OnDestroy {
   private mutate?: MutationObserver;
   private timer?: ReturnType<typeof setTimeout>;
   private fitting = false;
-
-  constructor(private ref: ElementRef<HTMLElement>) {}
 
   /** Turns the page's own scrolling on or off (a scrollbar must not flash while the page is being fitted). */
   private scrolling(on: boolean): void {

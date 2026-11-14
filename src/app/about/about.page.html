@@ -41,7 +41,7 @@
         <ul class="members">
           @for (m of members; track m.name) {
             <li>
-              <span class="avatar" aria-hidden="true">{{ initials(m.name) }}</span>
+              <img class="avatar" [src]="m.photo" alt="" />
               <div class="who">
                 <h3>{{ m.name }}</h3>
                 <p class="role">{{ m.role }}</p>
@@ -63,7 +63,7 @@
             }
           </div>
           <ion-button expand="block" fill="outline" routerLink="/jobs">
-            <ion-icon slot="start" name="briefcase-outline"></ion-icon>
+            <img class="explore-jobs-icon" slot="start" [src]="settings.darkMode() ? 'assets/icon/dark-nav-jobs.png' : 'assets/icon/nav-jobs.png'" alt="" aria-hidden="true" />
             Explore jobs
           </ion-button>
         </ion-card-content>

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { AiService, ApiMessage, ContentPart } from './ai.service';
 import { ACCENTS, RESUME_JSON_SHAPE, ResumeData, ResumeTemplate, TEMPLATES, accentFromName, parseResumeJson } from './resumedata';
@@ -35,7 +35,8 @@ const DESIGNER =
 /** Turns resume text into structured data for the designer, and applies the user's change requests. */
 @Injectable({ providedIn: 'root' })
 export class ResumeDesignService {
-  constructor(private ai: AiService) {}
+  private ai = inject(AiService);
+
 
   /** Builds a resume from the user's text (their saved resume, notes or an uploaded file's text). */
   fromText(text: string, extraInstructions = ''): Promise<DesignResult> {

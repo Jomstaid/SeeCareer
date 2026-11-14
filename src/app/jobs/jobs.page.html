@@ -12,19 +12,28 @@
   </section>
 
   <a class="ai-cta" routerLink="/chat" [queryParams]="{ mode: 'finder' }">
-    <ion-icon name="sparkles-outline" aria-hidden="true"></ion-icon>
+    <img class="ai-cta-icon" [src]="settings.darkMode() ? 'assets/icon/dark-nav-chat.png' : 'assets/icon/nav-chat.png'" alt="" aria-hidden="true" />
     <span><strong>Let the AI find jobs for me</strong><small>Upload your resume and get the best matches with a fit score.</small></span>
     <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
   </a>
 
   <div class="filters">
-    <ion-searchbar
-      [(ngModel)]="searchText"
-      (ionInput)="onSearchInput()"
-      placeholder="Search title, skill or company"
-      [debounce]="0"
-      inputmode="search"
-    ></ion-searchbar>
+    <div class="searchbar-wrap">
+      <img
+        class="search-mode-icon"
+        [class.light-mode]="!settings.darkMode()"
+        [src]="settings.darkMode() ? 'assets/icon/dark-search-jobs.png' : 'assets/icon/search-jobs.png'"
+        alt=""
+        aria-hidden="true"
+      />
+      <ion-searchbar
+        [(ngModel)]="searchText"
+        (ionInput)="onSearchInput()"
+        placeholder="Search title, skill or company"
+        [debounce]="0"
+        inputmode="search"
+      ></ion-searchbar>
+    </div>
 
     <div class="filter-row">
       <ion-select

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { AiService, ApiMessage, ContentPart } from './ai.service';
 import { DOC_LABELS, DocVerdict, parseVerdict, ruleVerdict } from './doccheck';
@@ -53,10 +53,9 @@ export function chanceOf(score: number): Recommendation['chance'] {
  */
 @Injectable({ providedIn: 'root' })
 export class RecommendService {
-  constructor(
-    private ai: AiService,
-    private jobs: JobService,
-  ) {}
+  private ai = inject(AiService);
+  private jobs = inject(JobService);
+
 
   /** Asks the AI whether a document is a real resume, a job posting, a cover letter, or unrelated. */
   async classify(text: string, images: string[] = [], name = ''): Promise<DocVerdict> {

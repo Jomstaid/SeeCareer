@@ -1,8 +1,9 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
 import { JobService, QUICK_FILTERS, describeHttpError } from '../core/job.service';
 import { Job } from '../core/models';
+import { SettingsService } from '../core/settings.service';
 
 /** Jobs page: 100k+ jobs from the public API, 20 at a time, with search, filters, bookmarks and infinite scroll. */
 @Component({
@@ -12,6 +13,10 @@ import { Job } from '../core/models';
   standalone: false,
 })
 export class JobsPage implements OnInit {
+  jobService = inject(JobService);
+  settings = inject(SettingsService);
+  private router = inject(Router);
+
   readonly filters = QUICK_FILTERS;
 
   jobs = signal<Job[]>([]);
@@ -32,11 +37,6 @@ export class JobsPage implements OnInit {
   private timer?: ReturnType<typeof setTimeout>;
 
   visibleJobs = computed(() => (this.savedFlag() ? this.jobService.savedJobs() : this.jobs()));
-
-  constructor(
-    public jobService: JobService,
-    private router: Router,
-  ) {}
 
   ngOnInit(): void {
     this.loadJobs();

@@ -1,5 +1,5 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { Place, placeByCode, splitPlace } from './places';
@@ -110,12 +110,12 @@ export const QUICK_FILTERS: { label: string; query: string }[] = [
 /** Centralised data service: loads jobs with HttpClient GET and keeps a small cache on the phone. */
 @Injectable({ providedIn: 'root' })
 export class JobService {
+  private http = inject(HttpClient);
+
   private cache = new Map<number, Job>(readJson<Job[]>(CACHE_KEY, []).map((j) => [j.id, j]));
 
   /** Ids of jobs the user bookmarked. */
   readonly savedIds = signal<number[]>(readJson<number[]>(SAVED_KEY, []));
-
-  constructor(private http: HttpClient) {}
 
   /**
    * One page of jobs (20 per page).
