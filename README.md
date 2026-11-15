@@ -20,7 +20,6 @@ Instructor: Sir Angelito Cunanan Jr.
 | Folder | What it has |
 |---|---|
 | `apk/SeeCareer.apk` | The installable Android app |
-| `docs/` | Our documentation (`SeeCareerDocumentation.pdf` and `.docx`) |
 | `src/app/` | The app pages, shared components and services |
 | `src/assets/` | Pixel icons, the logo, the font and our team photos |
 | `android/` | The Android project made by Capacitor |

@@ -83,3 +83,6 @@ Thumbs.db
 *.docx
 !/docs/*.docx
 ~$*
+
+# Documentation, video script and other submission files stay on our computers only
+/docs/
