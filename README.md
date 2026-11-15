@@ -1,19 +1,41 @@
-# SeeCareer 💼
+<p align="center">
+  <img src="src/assets/icon/icon192.png" width="110" alt="SeeCareer logo">
+</p>
+
+<h1 align="center">SeeCareer 💼</h1>
+
+<p align="center">
+  An AI job finder and career helper app for students and fresh graduates<br>
+  Final Case Study · IT-PT02 Mobile Application Development
+</p>
+
+<p align="center">
+  <a href="apk/SeeCareer.apk">📱 Download the APK</a> ·
+  <a href="#how-to-run-it-">🚀 How to run</a> ·
+  <a href="#apis-we-used-">🌐 APIs</a> ·
+  <a href="#testing-">✅ Testing</a>
+</p>
+
+---
+
+## About the project 📌
 
 SeeCareer is our final case study for **IT-PT02 Mobile Application Development**. It is a career helper app for students and fresh graduates. You can browse real remote jobs, open a job to see the details, and chat with an AI that helps with your resume, cover letters, job matching and interview practice.
 
-We made it with **Ionic 9 + Angular 22** and turned it into an **Android app with Capacitor**. It also runs in the browser. The design is a pixel theme with a light mode (sky blue) and a dark mode (purple).
+We made it with **Ionic 9 + Angular 22** and turned it into an **Android app with Capacitor**. It also runs in the browser. The design is a pixel theme with a light mode (sky blue) and a dark mode (purple) 🎨
 
-**Group 2, BSIT 3E** 👋
-Nueva Ecija University of Science and Technology (NEUST)
+## Our group 👋
+
+**Group 2, BSIT 3E**<br>
+Nueva Ecija University of Science and Technology (NEUST)<br>
 Instructor: Sir Angelito Cunanan Jr.
 
-| Member | Role | What they did |
-|---|---|---|
-| Jomar D. Alcantara | Leader / Developer | Planned the app, built the AI chat, job search and resume features, and set up the free AI server |
-| Evia Cassandra Eliz D. Sindac | Designer | Made the pixel theme and icons, and designed the look of every page |
-| Anjo T. Adriano | Tester | Tested every page and feature on phones and laptops, checked the job APIs and reported the bugs we fixed |
-| Khimberly M. Bautista | Documentation | Wrote the documentation, the setup guide and the test results of the project |
+| | Member | Role | What they did |
+|---|---|---|---|
+| <img src="src/assets/team/jomarAlcantaraLight.png" width="44" alt="Jomar"> | Jomar D. Alcantara | Leader / Developer | Planned the app, built the AI chat, job search and resume features, and set up the free AI server |
+| <img src="src/assets/team/eviaSindacLight.png" width="44" alt="Evia"> | Evia Cassandra Eliz D. Sindac | Designer | Made the pixel theme and icons, and designed the look of every page |
+| <img src="src/assets/team/anjoAdrianoLight.png" width="44" alt="Anjo"> | Anjo T. Adriano | Tester | Tested every page and feature on phones and laptops, checked the job APIs and reported the bugs we fixed |
+| <img src="src/assets/team/khimberlyBautistaLight.png" width="44" alt="Khimberly"> | Khimberly M. Bautista | Documentation | Wrote the documentation, the setup guide and the test results of the project |
 
 ## What is in this repository 📂
 
@@ -62,7 +84,7 @@ All of these are free and need no API key.
 | Wikipedia | Facts and public photos the AI can look up | `https://en.wikipedia.org/w/api.php` |
 | **SeeCareer free AI** | The AI in the chat | `https://api.jomstaid.com/v1` |
 
-Note: Himalayas does not allow requests from a web page (CORS), so in the browser the Job board uses the backup APIs. In the Android app the requests go through native HTTP, so Himalayas works fully.
+💡 Note: Himalayas does not allow requests from a web page (CORS), so in the browser the Job board uses the backup APIs. In the Android app the requests go through native HTTP, so Himalayas works fully.
 
 ## How the free AI works 🤖
 
@@ -91,15 +113,15 @@ npm install
 ionic serve
 ```
 
-The app opens at http://localhost:8100
+The app opens at http://localhost:8100 🎉
 
 ## Install the APK on a phone 📲
 
 1. Copy `apk/SeeCareer.apk` to your Android phone (Android 7.0 or newer).
 2. Open the file. If Android asks, allow "Install unknown apps" for your file manager or browser.
-3. Open SeeCareer. It needs internet for the jobs and the AI.
+3. Open SeeCareer and you're good to go! It needs internet for the jobs and the AI.
 
-## How to build the APK
+## How to build the APK 🔧
 
 You need Android Studio (or JDK 21 and the Android SDK).
 
@@ -151,7 +173,7 @@ We also clicked through every button of the app one by one, on a phone screen (3
 * Fit scores are only estimates from the AI.
 * Old `.doc`, `.xls` and `.ppt` files cannot be read. Save them as PDF or the newer format first.
 
-## Problems and fixes
+## Problems and fixes 🩹
 
 * **`npm test` says "Vitest failed to find the runner" (Windows):** open the folder with a capital drive letter (`C:\...`, not `c:\...`) and run it again.
 * **Port 8100 is already used:** close the other terminal or run `ionic serve --port 8200`.
