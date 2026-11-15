@@ -1,4 +1,4 @@
-# SeeCareer
+# SeeCareer 💼
 
 SeeCareer is our final case study for **IT-PT02 Mobile Application Development**. It is a career helper app for students and fresh graduates. You can browse real remote jobs, open a job to see the details, and chat with an AI that helps with your resume, cover letters, job matching and interview practice.
 
@@ -25,7 +25,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | `android/` | The Android project made by Capacitor |
 | `worker/` | The small server code for our free AI (`gatewayproxy.js`) |
 
-## Pages
+## Pages 📱
 
 | Page | What it shows |
 |---|---|
@@ -64,7 +64,7 @@ All of these are free and need no API key.
 
 Note: Himalayas does not allow requests from a web page (CORS), so in the browser the Job board uses the backup APIs. In the Android app the requests go through native HTTP, so Himalayas works fully.
 
-## How the free AI works
+## How the free AI works 🤖
 
 `api.jomstaid.com` is our own small server (a Cloudflare Worker, code in `worker/gatewayproxy.js`). It passes the chat to free AI models (free LLMs) that we set up on **OmniRoute**. The secret key stays on the server, so there is no key in the app, the APK or this repository.
 
@@ -80,7 +80,7 @@ To use a new model from OmniRoute, add its name to `preferred` (or its provider 
 
 You can also add your own AI provider (Groq, OpenRouter, Google Gemini or any OpenAI compatible server) in Settings.
 
-## How to run it
+## How to run it 🚀
 
 You need **Node.js 20 or newer**, **Git** and the **Ionic CLI** (`npm install -g @ionic/cli`).
 
@@ -112,7 +112,7 @@ gradlew assembleDebug
 
 The APK will be at `android/app/build/outputs/apk/debug/app-debug.apk`. You can also open the `android` folder in Android Studio and use Build, Build APK.
 
-## Testing
+## Testing ✅
 
 Run the unit tests with:
 
@@ -126,22 +126,22 @@ We also clicked through every button of the app one by one, on a phone screen (3
 
 | Test | Result |
 |---|---|
-| Home tiles and buttons open the right pages, side menu and tab bar work | Passed |
-| Job board search, category filter, saved jobs, more jobs on scroll | Passed |
-| Open a job, bookmark it, Apply link, back button, open a job link directly | Passed |
-| Chat answers, reply, edit, stop, new chat, chat list | Passed |
-| All 7 modes, mock interview, attach menu, commands like `/help` and `/settings` | Passed |
-| "Who are you" always answers SeeCareer AI | Passed |
-| Off topic questions get a polite "I focus on careers" | Passed |
-| "What can you do", "is this free", "do you save my data" get the app's own answers | Passed |
-| Random letters like "asdfgh" or "???" get a friendly "I didn't understand" | Passed |
-| Settings lists every model (500+), with search, filter and Test | Passed |
-| When the working models are down, the chat still answers from the full model list | Passed |
-| Upload a resume, design it, download PDF and Word, cover letter in Word | Passed |
-| Settings: theme, text size, reply length, providers, a wrong API key, export chats | Passed |
-| Turning off chat history asks first, Cancel keeps the chats | Passed |
-| About Our Group shows the project, course, section and all members | Passed |
-| No sideways scrolling and no errors on every page | Passed |
+| Home tiles and buttons open the right pages, side menu and tab bar work | ✅ Passed |
+| Job board search, category filter, saved jobs, more jobs on scroll | ✅ Passed |
+| Open a job, bookmark it, Apply link, back button, open a job link directly | ✅ Passed |
+| Chat answers, reply, edit, stop, new chat, chat list | ✅ Passed |
+| All 7 modes, mock interview, attach menu, commands like `/help` and `/settings` | ✅ Passed |
+| "Who are you" always answers SeeCareer AI | ✅ Passed |
+| Off topic questions get a polite "I focus on careers" | ✅ Passed |
+| "What can you do", "is this free", "do you save my data" get the app's own answers | ✅ Passed |
+| Random letters like "asdfgh" or "???" get a friendly "I didn't understand" | ✅ Passed |
+| Settings lists every model (500+), with search, filter and Test | ✅ Passed |
+| When the working models are down, the chat still answers from the full model list | ✅ Passed |
+| Upload a resume, design it, download PDF and Word, cover letter in Word | ✅ Passed |
+| Settings: theme, text size, reply length, providers, a wrong API key, export chats | ✅ Passed |
+| Turning off chat history asks first, Cancel keeps the chats | ✅ Passed |
+| About Our Group shows the project, course, section and all members | ✅ Passed |
+| No sideways scrolling and no errors on every page | ✅ Passed |
 
 ## Known limits
 
