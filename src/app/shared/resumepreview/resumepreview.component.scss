@@ -1,6 +1,6 @@
 :host {
   display: block;
-  container-type: inline-size;
+  width: 100%;
   --sc-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --sc-font-head: 'DM Sans', 'Inter', system-ui, sans-serif;
   --sc-font-pixel: var(--sc-font);
@@ -9,11 +9,17 @@
   -webkit-font-smoothing: antialiased;
 }
 
+.fit {
+  max-width: 100%;
+  margin-inline: auto;
+  overflow: hidden;
+}
+
 .sheet {
   --accent: #0369a1;
-  width: 100%;
-  max-width: 680px;
-  margin-inline: auto;
+  width: 680px;
+  min-height: 962px;
+  transform-origin: top left;
   background: #fff;
   color: #1f2937;
   font-family: var(--sc-font);
@@ -528,48 +534,6 @@
         height: 1px;
         background: color-mix(in srgb, var(--accent) 45%, #fff);
       }
-    }
-  }
-}
-
-@container (max-width: 560px) {
-  .sheet {
-    font-size: 12px;
-
-    &.modern .cols,
-    &.bold .cols,
-    &.creative .cols {
-      grid-template-columns: 1fr;
-    }
-
-    &.modern aside,
-    &.bold aside,
-    &.creative aside {
-      padding: 12px 18px;
-    }
-
-    &.modern .band {
-      padding: 18px 20px 14px;
-    }
-
-    &.modern .main,
-    &.bold .main,
-    &.creative .main,
-    &.classic .main,
-    &.minimal .main,
-    &.executive .main,
-    &.elegant .main {
-      padding-inline: 20px;
-    }
-
-    &.classic .head,
-    &.minimal .head,
-    &.elegant .head {
-      padding-inline: 20px;
-    }
-
-    &.executive .head {
-      margin-inline: 20px;
     }
   }
 }

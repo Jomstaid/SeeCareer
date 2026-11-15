@@ -14,7 +14,7 @@
         <div class="layout">
           <div class="controls">
             <h3>Design</h3>
-            <ion-segment [scrollable]="true" [value]="template()" (ionChange)="setTemplate($any($event).detail.value)" aria-label="Resume layout">
+            <ion-segment class="designs" [value]="template()" (ionChange)="setTemplate($any($event).detail.value)" aria-label="Resume layout">
               @for (t of templates; track t.key) {
                 <ion-segment-button [value]="t.key">
                   <ion-label>{{ t.label }}</ion-label>

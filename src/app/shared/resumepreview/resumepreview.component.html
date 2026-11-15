@@ -1,4 +1,5 @@
-<div class="sheet {{ template }}" [style.--accent]="accent">
+<div class="fit" [style.width.px]="paperWidth * scale()" [style.height.px]="fitHeight()">
+<div #sheet class="sheet {{ template }}" [style.--accent]="accent" [style.transform]="'scale(' + scale() + ')'">
   @if (isSide) {
     @if (template === 'modern') {
       <header class="band">
@@ -209,3 +210,4 @@
     }
   }
 </ng-template>
+</div>

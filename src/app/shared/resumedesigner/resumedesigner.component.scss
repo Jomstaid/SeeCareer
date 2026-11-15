@@ -45,6 +45,33 @@ ion-segment-button {
   text-transform: none;
 }
 
+// every design is visible: the buttons wrap onto more rows instead of hiding off the side
+ion-segment.designs {
+  display: flex;
+  flex-wrap: wrap;
+  overflow: visible;
+  height: auto;
+
+  ion-segment-button {
+    flex: 1 1 calc(25% - 2px);
+    min-width: 72px;
+    max-width: none;
+    --padding-start: 4px;
+    --padding-end: 4px;
+
+    ion-label {
+      overflow: visible;
+      text-overflow: clip;
+    }
+  }
+}
+
+@media (max-width: 440px) {
+  ion-segment.designs ion-segment-button {
+    flex-basis: calc(33.33% - 2px);
+  }
+}
+
 .swatches {
   display: flex;
   flex-wrap: wrap;
@@ -178,5 +205,7 @@ ion-segment-button {
 
   label.idea {
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
   }
 }
