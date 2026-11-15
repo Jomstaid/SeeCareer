@@ -2,9 +2,8 @@ import { cropRect, parsePhotoAnswer } from './photo';
 
 describe('cropRect: the square cut out around a face', () => {
   it('centres on the face and leaves room around it', () => {
-    // a face in the middle of a 1000x1000 picture, 200 wide
     const r = cropRect({ ymin: 400, xmin: 400, ymax: 600, xmax: 600 }, 1000, 1000);
-    expect(r.size).toBe(288); // 200 * (1 + 2 * 0.22)
+    expect(r.size).toBe(288);
     expect(r.x).toBe(356);
     expect(r.y).toBe(356);
   });
@@ -33,9 +32,9 @@ describe('parsePhotoAnswer: reading where the AI says the photo is', () => {
   it('returns null when there is no photo or the answer is unusable', () => {
     expect(parsePhotoAnswer('{"photo": null}', 1)).toBeNull();
     expect(parsePhotoAnswer('no json here', 1)).toBeNull();
-    expect(parsePhotoAnswer('{"photo": {"image": 5, "box": [1,2,300,400]}}', 2)).toBeNull(); // picture does not exist
-    expect(parsePhotoAnswer('{"photo": {"image": 1, "box": [100,100,105,105]}}', 1)).toBeNull(); // far too small
-    expect(parsePhotoAnswer('{"photo": {"image": 1, "box": [1,2,3]}}', 1)).toBeNull(); // not four numbers
+    expect(parsePhotoAnswer('{"photo": {"image": 5, "box": [1,2,300,400]}}', 2)).toBeNull();
+    expect(parsePhotoAnswer('{"photo": {"image": 1, "box": [100,100,105,105]}}', 1)).toBeNull();
+    expect(parsePhotoAnswer('{"photo": {"image": 1, "box": [1,2,3]}}', 1)).toBeNull();
   });
 
   it('keeps the numbers inside 0 to 1000', () => {

@@ -1,4 +1,3 @@
-// A floating glass bar with rounded corners, not a flat band across the screen.
 ion-header {
   padding: var(--sp-2) var(--sp-3) 0;
   background: transparent;
@@ -19,7 +18,6 @@ ion-toolbar {
   overflow: hidden;
 }
 
-// the title and (on the chat page) the feature tabs share one row, vertically centred
 .bar {
   display: flex;
   align-items: center;
@@ -40,7 +38,6 @@ ion-toolbar {
   color: var(--sc-text);
 }
 
-// room for something in the middle of the bar (the chat puts its feature tabs here)
 .mid {
   flex: 1 1 auto;
   display: flex;

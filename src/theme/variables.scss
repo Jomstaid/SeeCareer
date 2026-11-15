@@ -1,11 +1,4 @@
-// SeeCareer pixel theme.
-// The layout, sizes and spacing are the original SeeCareer design; only the look is pixel:
-// square corners, solid panels, 2px borders, hard drop shadows (no blur), bevelled buttons, pixel icons
-// and the DotGothic16 pixel font (chosen because it stays easy to read at normal text sizes).
-// Light = pastel sky blue with pink accents, Dark = arcade purple (they match the pixel icons).
-
 :root {
-  // ----- typography -----
   --sc-font: 'SC Pixel', 'VT323', ui-monospace, monospace;
   --sc-font-head: 'SC Pixel', 'VT323', ui-monospace, monospace;
   --sc-font-pixel: var(--sc-font);
@@ -13,7 +6,6 @@
   --sc-mono: var(--sc-font);
   --sc-chat-size: 16px;
 
-  // ----- spacing scale (4pt) -----
   --sp-1: 4px;
   --sp-2: 8px;
   --sp-3: 12px;
@@ -21,14 +13,12 @@
   --sp-5: 24px;
   --sp-6: 32px;
 
-  // ----- shape: pixel -----
   --sc-radius: 0px;
   --sc-radius-sm: 0px;
   --sc-blur: 0px;
   --sc-bw: 2px;
   --sc-gradient: var(--sc-primary);
 
-  // ----- colour: Sky (light) -----
   --sc-bg: #e3f3ff;
   --sc-grid: rgba(74, 163, 232, 0.14);
   --sc-panel: #ffffff;
@@ -36,10 +26,10 @@
   --sc-panel-solid: #ffffff;
   --sc-border: #8ec8f0;
   --sc-edge: #8ec8f0;
-  --sc-hard: #b5dcf7; // hard pixel shadow
-  --sc-shade: rgba(23, 74, 128, 0.2); // bottom right bevel of buttons
-  --sc-light: rgba(255, 255, 255, 0.45); // top left bevel of buttons
-  --sc-soft: #dbefff; // selected / highlighted background
+  --sc-hard: #b5dcf7;
+  --sc-shade: rgba(23, 74, 128, 0.2);
+  --sc-light: rgba(255, 255, 255, 0.45);
+  --sc-soft: #dbefff;
   --sc-shadow: 4px 4px 0 0 var(--sc-hard);
   --sc-text: #14304f;
   --sc-muted: #4a6585;
@@ -56,7 +46,6 @@
   --sc-danger: #c81e3a;
   --sc-focus: #ff6f9f;
 
-  // ----- Ionic mapping -----
   --ion-font-family: var(--sc-font);
   --ion-background-color: var(--sc-panel-solid);
   --ion-text-color: var(--sc-text);
@@ -78,7 +67,6 @@
 }
 
 :root.ion-palette-dark {
-  // ----- colour: Night (dark) -----
   --sc-bg: #0d0919;
   --sc-grid: rgba(139, 92, 246, 0.1);
   --sc-panel: #171028;
@@ -132,7 +120,6 @@
   --sc-chat-size: 18px;
 }
 
-// the text size setting makes the whole app smaller or bigger, not only the chat bubbles
 :root[data-fontsize='small'] ion-app {
   zoom: 0.9;
 }
@@ -141,7 +128,6 @@
   zoom: 1.14;
 }
 
-// ----- the background: a flat colour with a faint pixel grid -----
 html,
 body {
   background-color: var(--sc-bg);
@@ -167,7 +153,6 @@ ion-tabs {
   background: transparent;
 }
 
-// ----- base elements -----
 ion-content {
   --background: transparent;
 }
@@ -232,7 +217,6 @@ a {
   color: var(--sc-primary);
 }
 
-// ----- glass: every surface that floats above the background -----
 .glass,
 .card,
 .jobcard,
@@ -251,7 +235,6 @@ ion-modal::part(content) {
   box-shadow: 6px 6px 0 0 var(--sc-hard);
 }
 
-// ----- accessibility: visible keyboard focus and reduced motion -----
 :focus-visible {
   outline: 2px dashed var(--sc-focus);
   outline-offset: 3px;
@@ -268,7 +251,6 @@ ion-modal::part(content) {
   }
 }
 
-// ----- one radius language: every box, field and control is rounded the same way -----
 ion-segment {
   border-radius: var(--sc-radius-sm);
   overflow: hidden;
@@ -332,7 +314,6 @@ ion-card {
   --background: transparent;
 }
 
-// the card's inner button must not paint a second layer of glass over only part of the card
 ion-card::part(native) {
   background: transparent !important;
   height: 100%;
@@ -345,7 +326,6 @@ ion-footer ion-toolbar {
   border-radius: 0;
 }
 
-// thin glass scrollbars
 @supports not selector(::-webkit-scrollbar) {
   * {
     scrollbar-width: thin;
@@ -373,14 +353,10 @@ ion-footer ion-toolbar {
   background: color-mix(in srgb, var(--sc-muted) 45%, transparent);
 }
 
-// ===================== pixel details =====================
-
-// pixel art stays crisp when it is scaled
 img[src*='assets/icon/'] {
   image-rendering: pixelated;
 }
 
-// buttons are bevelled blocks with a hard shadow and sink when pressed
 ion-button {
   --box-shadow: inset -3px -3px 0 0 var(--sc-shade), inset 3px 3px 0 0 var(--sc-light), 3px 3px 0 0 var(--sc-hard);
   transition: transform 60ms steps(1);
@@ -430,7 +406,6 @@ ion-modal::part(handle) {
   border-radius: 0;
 }
 
-// no visible scrollbars: everything still scrolls with touch, the wheel and the keyboard
 * {
   scrollbar-width: none;
 }
@@ -441,7 +416,6 @@ ion-modal::part(handle) {
   height: 0;
 }
 
-// ----- pixel icons, placed and sized exactly like the line icons of the original design -----
 ion-tab-button .nav-icon-wrap {
   display: grid;
   place-items: center;
@@ -477,7 +451,6 @@ ion-tab-button.tab-selected .nav-icon-wrap {
   }
 }
 
-// the original bar had an 18px icon right above the label
 .modebar ion-segment-button .mode-icon {
   display: block;
   width: auto;
@@ -536,7 +509,6 @@ ion-tab-button.tab-selected .nav-icon-wrap {
   object-fit: contain;
 }
 
-// group photos: a head and shoulders crop on the theme colour (the photos have a transparent background)
 ion-img.avatar {
   flex: none;
   overflow: hidden;
@@ -548,7 +520,6 @@ ion-img.avatar::part(image) {
   object-position: center top;
 }
 
-// dialogs get keyboard focus when they open: the box itself needs no focus outline
 ion-alert:focus-visible,
 ion-modal:focus-visible,
 ion-popover:focus-visible,
@@ -557,7 +528,6 @@ ion-alert .alert-wrapper:focus-visible {
   outline: none;
 }
 
-// tab labels use the whole button width, so "Settings" still fits with large text
 ion-tab-button {
   --padding-start: 0;
   --padding-end: 0;

@@ -3,7 +3,6 @@ import { Capacitor } from '@capacitor/core';
 import { ExportFormat } from './models';
 import { clean } from './resumerender';
 
-// One line of a markdown document, simplified for export.
 interface Block {
   type: 'h1' | 'h2' | 'h3' | 'bullet' | 'number' | 'p' | 'blank' | 'rule';
   text: string;
@@ -16,7 +15,6 @@ export const exportLabels: Record<ExportFormat, string> = {
   md: 'Markdown (.md)',
 };
 
-// Splits markdown into simple blocks (headings, bullets, paragraphs).
 export function parseBlocks(markdown: string): Block[] {
   const blocks: Block[] = [];
   for (const raw of (markdown ?? '').replace(/\r\n/g, '\n').split('\n')) {
@@ -50,7 +48,6 @@ export function parseBlocks(markdown: string): Block[] {
   return blocks;
 }
 
-// Removes markdown symbols (**bold**, `code`, [links](url)).
 export function plain(text: string): string {
   return text
     .replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu, '')
@@ -60,10 +57,9 @@ export function plain(text: string): string {
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
 }
 
-// A readable file name: words separated by single spaces, with no hyphens, underscores or other symbols.
 export function safeFileName(title: string): string {
   const base = title
-    .replace(/[^\p{L}\p{N}\s]/gu, ' ') // symbols, hyphens and underscores become spaces
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/_/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
@@ -72,7 +68,6 @@ export function safeFileName(title: string): string {
   return base || 'SeeCareer';
 }
 
-// ---------- builders ----------
 async function buildPdf(title: string, markdown: string): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -199,7 +194,6 @@ async function buildPdf(title: string, markdown: string): Promise<Blob> {
     }
   }
 
-  // footer on every page: the title and "Page 1 of 3"
   const pages = doc.getNumberOfPages();
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
@@ -285,15 +279,11 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-// Creates the file and gives it to the user.
-// Browser: normal download. Phone: the file is created, then the share sheet opens (save to Files/Drive, send, print...).
-// Returns where the file went.
 export async function exportFile(format: ExportFormat, title: string, markdown: string): Promise<string> {
   const blob = await buildFile(format, title, markdown);
   return deliverBlob(blob, `${safeFileName(title)}.${format}`);
 }
 
-// Gives a finished file to the user: a download in the browser, the share sheet on the phone.
 export async function deliverBlob(blob: Blob, name: string): Promise<string> {
   if (Capacitor.isNativePlatform()) {
     const { Filesystem, Directory } = await import('@capacitor/filesystem');
@@ -307,7 +297,6 @@ export async function deliverBlob(blob: Blob, name: string): Promise<string> {
     try {
       await Share.share({ title: name, url: saved.uri, dialogTitle: 'Save or share your file' });
     } catch {
-      // user closed the share sheet: the file is still saved
     }
     return `Created ${name}`;
   }

@@ -14,7 +14,7 @@ describe('ProviderService (built-in provider needs no key)', () => {
     expect(first.preset).toBe('free');
     expect(first.baseUrl).toBe('https://api.jomstaid.com/v1');
     expect(first.apiKey).toBe('');
-    expect(Object.keys(defaultFreeAi)).not.toContain('apiKey'); // nothing secret in the source code
+    expect(Object.keys(defaultFreeAi)).not.toContain('apiKey');
   });
 
   it('never stores a key for the built-in provider and keeps its address locked', () => {
@@ -36,9 +36,9 @@ describe('ProviderService (built-in provider needs no key)', () => {
     expect(p.builtin).toBe(true);
     expect(p.baseUrl).toBe(defaultFreeAi.baseUrl);
     expect(p.apiKey).toBe('');
-    expect(p.model).toBe('m1'); // the user's model choice is kept
-    expect(p.enabled).toBe(false); // and the on/off switch
-    expect(localStorage.getItem(STORE)).not.toContain('old-secret-key-123'); // the old key is wiped from storage
+    expect(p.model).toBe('m1');
+    expect(p.enabled).toBe(false);
+    expect(localStorage.getItem(STORE)).not.toContain('old-secret-key-123');
   });
 
   it('wipes a key that an earlier version saved for the current address', () => {

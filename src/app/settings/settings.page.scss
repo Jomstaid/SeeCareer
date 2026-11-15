@@ -1,5 +1,3 @@
-// Settings: on a wide screen three columns take the whole page, and the main cards stretch so there is no empty space.
-// On a phone it is one column that scrolls.
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -17,7 +15,6 @@
 @media (min-width: 900px) {
   .page {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    min-height: 100%;
     box-sizing: border-box;
     gap: var(--sp-4);
     padding-block: var(--sp-4);
@@ -81,7 +78,6 @@
   font-weight: 600;
 }
 
-// ----- provider list -----
 .plist,
 .health,
 .privacy {
@@ -177,11 +173,10 @@
   color: var(--sc-muted);
 }
 
-// ----- model health -----
 .health {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  align-content: start; // a short list stays at the top of the card instead of floating in the middle
+  align-content: start;
   gap: 0;
 
   li {
@@ -245,7 +240,6 @@
   }
 }
 
-// ----- appearance rows -----
 .row {
   display: grid;
   gap: var(--sp-1);
@@ -311,7 +305,6 @@
   }
 }
 
-// ----- provider form (modal) -----
 .form {
   display: grid;
   gap: 0;
@@ -378,8 +371,6 @@ ion-range {
   --knob-size: 22px;
 }
 
-
-// the cards that take up leftover height
 @media (min-width: 900px) {
   .card.grow .health {
     flex: 1;
@@ -412,14 +403,12 @@ ion-range {
   }
 }
 
-// the appearance card spreads its rows over the height it gets
 @media (min-width: 900px) {
   .card.grow:has(.switch) {
     justify-content: space-between;
   }
 }
 
-// ----- the list of every model -----
 .summary {
   margin: 0 0 var(--sp-2);
   font-size: 12.5px;
@@ -453,5 +442,68 @@ ion-range {
     color: var(--sc-muted);
     font-size: 12.5px;
     padding: var(--sp-2) 0;
+  }
+}
+
+.sweep {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin: 0 0 var(--sp-2);
+  font-size: 12.5px;
+  color: var(--sc-primary);
+
+  ion-spinner {
+    width: 18px;
+    height: 16px;
+  }
+}
+
+.models ion-segment-button {
+  min-width: 0;
+  --padding-start: 2px;
+  --padding-end: 2px;
+
+  ion-label {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 12px;
+    line-height: 1.15;
+  }
+}
+
+@media (min-width: 900px) {
+  .page {
+    height: 100%;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .col {
+    min-height: 0;
+  }
+
+  .col > .card {
+    flex: 0 0 auto;
+  }
+
+  .col > .card.grow {
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .card.models {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .card.models .health {
+    flex: 1 1 0;
+    min-height: 60px;
+    max-height: none;
+    overflow-y: auto;
+    align-content: start;
   }
 }

@@ -1,6 +1,5 @@
 import { GroupMember } from '../core/models';
 
-// Our group details. The About Our Group page shows everything from here.
 export const PROJECT = {
   title: 'SeeCareer',
   tagline: 'AI job finder and career assistant',
@@ -28,7 +27,6 @@ export const MEMBERS: GroupMember[] = [
 
 export const TECH = ['Ionic 9', 'Angular 22', 'TypeScript', 'Capacitor (Android)', 'RxJS HttpClient'];
 
-// Every web service the app talks to, so the About page lists them all.
 export interface ApiInfo {
   name: string;
   use: string;

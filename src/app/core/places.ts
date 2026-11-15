@@ -1,10 +1,6 @@
-// Countries (and well known cities) a user may name when asking for jobs "in" a place.
 export interface Place {
-  // Name shown to the user, for example "Philippines".
   label: string;
-  // ISO 3166 two letter code used by the jobs API.
   code: string;
-  // A city or province the user named inside that country, for example "Nueva Ecija".
   city?: string;
 }
 
@@ -60,8 +56,6 @@ const COUNTRIES: [string, string, string[]][] = [
 const shortOk = /\b(?:in|from|at|near|within)\s+$/;
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-// Finds a place named in the text ("developer jobs in Manila", "work from Philippines").
-// Returns the place and the text with the place (and the "in/near/from" before it) taken out, ready to use as a job keyword.
 export function splitPlace(text: string): { query: string; place: Place | null } {
   const lower = text.toLowerCase();
   let best: { label: string; code: string; alias: string } | null = null;
@@ -71,7 +65,6 @@ export function splitPlace(text: string): { query: string; place: Place | null }
       if (!m) {
         continue;
       }
-      // short words like "us" or "ph" only count right after "in", "from"...
       if (alias.length <= 2 && !shortOk.test(lower.slice(0, m.index))) {
         continue;
       }
@@ -93,7 +86,6 @@ export function splitPlace(text: string): { query: string; place: Place | null }
     .replace(/\s+/g, ' ')
     .trim();
   const country = new Set([best.label.toLowerCase(), best.code.toLowerCase(), 'philippine', 'pilipinas', 'usa', 'u.s.', 'america', 'uk', 'u.k.', 'britain', 'great britain', 'deutschland', 'holland', 'brasil', 'turkiye', 'viet nam', 'uae']);
-  // the most specific place named: a city or province, not the country itself
   let city: string | undefined;
   for (const [label, , aliases] of COUNTRIES) {
     if (label !== best.label) {
@@ -109,7 +101,6 @@ export function splitPlace(text: string): { query: string; place: Place | null }
   return { query: cleaned, place: { label: best.label, code: best.code, ...(pretty ? { city: pretty } : {}) } };
 }
 
-// A place from a name or code the AI gave ("Philippines", "PH", "Manila, Philippines").
 export function placeFromName(name: string, code = ''): Place | null {
   const fromCode = COUNTRIES.find(([, c]) => c === code.trim().toUpperCase());
   if (fromCode) {
@@ -119,7 +110,6 @@ export function placeFromName(name: string, code = ''): Place | null {
   return name.trim() ? splitPlace(`in ${name}`).place : null;
 }
 
-// The country with this two letter code, or null.
 export function placeByCode(code: string): Place | null {
   const c = COUNTRIES.find(([, k]) => k === (code ?? '').trim().toUpperCase());
   return c ? { label: c[0], code: c[1] } : null;

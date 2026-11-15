@@ -1,8 +1,7 @@
-import { groupOf, orderModels, smartRank, spreadGroups } from './ai.service';
+import { groupOf, orderModels, smartRank, spreadGroups, writesText } from './ai.service';
 import { providerPresets } from './defaults';
 
 describe('orderModels', () => {
-  // the gateway lists hundreds of models; the provider's own ones come last
   const filler = Array.from({ length: 450 }, (_, i) => `aihorde/model-${i}`);
   const ids = [
     'auto/best-fast',
@@ -24,7 +23,6 @@ describe('orderModels', () => {
     const firstEight = out.slice(0, 8);
     expect(firstEight).toContain('hormachuelos/brand-new-model');
     expect(firstEight).toContain('hormachuelos/kimi-k3');
-    // slow thinking variants go to the end of their group
     expect(out.indexOf('hormachuelos/claude-opus-4-8-xhigh')).toBeGreaterThan(out.indexOf('hormachuelos/brand-new-model'));
   });
 
@@ -75,3 +73,14 @@ describe('spreadGroups', () => {
     expect(groupOf('gemini-2.5-flash')).toBe('gemini-2.5-flash');
   });
 });
+
+describe('writesText', () => {
+  it('leaves out image, video and audio models', () => {
+    expect(writesText({ type: 'image', output_modalities: ['image'] })).toBe(false);
+    expect(writesText({ type: 'video', output_modalities: ['video'] })).toBe(false);
+    expect(writesText({ output_modalities: ['audio'] })).toBe(false);
+    expect(writesText({ output_modalities: ['text'] })).toBe(true);
+    expect(writesText({})).toBe(true);
+  });
+});
+

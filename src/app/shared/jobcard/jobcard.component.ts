@@ -4,7 +4,6 @@ import { plainText } from '../../core/job.service';
 import { faviconUrl, logoCandidates } from '../../core/logo';
 import { Job } from '../../core/models';
 
-// One job in the list. Shows the main info and tells the page when it is tapped or bookmarked.
 @Component({
   selector: 'app-job-card',
   templateUrl: './jobcard.component.html',
@@ -18,10 +17,8 @@ export class JobCardComponent {
   @Output() toggleSave = new EventEmitter<Job>();
 
   logoFailed = false;
-  // How many guessed web addresses were tried without a usable logo.
   private guess = 0;
 
-  // The real logo from the job, or the company's website icon; null when there is none (a coloured initial is shown).
   get logoUrl(): string | null {
     if (this.job.company_logo && !this.logoFailed) {
       return this.job.company_logo;
@@ -30,7 +27,6 @@ export class JobCardComponent {
     return pick ? faviconUrl(pick.domain) : null;
   }
 
-  // The picture did not load, or it is only the default globe: try the next address.
   logoBad(): void {
     if (this.job.company_logo && !this.logoFailed) {
       this.logoFailed = true;
@@ -44,7 +40,6 @@ export class JobCardComponent {
     if (this.job.company_logo && !this.logoFailed) {
       return;
     }
-    // a small icon is the default globe or a poor match; a website named in the job text is trusted with a smaller one
     const sure = logoCandidates(this.job.company_name, this.job.description)[this.guess]?.sure;
     if (img.naturalWidth < (sure ? 32 : 100)) {
       this.logoBad();
@@ -55,7 +50,6 @@ export class JobCardComponent {
     return plainText(this.job.description, 120);
   }
 
-  // A colour that is always the same for the same company, so cards without a logo still look distinct.
   get avatar(): string {
     let h = 0;
     for (const c of this.job.company_name || this.job.title) {

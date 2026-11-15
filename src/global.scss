@@ -1,9 +1,3 @@
-// Fonts bundled with the app (work offline in the Android app):
-// DotGothic16 = the pixel font for all app text, VT323 = small code text,
-// Inter and DM Sans = only inside the resume preview (a resume must look like a real document).
-
-// "SC Pixel" is DotGothic16 scaled to the width and line metrics of Inter, the font of the original design,
-// so every line, box and page keeps exactly the original size while the letters are pixel letters.
 @font-face {
   font-family: 'SC Pixel';
   src: url('./assets/fonts/dotgothic16.woff2') format('woff2');
@@ -21,43 +15,21 @@
 @import '@fontsource/inter/latin-600.css';
 @import '@fontsource/inter/latin-700.css';
 
-// App Global CSS
-// ----------------------------------------------------------------------------
-// Put style rules here that you want to apply globally. These styles are for
-// the entire app and not just one component. Additionally, this file can be
-// used as an entry point to import other CSS/Sass files to be included in the
-// output CSS.
-// For more information on global stylesheets, visit the documentation:
-// https://ionicframework.com/docs/layout/global-stylesheets
-
-// Core CSS required for Ionic components to work properly
 @import "@ionic/angular/css/core.css";
 
-// Basic CSS for apps built with Ionic
 @import "@ionic/angular/css/normalize.css";
 @import "@ionic/angular/css/structure.css";
 @import "@ionic/angular/css/typography.css";
 @import "@ionic/angular/css/display.css";
 
-// Optional CSS utils that can be commented out
 @import "@ionic/angular/css/padding.css";
 @import "@ionic/angular/css/float-elements.css";
 @import "@ionic/angular/css/text-alignment.css";
 @import "@ionic/angular/css/text-transformation.css";
 @import "@ionic/angular/css/flex-utils.css";
 
-// Ionic Dark Mode
-// -----------------------------------------------------
-// For more info, please see:
-// https://ionicframework.com/docs/theming/dark-mode
-
-// @import "@ionic/angular/css/palettes/dark.always.css";
 @import "@ionic/angular/css/palettes/dark.class.css";
-// @import "@ionic/angular/css/palettes/dark.system.css";
 
-// ---------- Responsive layout ----------
-// Breakpoints (mobile first): 375 phone, 768 tablet, 1024 laptop (side navigation appears), 1440 wide desktop.
-// Every page puts its content in .container so lines stay readable and nothing stretches edge to edge.
 html,
 body {
   height: 100%;
@@ -90,7 +62,6 @@ body {
   }
 }
 
-// sheets and dialogs: comfortable width on big screens, centered
 ion-modal.sheet-modal::part(content),
 ion-modal::part(content) {
   max-width: 720px;
@@ -105,7 +76,6 @@ ion-modal::part(content) {
   }
 }
 
-// long words and URLs never push the layout sideways
 ion-content,
 ion-card,
 ion-item {
@@ -116,15 +86,12 @@ ion-content::part(scroll) {
   overflow-x: hidden;
 }
 
-// every clickable thing shows it is clickable and is at least 44px tall on touch screens
 button,
 [role='button'],
 a.act {
   cursor: pointer;
 }
 
-// resume designer: a large dialog on desktop, full screen on phones.
-// (more specific than the general 720px dialog limit above, so it is not squeezed)
 ion-modal.designer-modal::part(content) {
   max-width: none;
 }
@@ -143,7 +110,6 @@ ion-modal.designer-modal {
   }
 }
 
-// the scroll area of ion-content lives in its shadow DOM: hide its scrollbar there too
 ion-content::part(scroll) {
   scrollbar-width: none;
 }

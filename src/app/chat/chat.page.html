@@ -7,7 +7,6 @@
   </ion-button>
 </app-page-header>
 
-<!-- the six AI features: a tab bar on big screens and a button grid on phones -->
 <div class="modebar">
   <div class="container narrow">
     <ion-segment [scrollable]="true" [value]="mode()" (ionChange)="onMode($any($event).detail.value)" aria-label="AI feature">
@@ -23,8 +22,6 @@
       }
     </ion-segment>
 
-
-    <!-- phones: every feature as a button in a grid, so nothing scrolls sideways or gets cut -->
     <div class="mode-grid" role="tablist" aria-label="AI feature">
       <button type="button" role="tab" [class.on]="mode() === 'general'" [attr.aria-selected]="mode() === 'general'" (click)="onMode('general')">
         <img class="mode-icon" [src]="settings.darkMode() ? generalMode.darkImage : generalMode.image" alt="" aria-hidden="true" />
@@ -347,7 +344,6 @@
   </div>
 </ion-footer>
 
-<!-- history -->
 <ion-modal class="history-modal" [isOpen]="historyOpen()" (didDismiss)="historyOpen.set(false)" [initialBreakpoint]="0.7" [breakpoints]="[0, 0.7, 1]">
   <ng-template>
     <ion-header class="ion-no-border">
@@ -380,7 +376,6 @@
   </ng-template>
 </ion-modal>
 
-<!-- resume designer -->
 <app-resume-designer
   [open]="designerOpen()"
   [data]="designerData()"
@@ -391,4 +386,3 @@
   (saveText)="onDesignerSave($event)"
 ></app-resume-designer>
 
-<!-- resume -->

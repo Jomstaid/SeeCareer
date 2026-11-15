@@ -1,5 +1,4 @@
 <ion-tabs>
-  <!-- Laptop / desktop (1024px and wider): side navigation -->
   <nav class="rail" slot="top" aria-label="Main navigation">
     <div class="brand">
       <img class="mark" [src]="settings.darkMode() ? 'assets/icon/logoDark.svg' : 'assets/icon/logoLight.svg'" alt="" width="38" height="38" />
@@ -44,7 +43,6 @@
     <p class="rail-note">No account needed. Find work today.</p>
   </nav>
 
-  <!-- Phone / tablet: bottom tab bar -->
   <ion-tab-bar slot="bottom">
     @for (item of items; track item.path) {
       <ion-tab-button [tab]="item.tab" [routerLink]="item.path" [attr.aria-label]="item.short || item.label">

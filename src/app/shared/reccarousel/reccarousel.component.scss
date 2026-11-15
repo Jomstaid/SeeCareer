@@ -2,7 +2,6 @@
   display: block;
 }
 
-// phone: swipeable row with snapping
 .carousel {
   display: flex;
   gap: var(--sp-3);
@@ -250,7 +249,6 @@
   color: var(--sc-muted);
 }
 
-// tablet and desktop: a grid of cards instead of a sideways scroll
 @media (min-width: 768px) {
   .carousel {
     display: grid;

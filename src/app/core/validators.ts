@@ -1,5 +1,3 @@
-// Input validation used by the Settings form and the chat box.
-
 export interface ProviderInput {
   name: string;
   baseUrl: string;
@@ -12,7 +10,6 @@ export type FieldErrors = Partial<Record<keyof ProviderInput, string>>;
 export interface ProviderCheck {
   valid: boolean;
   errors: FieldErrors;
-  // Cleaned up values (trimmed, no trailing slash).
   clean: ProviderInput;
 }
 
@@ -21,7 +18,6 @@ export const minResumeLength = 50;
 export const maxResumeLength = 12000;
 export const maxInstructionsLength = 600;
 
-// Returns an error message, or '' when the resume text is fine to analyze.
 export function validateResume(text: string): string {
   const value = (text ?? '').trim();
   if (value.length < minResumeLength) {
@@ -90,7 +86,6 @@ export function isValidHttpUrl(value: string): boolean {
   }
 }
 
-// Returns an error message, or '' when the chat text is fine to send.
 export function validateMessage(text: string): string {
   const value = (text ?? '').trim();
   if (!value) {

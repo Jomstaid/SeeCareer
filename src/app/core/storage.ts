@@ -1,4 +1,3 @@
-// Small safe wrapper around localStorage (it can throw in private mode or when full).
 export function readJson<T>(key: string, fallback: T): T {
   try {
     const raw = localStorage.getItem(key);
@@ -21,7 +20,6 @@ export function removeKey(key: string): void {
   try {
     localStorage.removeItem(key);
   } catch {
-    // ignore
   }
 }
 

@@ -1,15 +1,12 @@
 import { Attachment, AttachmentKind } from './models';
 import { newId } from './storage';
 
-// Biggest file the app will read.
 export const maxFileBytes = 15 * 1024 * 1024;
-// Most text kept from one file (the AI cannot read endless text).
 export const maxFileText = 15000;
 const maxPdfPages = 40;
 const scannedPages = 3;
 const imageMaxSide = 1600;
 
-// The picker lets people choose any file.
 export const acceptedFiles = '*/*';
 
 const textExt = /\.(txt|md|csv|json|html?|xml|rtf|log|ya?ml|js|ts|py|java|c|cpp|cs|php|sql)$/i;
@@ -42,10 +39,6 @@ export function formatBytes(bytes: number): string {
   return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-// Reads ANY file. PDF, Word, Excel, PowerPoint, OpenDocument, images and text are read fully; scanned PDFs and
-// Photoshop files become pictures; old Office files give up the text found inside them. A file whose content
-// cannot be shown (or is too large, damaged or locked) is still attached, with just its name, type and size.
-// Only an empty file is refused.
 export async function readAttachment(file: File): Promise<Attachment> {
   if (file.size === 0) {
     throw new FileReadError(`"${file.name}" is empty.`);
@@ -60,7 +53,6 @@ export async function readAttachment(file: File): Promise<Attachment> {
   }
   try {
     if (!kind) {
-      // unknown extension: plain text is read as text; anything else is a "best effort" read
       if (await looksTextual(file)) {
         kind = 'text';
       } else {
@@ -78,7 +70,6 @@ export async function readAttachment(file: File): Promise<Attachment> {
         return { ...base, kind, text: clip(await file.text()) };
     }
   } catch {
-    // damaged, password protected, or a format the reader cannot open: attach it anyway
     return infoOnly('Its content could not be opened, so only its name and type are known.');
   }
 }
@@ -90,7 +81,6 @@ function typeLabel(file: File): string {
   return ext ? `${ext.toUpperCase()} file` : file.type || 'file';
 }
 
-// Files with no ready made reader: a Photoshop preview picture, or the readable text inside an old binary file.
 async function readOther(file: File, base: Attachment, describe: string): Promise<Attachment> {
   const buffer = await file.arrayBuffer();
   const ext = extOf(file.name);
@@ -107,20 +97,19 @@ async function readOther(file: File, base: Attachment, describe: string): Promis
   return { ...base, note: `${describe}. Its content is not text.` };
 }
 
-// The small preview image that Photoshop (.psd) files carry inside, as a data URL. Null if there is none.
 export function psdPreview(buf: ArrayBuffer): string | null {
   try {
     const v = new DataView(buf);
     if (v.byteLength < 40 || v.getUint32(0) !== 0x38425053) {
-      return null; // not "8BPS"
+      return null;
     }
-    let p = 26; // after the header
-    p += 4 + v.getUint32(p); // color mode data
-    const end = p + 4 + v.getUint32(p); // image resources
+    let p = 26;
+    p += 4 + v.getUint32(p);
+    const end = p + 4 + v.getUint32(p);
     p += 4;
     while (p + 12 <= end) {
       if (v.getUint32(p) !== 0x3842494d) {
-        break; // not "8BIM"
+        break;
       }
       const id = v.getUint16(p + 4);
       p += 6;
@@ -132,7 +121,7 @@ export function psdPreview(buf: ArrayBuffer): string | null {
       const size = v.getUint32(p);
       p += 4;
       if ((id === 1036 || id === 1033) && v.getUint32(p) === 1 && size > 28) {
-        const jpeg = new Uint8Array(buf, p + 28, size - 28); // resource 1036 = JPEG thumbnail
+        const jpeg = new Uint8Array(buf, p + 28, size - 28);
         let binary = '';
         for (let i = 0; i < jpeg.length; i += 0x8000) {
           binary += String.fromCharCode(...jpeg.subarray(i, i + 0x8000));
@@ -142,16 +131,13 @@ export function psdPreview(buf: ArrayBuffer): string | null {
       p += size + (size % 2);
     }
   } catch {
-    // not a readable Photoshop file
   }
   return null;
 }
 
-// Readable text inside a binary file (old .doc, .xls, .ppt and similar): runs of normal characters.
 export function extractStrings(bytes: Uint8Array): string {
   const latin = new TextDecoder('latin1').decode(bytes);
   const runs: string[] = latin.match(/[\x20-\x7e\t]{5,}/g) ?? [];
-  // Office files keep much of their text as UTF-16: look at both byte alignments
   for (const offset of [0, 1]) {
     const wide = new TextDecoder('utf-16le').decode(bytes.subarray(offset, offset + ((bytes.length - offset) & ~1)));
     runs.push(...(wide.match(/[\x20-\x7e\t]{5,}/g) ?? []));
@@ -168,7 +154,6 @@ export function extractStrings(bytes: Uint8Array): string {
   return out.join('\n');
 }
 
-// Turns a reader failure into an honest message (wrong password, damaged file, or reader not loaded).
 export function explain(error: unknown, fileName: string): string {
   const e = error as { name?: string; message?: string };
   const text = `${e?.name ?? ''} ${e?.message ?? ''}`;
@@ -192,14 +177,12 @@ function clip(text: string): string {
   return clean.length > maxFileText ? clean.slice(0, maxFileText) + '\n…(file shortened)' : clean;
 }
 
-// ---------- PDF (pdf.js) ----------
 async function readPdf(file: File): Promise<Pick<Attachment, 'text' | 'images' | 'pages' | 'preview'>> {
   const pdfjs = await import('pdfjs-dist');
   pdfjs.GlobalWorkerOptions.workerSrc = 'assets/pdfjs/pdf.worker.min.mjs';
   const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
   const pages = doc.numPages;
 
-  // A picture of one page (used for scanned PDFs, and to find a profile photo on page 1).
   const render = async (n: number, scale: number, quality: number): Promise<string> => {
     const page = await doc.getPage(n);
     const viewport = page.getViewport({ scale });
@@ -225,13 +208,12 @@ async function readPdf(file: File): Promise<Pick<Attachment, 'text' | 'images' |
   if (text.length > 40) {
     let preview: string | undefined;
     try {
-      preview = await render(1, 1.4, 0.8); // so a photo on the first page can be found later
+      preview = await render(1, 1.4, 0.8);
     } catch {
       preview = undefined;
     }
     return { text: clip(text), pages, preview };
   }
-  // No text layer: it is a scanned PDF. Send pictures of the first pages so the AI can read them.
   const images: string[] = [];
   for (let n = 1; n <= Math.min(pages, scannedPages); n++) {
     images.push(await render(n, 1.6, 0.85));
@@ -239,14 +221,12 @@ async function readPdf(file: File): Promise<Pick<Attachment, 'text' | 'images' |
   return { images, pages };
 }
 
-// ---------- Word (.docx) ----------
 async function readDocx(file: File): Promise<string> {
   const mammoth = (await import('mammoth')).default ?? (await import('mammoth'));
   const data = await file.arrayBuffer();
   try {
     return (await mammoth.extractRawText({ arrayBuffer: data })).value;
   } catch (e) {
-    // The browser build reads `arrayBuffer`; the Node build (unit tests) needs a Buffer.
     const NodeBuffer = (globalThis as { Buffer?: { from(d: ArrayBuffer): unknown } }).Buffer;
     if (!NodeBuffer) {
       throw e;
@@ -255,8 +235,6 @@ async function readDocx(file: File): Promise<string> {
   }
 }
 
-// ---------- images ----------
-// Shrinks big photos so the request stays small, and returns a JPEG/PNG data URL.
 async function imageToDataUrl(file: File): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
@@ -279,7 +257,6 @@ async function imageToDataUrl(file: File): Promise<string> {
   }
 }
 
-// True when the first bytes look like text (no NUL bytes, mostly printable).
 async function looksTextual(file: File): Promise<boolean> {
   const bytes = new Uint8Array(await file.slice(0, 8192).arrayBuffer());
   if (!bytes.length) {
@@ -297,7 +274,6 @@ async function looksTextual(file: File): Promise<boolean> {
   return odd / bytes.length < 0.02;
 }
 
-// ---------- Excel, PowerPoint and OpenDocument (zip files with XML inside) ----------
 const decodeXml = (t: string) =>
   t
     .replace(/&lt;/g, '<')
@@ -355,7 +331,6 @@ async function readOffice(file: File): Promise<string> {
     return out.join('\n\n');
   }
 
-  // .odt / .ods / .odp
   return (await read('content.xml'))
     .replace(/<text:(p|h)[^>]*>/g, '\n')
     .replace(/<[^>]+>/g, ' ')

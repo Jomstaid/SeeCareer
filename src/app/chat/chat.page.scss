@@ -1,7 +1,6 @@
-// ---------- feature switcher (Ionic segment) ----------
 .modebar {
   position: relative;
-  z-index: 2; // stays above the scrolling content
+  z-index: 2;
   background: transparent;
   border: 0;
   padding-block: var(--sp-3) var(--sp-1);
@@ -40,7 +39,6 @@
   padding-block: var(--sp-5);
 }
 
-// ---------- welcome ----------
 .welcome {
   h1 {
     margin: 0 0 var(--sp-2);
@@ -93,7 +91,6 @@
   color: var(--sc-muted);
 }
 
-// ---------- messages ----------
 .stream {
   display: flex;
   flex-direction: column;
@@ -164,7 +161,6 @@
 }
 
 .ucol {
-  // full row width, so the bubble's percentage max width has something steady to measure against
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -184,7 +180,6 @@
     font-size: 13px;
   }
 
-  // a skeleton of a reply: grey lines with a soft light moving across
   .skel {
     display: grid;
     gap: 10px;
@@ -240,12 +235,10 @@
   }
 }
 
-// formatted AI text: readable line length
 .prose {
   max-width: 75ch;
 
   ::ng-deep {
-    // a line that is only bold works as a small heading: room above it, close to what follows
     p:has(> strong:only-child) {
       margin: var(--sp-4) 0 var(--sp-1);
 
@@ -343,7 +336,6 @@
   }
 }
 
-// ---------- document check badge ----------
 .verdict {
   display: inline-flex;
   align-items: center;
@@ -373,7 +365,6 @@
   }
 }
 
-// ---------- single match score ----------
 .score {
   --c: var(--sc-ok);
   display: flex;
@@ -424,7 +415,6 @@
   }
 }
 
-// ---------- job results in chat ----------
 .jobs {
   display: grid;
   grid-template-columns: 1fr;
@@ -439,7 +429,6 @@
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--sc-border);
   border-radius: 0;
-  // cards inside a message share one tint, so they look the same however many layers sit under them
   background: color-mix(in srgb, var(--sc-panel-solid) 62%, transparent);
 
   .jhead {
@@ -497,7 +486,6 @@
   }
 }
 
-// ---------- buttons under messages ----------
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -562,7 +550,6 @@
   }
 }
 
-// ---------- attachments ----------
 .files {
   display: flex;
   flex-wrap: wrap;
@@ -644,7 +631,6 @@
   }
 }
 
-// ---------- drag & drop overlay ----------
 .dropzone {
   position: fixed;
   inset: 0;
@@ -678,7 +664,6 @@
   }
 }
 
-// ---------- composer ----------
 .composer {
   background: transparent;
   border-top: 0;
@@ -760,7 +745,6 @@
   box-shadow: var(--sc-shadow);
   transition: border-color 160ms ease, box-shadow 160ms ease;
 
-  // the whole field lights up when you type; the text area inside has no ring or line of its own
   &:focus-within {
     border-color: color-mix(in srgb, var(--sc-primary) 65%, transparent);
     box-shadow: 5px 5px 0 0 var(--sc-hard);
@@ -850,7 +834,6 @@
   color: var(--sc-muted);
 }
 
-// ---------- tablet and desktop ----------
 @media (min-width: 768px) {
   .page {
     padding-block: var(--sp-6);
@@ -869,7 +852,6 @@
   }
 }
 
-// ---------- generated resume card ----------
 .resume-card {
   display: flex;
   align-items: center;
@@ -935,7 +917,6 @@
   }
 }
 
-// ---------- "your file was downloaded" note ----------
 .filenote {
   display: inline-flex;
   align-items: center;
@@ -953,7 +934,6 @@
   }
 }
 
-// ----- reply, edit, queue and stop -----
 .user-bubble .quote {
   margin-bottom: var(--sp-2);
   padding: 2px 0 2px var(--sp-3);
@@ -1065,7 +1045,6 @@
   }
 }
 
-
 .mode-grid {
   display: none;
 }
@@ -1078,7 +1057,6 @@
   display: none;
 }
 
-// phones: every feature is a button in a grid instead of a bar that scrolls sideways
 @media (max-width: 640px) {
   .modebar ion-segment {
     display: none;
@@ -1088,7 +1066,6 @@
     padding-block: var(--sp-2) var(--sp-1);
   }
 
-  // 7 buttons: 4 in the first row and 3 wider ones in the second, so there is no empty space
   .mode-grid {
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));

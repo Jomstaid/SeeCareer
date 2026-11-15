@@ -1,15 +1,10 @@
 import { ExportFormat } from './models';
 import { ACCENTS, ResumeTemplate } from './resumedata';
 
-// What the user is asking the app to produce.
 export interface Intent {
-  // resume = a designed resume; document = write a new document; convert = turn the last answer into a file.
   kind: 'resume' | 'document' | 'convert';
-  // The file format, read from the message. PDF unless they say Word, text or Markdown.
   format: ExportFormat;
-  // Design words found in the message ("minimal", "classic"...).
   template?: ResumeTemplate;
-  // An accent colour found in the message, as a hex value.
   accent?: string;
 }
 
@@ -18,9 +13,7 @@ const MAKE = /\b(create|make|build|generate|design|write|draft|prepare|compose|p
 const resumeMake = /\b(create|make|build|generate|design|write|draft|prepare|produce|need|want|give me|get me|do me|redo|redesign|remake|rewrite|revamp|update|polish|improve|enhance|fix|convert)\b/i;
 const resumeNoun = /\b(resume|r[eé]sum[eé]|cv|curriculum vitae)\b/i;
 const notCreating = /\b(analy[sz]e|review|check|critique|score|feedback|proofread|what('s| is) wrong)\b/i;
-// Asking for advice about a resume ("give me 3 tips for my resume") is a question, not a request to build one.
 const ADVICE = /\b(tips?|advice|ideas?|suggestions?|pointers|mistakes|best practices|ways to|how (to|do|can|should)|what (to|should)|examples? of|dos and don'?ts)\b/i;
-// Words that clearly ask for a resume to be made, even inside a longer sentence.
 const hardMake = /\b(create|build|generate|design|draft|redo|redesign|remake|rewrite|revamp|make( (me|my|a|an|new|better|proper))* (resume|r[eé]sum[eé]|cv))\b/i;
 const docNoun =
   /\b(cover letter|application letter|resignation letter|recommendation letter|letter|report|essay|proposal|agenda|schedule|checklist|template|contract|agreement|invoice|memo|minutes|outline|study guide|worksheet|certificate|portfolio|brochure|flyer|poster|handout|newsletter|lesson plan|meal plan|workout plan|budget|document)\b/i;
@@ -41,7 +34,6 @@ export function detectFormat(text: string): ExportFormat {
   return 'pdf';
 }
 
-// Design hints in the message, for example "a bold green resume" or "something elegant in burgundy".
 export function detectDesign(text: string): { template?: ResumeTemplate; accent?: string } {
   const out: { template?: ResumeTemplate; accent?: string } = {};
   const looks: [RegExp, ResumeTemplate][] = [
@@ -87,7 +79,6 @@ export function detectDesign(text: string): { template?: ResumeTemplate; accent?
   return out;
 }
 
-// The user wants another look but did not name one: "a different design", "make it look better", "something unique".
 export function wantsDifferentDesign(text: string): boolean {
   const t = text ?? '';
   return (
@@ -96,14 +87,10 @@ export function wantsDifferentDesign(text: string): boolean {
     /\bmake it (look )?(better|nicer|prettier|more (professional|unique|creative|modern|attractive|stylish|appealing))\b/i.test(t) ||
     /\b(too|looks?) (plain|boring|basic|same|simple|ugly)\b/i.test(t) ||
     /\bsomething else\b/i.test(t) ||
-    // short follow ups right after a resume: "different", "another one", "try again", "different again please"
     /^\s*(a |an )?(different|another|something (else|different)|try again|again|new one|change it)( one| design| look| layout| again| please| pls| one more)*\s*[.!]?\s*$/i.test(t)
   );
 }
 
-// Works out whether a chat message is a request for a file, so the app can make it and download it
-// straight away instead of chatting about it. Returns null for normal questions.
-// `hasPriorAnswer` says whether there is an earlier AI answer that "make this a PDF" could refer to.
 export function detectIntent(text: string, hasPriorAnswer = false): Intent | null {
   const t = (text ?? '').trim();
   if (t.length < 4 || t.startsWith('/') || QUESTION.test(t)) {
@@ -117,7 +104,6 @@ export function detectIntent(text: string, hasPriorAnswer = false): Intent | nul
   if (hasPriorAnswer && formatWord.test(t) && refersBack.test(t) && convertVerb.test(t) && t.length < 120) {
     return { kind: 'convert', format };
   }
-  // a format word alone ('make a pdf about dogs') counts; 'make this a pdf' with nothing to convert does not
   if (MAKE.test(t) && (docNoun.test(t) || (formatWord.test(t) && !refersBack.test(t))) && !resumeNoun.test(t)) {
     return { kind: 'document', format };
   }
@@ -128,9 +114,6 @@ const jobWords =
   /\b(develop\w*|engineer\w*|design\w*|manage\w*|analy\w*|nurs\w*|teach\w*|assist\w*|special\w*|officer|account\w*|market\w*|sales|support|writ\w*|edit\w*|intern\w*|student\w*|graduat\w*|job\w*|position|role|compan\w*|school|resume|cv|word|pdf|docx?|work\w*|appl\w*|career|fresher|beginner\w*|experienc\w*|senior|junior|it|hr|ui|ux|bpo|call|center|virtual|data|software|web|mobile|content|social|media|customer|service|finance|health\w*|medical|legal|law\w*|free|fresh|entry|remote|abroad|overseas|office|college|part|full|time|template|simple|modern|classic|minimal)\b/i;
 const notNames = /^(me|my|myself|i|the|a|an|us|you|him|her|them|this|that|it)$/i;
 
-// Who a resume is requested for when it is not the user: "create me a resume for Jahn Paul" gives "Jahn Paul";
-// "for duterte with image" gives "duterte"; "for my brother" gives "" (someone else, name unknown).
-// Returns null when the resume is for the user.
 export function personFromRequest(text: string): string | null {
   const t = text ?? '';
   if (/\bfor my (friend|brother|sister|mother|mom|mum|father|dad|wife|husband|cousin|classmate|colleague|boyfriend|girlfriend|son|daughter|uncle|aunt|neighbou?r|client|partner)\b/i.test(t)) {
@@ -141,18 +124,32 @@ export function personFromRequest(text: string): string | null {
   if (name && !notNames.test(name) && !jobWords.test(name)) {
     return name;
   }
-  // a name typed in a hurry, all lowercase: "for duterte with image"
   const low = /\bfor\s+((?:(?!(?:with|and|in|as|using|plus|pdf|word|docx|a|an|the|my|me|that|which|please)\b)[a-z][a-z'.-]{2,}\s*){1,3})/i.exec(t);
   const guess = low?.[1]?.trim();
   if (guess && !guess.split(/\s+/).some((w) => notNames.test(w)) && !jobWords.test(guess)) {
     return guess;
   }
+  if (/\b(resume|cv)\b/i.test(t) && (/\b(example|sample|demo)\b/i.test(t) || wantsOnlinePhoto(t))) {
+    const after = /\b(?:of|use|using|about|like)\s+([\p{L}][\p{L}'.-]*(?:\s+[\p{L}][\p{L}'.-]*){0,4})/u.exec(t);
+    const words: string[] = [];
+    for (const w of (after?.[1] ?? '').split(/\s+/)) {
+      if (!w || nameStop.test(w) || notNames.test(w) || jobWords.test(w) || w.length < 2) {
+        break;
+      }
+      words.push(w);
+    }
+    if (words.length >= 2 && words.length <= 4) {
+      return words.join(' ');
+    }
+  }
   return null;
 }
 
+const nameStop =
+  /^(with|and|in|as|using|plus|pdf|word|docx|her|his|their|photo|photos|image|images|picture|pictures|search|internet|online|web|from|on|resume|cv|example|sample|please|then|also|style|design|color|colour|red|blue|green|purple|black|modern|classic|minimal)$/i;
+
 const photoWord = /\b(pic|pics|picture|pictures|photo|photos|image|selfie|portrait|face|avatar|headshot)\b/i;
 
-// "add picture", "put my photo": the user wants a photo on the resume.
 export function wantsPhotoAdded(text: string): boolean {
   return photoWord.test(text) && /\b(add|put|include|insert|attach|use|set|change|replace|with|place)\b/i.test(text) && !wantsPhotoRemoved(text);
 }
@@ -165,48 +162,39 @@ const editVerb =
   /\b(add|remove|delete|change|replace|update|edit|shorter|longer|shorten|rewrite|fix|include|swap|move|reorder|rearrange|translate|fit|bigger|smaller|make it|make the|make my|turn it|more|less|use|put|set|without)\b/i;
 const questionStart = /^\s*(how|what|why|when|where|which|who|can you tell|explain|is |are |do |does |tell me)/i;
 
-// A short request to change the resume that was just made ("add picture", "make it red", "add skill Python").
 export function isResumeEdit(text: string): boolean {
   const t = (text ?? '').trim();
   return t.length >= 4 && t.length <= 240 && !t.startsWith('/') && !questionStart.test(t) && (editVerb.test(t) || photoWord.test(t) || Object.keys(detectDesign(t)).length > 0 || wantsDifferentDesign(t));
 }
 
-// "add a picture from the internet", "look for his photo online": the photo should be searched for on the web.
 export function wantsOnlinePhoto(text: string): boolean {
   return photoWord.test(text) && /\b(internet|online|web|google|wikipedia|search|look(ing)? (it )?(up|for|on)|find (it|one|a)|from the net)\b/i.test(text);
 }
 
 const notRoles = /^(job|jobs|work|position|career|application|interview|internship|company|abroad|overseas|me|my)\b/i;
 
-// The job a resume is asked for: "create me a resume for a nurse in pdf" gives "nurse".
 export function roleFromRequest(text: string): string | null {
   const m = /\b(?:for|as)\s+(?:a|an|the)\s+([a-z][a-z\s/&-]{2,40}?)(?=\s+(?:in|with|using|and|pdf|word|docx|that|who|please)\b|[.,!?]|$)/i.exec(text ?? '');
   const role = m?.[1]?.trim();
   return role && !notRoles.test(role) ? role : null;
 }
 
-// The user points at their own saved resume ("update my resume", "from my cv").
 export function usesMyResume(text: string): boolean {
   return /\b(my (saved |current |old |own )?(resume|cv)|from my (resume|cv)|using my|update my|redo my|improve my)\b/i.test(text ?? '');
 }
 
-// A short message that is just a list of jobs asked for in plain words: "accountant jobs remote",
-// "nursing jobs in cebu", "hiring in davao". Questions and advice requests are not job searches.
 export function looksLikeJobSearch(text: string): boolean {
   const t = (text ?? '').trim();
   const words = t.split(/\s+/).length;
   if (words < 2 || words > 12 || /\?\s*$/.test(t) || /^\s*(how|what|why|when|which|who|should|can|could|is|are|do|does|tips|advice|explain|write|make|create|help)\b/i.test(t)) {
     return false;
   }
-  // asking for advice about a job ("tips for my first job interview") is a question, not a search
   if (/\b(tips?|advice|interviews?|questions?|prepare|preparing|resume|cv|cover letter|salary|salaries|skills?|explain|examples?|how)\b/i.test(t)) {
     return false;
   }
   return /\b(jobs?|vacanc\w+|openings?|hiring|careers?)\b/i.test(t);
 }
 
-// A question (about the results, about work, about anything) rather than a few keywords to search.
-// "are these hybrid working?", "which one pays more", "tell me about the first job".
 export function isQuestion(text: string): boolean {
   const t = (text ?? '').trim();
   if (!t) {

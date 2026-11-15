@@ -4,7 +4,6 @@ import { GroupMember } from '../core/models';
 import { SettingsService } from '../core/settings.service';
 import { APIS, MEMBERS, PROJECT, TECH } from './groupinfo';
 
-// About Our Group: project info, members, course/year/section and each member's role.
 @Component({
   selector: 'app-about',
   templateUrl: './about.page.html',
@@ -18,7 +17,6 @@ export class AboutPage {
   tech = TECH;
   apis = APIS;
 
-  // the photo with the stage light in the theme colour (purple in dark mode, sky blue in light mode)
   photo(m: GroupMember): string {
     return m.photo + (this.settings.darkMode() ? 'Dark.png' : 'Light.png');
   }

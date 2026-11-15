@@ -1,16 +1,12 @@
 import { Job } from './models';
 import { hashId } from './job.service';
 
-// What kind of document the user gave us.
 export type DocType = 'resume' | 'coverLetter' | 'jobPosting' | 'jobRelated' | 'notJobRelated';
 
 export interface DocVerdict {
   type: DocType;
-  // 0-100: how sure we are.
   confidence: number;
-  // Short plain language reason.
   reason: string;
-  // Who decided: the AI, or the built in rules (when the AI is not available).
   source: 'ai' | 'rules';
 }
 
@@ -38,8 +34,6 @@ export function wordCount(text: string): number {
   return (text.match(/\S+/g) ?? []).length;
 }
 
-// Fast offline check using simple rules (contact details, resume sections, date ranges...).
-// Used before the AI check and as a fallback when the AI cannot be reached.
 export function ruleVerdict(text: string): DocVerdict {
   const t = text ?? '';
   const words = wordCount(t);
@@ -69,13 +63,11 @@ export function ruleVerdict(text: string): DocVerdict {
   return { type: 'notJobRelated', confidence: 70, reason: 'It has no contact details, work history or resume sections.', source: 'rules' };
 }
 
-// True when the text is clearly a resume (used before saving it as "my resume").
 export function looksLikeResume(text: string): boolean {
   const v = ruleVerdict(text);
   return v.type === 'resume' || (v.type === 'jobRelated' && v.confidence >= 50);
 }
 
-// Reads the AI's JSON answer about a document. Returns null when it cannot be understood.
 export function parseVerdict(raw: string): DocVerdict | null {
   const match = /\{[\s\S]*\}/.exec(raw ?? '');
   if (!match) {
@@ -83,7 +75,6 @@ export function parseVerdict(raw: string): DocVerdict | null {
   }
   try {
     const d = JSON.parse(match[0]) as { type?: string; confidence?: number; reason?: string };
-    // the AI may write "jobPosting", "job posting" or "job_posting": compare without spaces, dashes and case
     const plain = String(d.type ?? '').toLowerCase().replace(/[\s_-]+/g, '');
     const type = (Object.keys(docLabels) as DocType[]).find((k) => k.toLowerCase() === plain);
     if (!type) {
@@ -100,7 +91,6 @@ export function parseVerdict(raw: string): DocVerdict | null {
   }
 }
 
-// Builds a Job from a pasted/uploaded job posting so the user can match, apply and practice for it.
 export function jobFromText(text: string, fileName = 'Uploaded job'): Job {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
   const title = (lines[0] ?? fileName).replace(/^#+\s*/, '').slice(0, 90) || fileName;

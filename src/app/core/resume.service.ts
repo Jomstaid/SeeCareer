@@ -5,8 +5,6 @@ import { readJson, removeKey, writeJson } from './storage';
 const resumeKey = 'seecareer.resume';
 const consentKey = 'seecareer.aiConsent';
 
-// Keeps the applicant's resume text on this phone only (no account, no server).
-// It is sent to the AI provider only when the user runs an AI tool, after agreeing to the disclosure.
 @Injectable({ providedIn: 'root' })
 export class ResumeService {
   readonly resume = signal<string>(readJson<string>(resumeKey, ''));

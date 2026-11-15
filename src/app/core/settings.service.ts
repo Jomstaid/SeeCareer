@@ -6,7 +6,6 @@ import { readJson, writeJson } from './storage';
 
 const KEY = 'seecareer.settings';
 
-// Stores the app settings (theme, reply length, history, text size) and applies the theme.
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
   readonly settings = signal<AppSettings>({ ...defaultSettings, ...readJson<Partial<AppSettings>>(KEY, {}) });

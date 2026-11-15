@@ -8,7 +8,6 @@ const config: CapacitorConfig = {
     androidScheme: 'https',
   },
   plugins: {
-    // Sends HTTP calls through the native layer (no CORS / mixed-content problems on the phone).
     CapacitorHttp: { enabled: true },
   },
 };

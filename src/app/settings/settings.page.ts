@@ -13,7 +13,6 @@ import { FieldErrors, maxInstructionsLength, validateProvider } from '../core/va
 
 type StatusColor = 'muted' | 'ok' | 'warn' | 'danger';
 
-// Settings: add/test free AI providers (like CMDPilot), model health, theme and data.
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.page.html',
@@ -32,7 +31,6 @@ export class SettingsPage {
   readonly maxInstructions = maxInstructionsLength;
   instructions = '';
 
-  // ----- provider form (two way bound with ngModel) -----
   selectedId = '';
   presetKey = 'free';
   name = '';
@@ -41,10 +39,8 @@ export class SettingsPage {
   model = '';
   enabled = true;
   showKey = false;
-  // True for the built in provider: it needs no key, and its name and address cannot be changed.
   locked = false;
 
-  // The add / edit form is a dialog that opens from the provider list.
   formOpen = signal(false);
 
   errors: FieldErrors = {};
@@ -52,22 +48,17 @@ export class SettingsPage {
   statusText = signal('');
   statusColor = signal<StatusColor>('muted');
 
-  // ----- the list of every model -----
   modelSearch = '';
   modelFilter: 'all' | 'ok' | 'new' | 'bad' = 'all';
   modelLimit = 30;
   loadingList = signal(false);
-  testingAll = signal(false);
   testingOne = signal('');
-  testedSoFar = signal(0);
-  private stopAll = false;
 
   constructor() {
     this.instructions = this.settings.settings().customInstructions;
     this.applyPreset();
   }
 
-  // Opening Settings: get the full list of models if the app does not have it yet.
   async ionViewWillEnter(): Promise<void> {
     const missing = this.providers.enabled().filter((p) => !p.model && !this.providers.catalog()[p.id]?.length);
     if (!missing.length) {
@@ -78,7 +69,6 @@ export class SettingsPage {
     this.loadingList.set(false);
   }
 
-  // Providers to pick from: the built in one is only listed while editing it.
   get choices(): ProviderPreset[] {
     return this.presets.filter((p) => p.key !== 'free' || this.locked);
   }
@@ -87,7 +77,6 @@ export class SettingsPage {
     return this.presets.find((p) => p.key === this.presetKey) ?? this.presets[this.presets.length - 1];
   }
 
-  // ---------- provider form ----------
   applyPreset(): void {
     const p = this.preset;
     this.name = p.key === 'custom' ? '' : p.label.replace(/ \(.*\)/, '');
@@ -109,13 +98,11 @@ export class SettingsPage {
     }
   }
 
-  // The "Add" button: an empty form in a dialog.
   startNew(): void {
     this.newProvider();
     this.formOpen.set(true);
   }
 
-  // A provider tapped in the list: its settings in a dialog.
   edit(p: AiProvider): void {
     this.select(p);
     this.setStatus('');
@@ -140,13 +127,12 @@ export class SettingsPage {
     this.name = p.name;
     this.baseUrl = p.baseUrl;
     this.locked = !!p.builtin;
-    this.apiKey = p.builtin ? '' : p.apiKey; // the built in key never reaches this screen
+    this.apiKey = p.builtin ? '' : p.apiKey;
     this.model = p.model;
     this.enabled = p.enabled;
     this.errors = {};
   }
 
-  // Validates, tests the connection (finds working models) and saves.
   async testAndSave(): Promise<void> {
     if (this.locked) {
       await this.testAndSaveLocked();
@@ -184,7 +170,6 @@ export class SettingsPage {
     }
   }
 
-  // The built in provider: only the model and the on/off switch can change. It needs no key.
   private async testAndSaveLocked(): Promise<void> {
     const raw = this.providers.providers().find((p) => p.id === this.selectedId);
     if (!raw) {
@@ -273,7 +258,6 @@ export class SettingsPage {
     }
   }
 
-  // ---------- model health ----------
   async recheck(): Promise<void> {
     if (!this.providers.enabled().length) {
       this.notify('Enable a provider first.');
@@ -281,11 +265,10 @@ export class SettingsPage {
     }
     await this.ai.scan();
     const n = this.providers.workingModels().length;
-    this.notify(n ? `${n} model(s) working` : 'No model answered');
+    this.notify(n ? `${n} model(s) working. Checking the rest in the background.` : 'No model answered yet. Checking the rest in the background.');
+    void this.ai.sweep(true);
   }
 
-  // Every model of every enabled provider with its last test result (not tested yet = ok null).
-  // (computed: it is worked out again only when the models or their results change)
   private readonly rowList = computed(() => {
     const health = this.providers.health();
     const out: ModelStatus[] = [];
@@ -293,13 +276,11 @@ export class SettingsPage {
       const mine = new Map(health.filter((h) => h.providerId === p.id).map((h) => [h.model, h]));
       const list = p.model ? [p.model] : (this.providers.catalog()[p.id] ?? []);
       const names = new Set(list);
-      // models from the last check that are not in the list (or a provider that could not be reached) come first
       out.push(...[...mine.values()].filter((h) => !names.has(h.model)));
       for (const model of list) {
         out.push(mine.get(model) ?? { providerId: p.id, model, ok: null });
       }
     }
-    // working ones first (fastest first), then not tested, then failed
     const rank = (h: ModelStatus) => (h.ok === true ? 0 : h.ok === null ? 1 : 2);
     return out
       .map((h, i) => ({ h, i }))
@@ -311,7 +292,6 @@ export class SettingsPage {
     return this.rowList();
   }
 
-  // The rows after the search box and the filter.
   get rows(): ModelStatus[] {
     const q = this.modelSearch.trim().toLowerCase();
     return this.allRows.filter((h) => {
@@ -328,7 +308,6 @@ export class SettingsPage {
     return this.allRows.filter((h) => h.ok === false && h.model !== '*').length;
   }
 
-  // Where the model comes from: the provider name and the group in front of the model name (like "hormachuelos").
   groupOf(h: ModelStatus): string {
     const parts = h.model.split('/');
     return parts.length > 1 ? `${this.providerName(h.providerId)} · ${parts.slice(0, -1).join('/')}` : this.providerName(h.providerId);
@@ -345,46 +324,19 @@ export class SettingsPage {
     this.notify(r.ok ? `${this.shortModel(r)} works (${r.latency?.toFixed(1)}s)` : `${this.shortModel(r)} did not answer`);
   }
 
-  // Tests every model that was not tested yet, 4 at a time. Stops when the server says it is busy, or on Stop.
-  async testAll(): Promise<void> {
-    const todo = this.allRows.filter((h) => h.ok === null && h.model !== '*');
-    if (!todo.length) {
-      this.notify('Every model was already tested. Press Re-check to test the best ones again.');
+  async checkAll(): Promise<void> {
+    if (!this.providers.enabled().length) {
+      this.notify('Enable a provider first.');
       return;
     }
-    this.stopAll = false;
-    this.testingAll.set(true);
-    this.testedSoFar.set(0);
-    let busyRounds = 0;
-    for (let i = 0; i < todo.length && !this.stopAll; i += 4) {
-      const batch = todo.slice(i, i + 4);
-      const results = await Promise.all(
-        batch.map((h) => {
-          const p = this.providers.get(h.providerId);
-          return p ? this.ai.checkModel(p, h.model) : Promise.resolve({ ...h, ok: false, error: 'Provider removed.' });
-        }),
-      );
-      this.testedSoFar.update((n) => n + batch.length);
-      busyRounds = results.every((r) => !r.ok && /rate limited/i.test(r.error ?? '')) ? busyRounds + 1 : 0;
-      if (busyRounds >= 2) {
-        this.notify('The free AI is busy. Testing stopped, try again in a minute.');
-        break;
-      }
-    }
-    this.testingAll.set(false);
+    await this.ai.sweep(true);
     this.notify(`Done. ${this.countOk} model(s) working.`);
   }
 
-  stopTestAll(): void {
-    this.stopAll = true;
-  }
-
-  // The model name without the provider path in front of it.
   shortModel(h: { providerId: string; model: string }): string {
     return h.model === '*' ? this.providerName(h.providerId) : (h.model.split('/').pop() ?? h.model);
   }
 
-  // How long the bar for a model is: the faster it answered, the longer the bar (full at 0 s, short at 6 s or more).
   speed(latency: number): number {
     return Math.max(10, Math.min(100, 100 - (latency / 6) * 90));
   }
@@ -397,7 +349,6 @@ export class SettingsPage {
     return this.providers.health().filter((h) => h.providerId === p.id && h.ok).length;
   }
 
-  // ---------- appearance / chat ----------
   setTheme(value: AppSettings['theme']): void {
     this.settings.update({ theme: value });
   }
@@ -410,7 +361,6 @@ export class SettingsPage {
     this.settings.update({ maxTokens: Number(value) });
   }
 
-  // turning history off deletes the saved chats, so we ask first (one wrong tap should not lose everything)
   async setSaveHistory(value: boolean, toggle?: { checked: boolean }): Promise<void> {
     if (value) {
       this.settings.update({ saveHistory: true });
@@ -434,7 +384,6 @@ export class SettingsPage {
       this.settings.update({ saveHistory: false });
       this.chats.clearAll();
     } else {
-      // put the switch back on (the setting never changed, so the screen has to be told)
       this.settings.update({ saveHistory: true });
       if (toggle) {
         toggle.checked = true;
@@ -452,8 +401,6 @@ export class SettingsPage {
     this.saveInstructions();
   }
 
-  // ---------- data ----------
-  // Saves every chat in one file the user can keep.
   async exportChats(): Promise<void> {
     const chats = this.chats.conversations();
     if (!chats.length) {
@@ -464,7 +411,6 @@ export class SettingsPage {
     void this.notify(await deliverBlob(blob, `seecareerchats${new Date().toISOString().slice(0, 10)}.json`));
   }
 
-  // Reads a backup file picked by the user and adds its chats.
   async importChats(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -472,7 +418,6 @@ export class SettingsPage {
       return;
     }
     try {
-      // read the file first, then reset the picker so the same file can be chosen again
       const text = await file.text();
       input.value = '';
       const count = this.chats.importChats(chatsFromBackup(text));
@@ -522,7 +467,6 @@ export class SettingsPage {
     await alert.present();
   }
 
-  // ---------- helpers ----------
   private setStatus(text: string, color: StatusColor = 'muted'): void {
     this.statusText.set(text);
     this.statusColor.set(color);

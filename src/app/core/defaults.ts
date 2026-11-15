@@ -1,8 +1,5 @@
 import { AppSettings, ProviderPreset } from './models';
 
-// The built in free AI (OpenAI compatible). It is added to Settings automatically the first time the app opens.
-// This address is a small proxy (see worker/gatewayproxy.js) that holds the real API key on the server.
-// The app needs no key for it, so there is no secret anywhere in the source code or the build.
 export const defaultFreeAi = {
   name: 'Free AI',
   baseUrl: 'https://api.jomstaid.com/v1',
@@ -16,7 +13,6 @@ export const providerPresets: ProviderPreset[] = [
     note: 'Free AI that comes with the app. No key needed.',
     keyHint: 'Not needed',
     signup: '',
-    // measured on the gateway: these answer a normal question in about 4-7 seconds
     preferred: [
       'hormachuelos/claude-sonnet-4-6',
       'hormachuelos/gpt-6.1-sol',
@@ -39,7 +35,6 @@ export const providerPresets: ProviderPreset[] = [
       'auto/kimi',
       'auto/best-fast',
     ],
-    // every other model from these free providers (also ones added later) is checked before the rest of the gateway
     preferPrefixes: ['hormachuelos/', 'ddgw/', 'auto/', 'no-think/hormachuelos/'],
   },
   {
@@ -88,15 +83,13 @@ export const defaultSettings: AppSettings = {
   customInstructions: '',
 };
 
-// Words in a model id that mean it is not a text chat model.
 export const notChatModels = ['embed', 'tts', 'whisper', 'image', 'imagen', 'rerank', 'moderation', 'guard', 'dall-e', 'video', 'audio', 'transcribe', 'veo', 'music'];
 
-// How many models are health checked per provider.
 export const maxScanPerProvider = 6;
-// A check keeps going down the model list until at least this many models answer.
 export const minWorking = 6;
-// How often the working models are rechecked while the app is open.
 export const autoCheckMs = 10 * 60 * 1000;
+export const sweepEveryMs = 30 * 60 * 1000;
+export const sweepAtOnce = 3;
 
 export const SUGGESTIONS: string[] = [
   'What careers fit someone who likes design and coding?',

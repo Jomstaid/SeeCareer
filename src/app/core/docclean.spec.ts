@@ -2,7 +2,6 @@ import { isLetterRequest, letterize, nameFromRequest, stripChatter, titleOf } fr
 import { clean } from './resumerender';
 import { parseBlocks, plain } from './fileexport';
 
-// shaped like the answer that ended up as a garbled PDF
 const MESSY = `I can write you a complete example resume right here! 🎉
 
 However, for the PDF download and professionally designed version, here's how to get it:

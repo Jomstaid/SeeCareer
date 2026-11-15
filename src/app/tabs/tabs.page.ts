@@ -10,17 +10,14 @@ interface NavItem {
   tab: string;
   path: string;
   label: string;
-  // A shorter name for the small phone tab bar.
   short?: string;
   icon: string;
   image: string;
   darkImage: string;
-  // One line shown in the side navigation so each place is clear.
   hint: string;
   group: 'work' | 'app';
 }
 
-// Main navigation: bottom tab bar on phones/tablets, side navigation on laptops and desktops.
 @Component({
   selector: 'app-tabs',
   templateUrl: './tabs.page.html',
@@ -32,7 +29,6 @@ export class TabsPage {
   settings = inject(SettingsService);
   private router = inject(Router);
   private alerts = inject(AlertController);
-
 
   readonly items: NavItem[] = [
     { tab: 'home', path: '/home', label: 'Home', icon: 'home-outline', image: 'assets/icon/navHome.png', darkImage: 'assets/icon/darkNavHome.png', hint: 'Start here', group: 'work' },
@@ -50,7 +46,6 @@ export class TabsPage {
     return this.items.filter((i) => i.group === 'app');
   }
 
-  // Saved chats grouped like ChatGPT: Today, Yesterday, Earlier.
   get groups(): { label: string; chats: Conversation[] }[] {
     const startOfToday = new Date().setHours(0, 0, 0, 0);
     const day = 86400000;

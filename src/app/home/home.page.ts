@@ -5,7 +5,6 @@ import { JobService } from '../core/job.service';
 import { Job } from '../core/models';
 import { SettingsService } from '../core/settings.service';
 
-// One shortcut card on the Home page.
 interface Shortcut {
   image: string;
   darkImage: string;
@@ -14,7 +13,6 @@ interface Shortcut {
   path: string;
 }
 
-// Home page: a welcome, shortcuts to every part of the app, and a few fresh jobs from the public API.
 @Component({
   selector: 'app-home',
   templateUrl: './home.page.html',
@@ -41,7 +39,6 @@ export class HomePage implements OnInit {
     this.loadLatest();
   }
 
-  // Fetches the newest jobs with HttpClient GET (through the job service).
   async loadLatest(): Promise<void> {
     this.loading.set(true);
     this.failed.set(false);
@@ -63,7 +60,6 @@ export class HomePage implements OnInit {
     this.router.navigate(['/job', job.id]);
   }
 
-  // The bookmark inside a job row: saves the job without opening it.
   toggleSave(job: Job, event: Event): void {
     event.stopPropagation();
     event.preventDefault();

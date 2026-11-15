@@ -174,3 +174,19 @@ describe('isQuestion', () => {
     expect(isQuestion('customer support')).toBe(false);
   });
 });
+
+describe('a named person for an example resume', () => {
+  it('reads the name after use, of or about', () => {
+    expect(personFromRequest('as example resume use ariana grande and put image search on internet')).toBe('ariana grande');
+    expect(personFromRequest('make a sample resume of Taylor Swift with her photo')).toBe('Taylor Swift');
+    expect(personFromRequest('example resume about manny pacquiao')).toBe('manny pacquiao');
+  });
+
+  it('does not read design words or the user as a name', () => {
+    expect(personFromRequest('use red design for my resume')).toBeNull();
+    expect(personFromRequest('use this as my photo on the resume')).toBeNull();
+    expect(personFromRequest('example resume using modern style')).toBeNull();
+    expect(personFromRequest('add my photo from the internet to my resume')).toBeNull();
+  });
+});
+

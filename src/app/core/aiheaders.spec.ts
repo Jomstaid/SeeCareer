@@ -36,7 +36,7 @@ describe('AiService request headers', () => {
   it('a provider the user added sends its own key as a bearer token', async () => {
     const request = await pingFirst((p) => {
       p.save({ name: 'Mine', preset: 'groq', baseUrl: 'https://api.groq.com/openai/v1', apiKey: 'gsk_12345678', model: '', enabled: true });
-      p.providers.set(p.providers().filter((x) => x.preset === 'groq')); // only the user's provider is left
+      p.providers.set(p.providers().filter((x) => x.preset === 'groq'));
     });
     expect(request.url.startsWith('https://api.groq.com/')).toBe(true);
     expect(request.headers.get('Authorization')).toBe('Bearer gsk_12345678');

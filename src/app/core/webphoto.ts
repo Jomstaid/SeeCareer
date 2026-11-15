@@ -1,7 +1,3 @@
-// Finds a public photo of a well known person on Wikipedia (free, no key, allows browser requests).
-// The AI itself cannot browse the internet, so the app does this search and hands the picture to the resume.
-
-// True when a Wikipedia page title is really about this person (at least two name words match).
 export function titleMatches(name: string, title: string): boolean {
   const words = (s: string) =>
     s
@@ -16,7 +12,6 @@ export function titleMatches(name: string, title: string): boolean {
   return wanted.length > 0 && wanted.filter((w) => found.has(w)).length >= Math.min(2, wanted.length);
 }
 
-// A placeholder name such as "[Your Name]" is not a person to search for.
 export function isSearchableName(name: string): boolean {
   return !!name && !/[[\]]|your name/i.test(name) && name.trim().split(/\s+/).length >= 2;
 }
@@ -30,7 +25,6 @@ function toDataUrl(blob: Blob): Promise<string> {
   });
 }
 
-// The lead picture of the person's Wikipedia page as a data URL, or null when there is no clear match.
 export async function findWebPhoto(name: string): Promise<string | null> {
   if (!isSearchableName(name)) {
     return null;

@@ -1,16 +1,13 @@
 import { ChatAction, ChatMode } from './models';
 
-// The six AI features from the project plan, as chat modes.
 export interface ModeInfo {
   key: ChatMode;
   label: string;
-  // One line shown in the feature list.
   blurb: string;
   short: string;
   icon: string;
   image: string;
   darkImage: string;
-  // Tile / chip colour (CSS colour).
   color: string;
   intro: string;
   placeholder: string;
@@ -18,7 +15,6 @@ export interface ModeInfo {
   needsJob: boolean;
   starters: string[];
   actions: ChatAction[];
-  // Extra instruction added to the AI for this mode.
   system: string;
 }
 
@@ -175,7 +171,6 @@ export function modeInfo(key: ChatMode): ModeInfo {
   return MODES.find((m) => m.key === key) ?? generalModeInfo;
 }
 
-// Instruction used when the user starts a mock interview.
 export const mockInterviewSystem =
   'You are a friendly but realistic interviewer for the selected job. Ask ONE interview question at a time. ' +
   'After the user answers, reply with: "Score: X/10", one line of what was good, one line to improve, then ask the next question. ' +

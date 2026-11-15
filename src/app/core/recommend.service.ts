@@ -11,7 +11,6 @@ export interface Profile {
   skills: string[];
   level: string;
   summary: string;
-  // The place the user asked for, when they named one.
   place?: Place | null;
 }
 
@@ -19,13 +18,11 @@ export interface RecommendResult {
   profile: Profile;
   recs: Recommendation[];
   searched: number;
-  // True when there were no jobs only for the place, so jobs open to anyone are included.
   loose: boolean;
 }
 
 const maxCandidates = 24;
 const rateTop = 12;
-// Jobs rated per AI request (the requests run at the same time).
 const jobsPerRating = 4;
 const SHOW = 8;
 const minFit = 20;
@@ -48,16 +45,11 @@ export function chanceOf(score: number): Recommendation['chance'] {
   return score >= 75 ? 'High' : score >= 55 ? 'Good' : score >= 35 ? 'Moderate' : 'Low';
 }
 
-// "Find me jobs I will be accepted for": reads the resume, searches real jobs for the matching titles,
-// then rates each job (skills matched, skills missing, seniority) so the best fits come first.
-// The score is an estimate to guide the user, never a promise of being hired.
 @Injectable({ providedIn: 'root' })
 export class RecommendService {
   private ai = inject(AiService);
   private jobs = inject(JobService);
 
-
-  // Asks the AI whether a document is a real resume, a job posting, a cover letter, or unrelated.
   async classify(text: string, images: string[] = [], name = ''): Promise<DocVerdict> {
     const rules = ruleVerdict(text || '');
     if (!text && !images.length) {
@@ -86,19 +78,16 @@ export class RecommendService {
       );
       const verdict = parseVerdict(r.content);
       if (verdict) {
-        // if the rules are very sure it is NOT a resume, do not let a hopeful AI answer override it
         if (verdict.type === 'resume' && rules.type === 'notJobRelated' && !images.length) {
           return { ...verdict, type: 'notJobRelated', confidence: 60, reason: rules.reason };
         }
         return verdict;
       }
     } catch {
-      // fall back to the offline rules
     }
     return rules;
   }
 
-  // Step 1: who is this person (job titles to search, skills, level).
   async profile(resume: string, images: string[] = [], request = ''): Promise<Profile> {
     const prompt =
       'Read this resume and answer with JSON only: ' +
@@ -138,7 +127,6 @@ export class RecommendService {
     };
   }
 
-  // Reads a resume from pictures and writes it out as plain text, so the app can remember it.
   async transcribe(images: string[]): Promise<string> {
     const content: ContentPart[] = [
       { type: 'text', text: 'Write out everything in this resume as plain text: name, contact, summary, skills, work experience, education, certifications. No comments, only the resume text.' },
@@ -148,7 +136,6 @@ export class RecommendService {
     return r.content.trim();
   }
 
-  // Whole flow. `onStep` reports progress to show in the chat.
   async recommend(resume: string, images: string[] = [], onStep?: (text: string) => void, request = ''): Promise<RecommendResult> {
     onStep?.(resume || images.length ? 'Reading your resume…' : 'Understanding your request…');
     let profile: Profile;
@@ -157,12 +144,10 @@ export class RecommendService {
     } catch (e) {
       const where = splitPlace(request).place;
       if (e instanceof AiError && e.kind === 'needinfo' && where) {
-        // the place is known: ask only for what is missing
         throw new AiError(`I have the place (${where.city ? where.city + ', ' : ''}${where.label}). What kind of work are you looking for there (for example customer support, graphic design, nursing, IT)?`, 'needinfo');
       }
       throw e;
     }
-    // a place the person typed wins over what the AI guessed
     profile.place = splitPlace(request).place ?? profile.place ?? null;
     const place = profile.place;
 
@@ -191,12 +176,10 @@ export class RecommendService {
       if (failed === lists.length) {
         throw new AiError('I could not load jobs right now. Check your internet connection and try again.', 'network');
       }
-      return { profile, recs: [], searched: 0, loose: false }; // the feeds answered: there is simply nothing remote for this
+      return { profile, recs: [], searched: 0, loose: false };
     }
-    // true when none of the jobs is really for the place (they are open to anyone)
     const loose = !!place && !candidates.some((j) => locationMentions(j.candidate_required_location, place));
 
-    // quick offline prescore so only the most promising jobs go to the AI
     const pre = candidates
       .map((job) => ({ job, ...this.localFit(job, profile) }))
       .sort((a, b) => b.score - a.score)
@@ -217,11 +200,9 @@ export class RecommendService {
       };
     });
     recs.sort((a, b) => b.score - a.score);
-    // a job that barely fits is noise: only real matches are shown
     return { profile, recs: recs.filter((r) => r.score >= minFit).slice(0, SHOW), searched: candidates.length, loose };
   }
 
-  // Offline score: how many of the person's skills and titles appear in the job.
   private localFit(job: Job, profile: Profile): { score: number; matched: string[]; missing: string[] } {
     const text = `${job.title} ${job.category} ${job.tags.join(' ')} ${plainText(job.description, 3000)}`.toLowerCase();
     const matched = profile.skills.filter((s) => text.includes(s));
@@ -239,9 +220,6 @@ export class RecommendService {
       : `Matches your target role (${profile.titles[0]}). Check the requirements.`;
   }
 
-  // Step 3: the AI rates each job against the profile (score, why, matched and missing skills).
-  // It rates the jobs in small batches that run at the same time on the fastest models,
-  // so a dozen jobs take about as long as four (a few seconds instead of half a minute).
   private async rate(
     items: { job: Job; score: number }[],
     profile: Profile,
@@ -250,7 +228,6 @@ export class RecommendService {
     for (let start = 0; start < items.length; start += jobsPerRating) {
       batches.push({ start, items: items.slice(start, start + jobsPerRating) });
     }
-    // a batch that takes too long (a busy model) is skipped: those jobs keep the quick score from this phone
     const late = () => new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 20000));
     const parts = await Promise.all(batches.map((b) => Promise.race([this.rateBatch(b.items, profile, b.start).catch(() => []), late()])));
     const all = parts.flat();

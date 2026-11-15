@@ -69,18 +69,17 @@ describe('more file types', () => {
   });
 });
 
-// Builds a tiny Photoshop file that carries a preview picture, the way real .psd files do.
 function fakePsd(jpeg: number[]): Uint8Array<ArrayBuffer> {
   const out: number[] = [];
   const u32 = (n: number) => out.push((n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255);
-  out.push(0x38, 0x42, 0x50, 0x53); // "8BPS"
-  out.push(0, 1, 0, 0, 0, 0, 0, 0); // version + reserved
-  out.push(0, 3, 0, 0, 0, 10, 0, 0, 0, 10, 0, 8, 0, 3); // channels, height, width, depth, colour mode
-  u32(0); // colour mode data length
-  const resource = [0, 0, 0, 1, ...new Array(24).fill(0), ...jpeg]; // thumbnail header (28 bytes) + JPEG
+  out.push(0x38, 0x42, 0x50, 0x53);
+  out.push(0, 1, 0, 0, 0, 0, 0, 0);
+  out.push(0, 3, 0, 0, 0, 10, 0, 0, 0, 10, 0, 8, 0, 3);
+  u32(0);
+  const resource = [0, 0, 0, 1, ...new Array(24).fill(0), ...jpeg];
   const pad = resource.length % 2 ? 1 : 0;
-  u32(4 + 2 + 2 + 4 + resource.length + pad); // image resources length
-  out.push(0x38, 0x42, 0x49, 0x4d, 0x04, 0x0c, 0, 0); // "8BIM", id 1036, empty name (padded)
+  u32(4 + 2 + 2 + 4 + resource.length + pad);
+  out.push(0x38, 0x42, 0x49, 0x4d, 0x04, 0x0c, 0, 0);
   u32(resource.length);
   out.push(...resource);
   if (pad) {

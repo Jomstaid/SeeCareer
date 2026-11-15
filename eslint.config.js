@@ -1,4 +1,3 @@
-// @ts-check
 const tseslint = require("typescript-eslint");
 const angular = require("angular-eslint");
 

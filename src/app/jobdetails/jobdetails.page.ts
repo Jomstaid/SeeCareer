@@ -8,7 +8,6 @@ import { Job } from '../core/models';
 import { ResumeService } from '../core/resume.service';
 import { SettingsService } from '../core/settings.service';
 
-// Details page: shows one job. The id comes from the route /job/:id.
 @Component({
   selector: 'app-job-details',
   templateUrl: './jobdetails.page.html',
@@ -27,13 +26,11 @@ export class JobDetailsPage implements OnInit {
   error = signal('');
   logoFailed = false;
 
-  // Jobs saved on the device before the repair still have broken characters in them.
   clean(html: string): string {
     return fixEncoding(html);
   }
   private guess = 0;
 
-  // The job's logo, or the company's website icon when the job has none; null shows the initial.
   logoFor(j: Job): string | null {
     if (j.company_logo && !this.logoFailed) {
       return j.company_logo;
@@ -61,7 +58,6 @@ export class JobDetailsPage implements OnInit {
     }
   }
 
-  // The AI buttons shown on this page.
   readonly tasks = jobTasks;
 
   ngOnInit(): void {
@@ -96,7 +92,6 @@ export class JobDetailsPage implements OnInit {
     this.load(id);
   }
 
-  // Opens the AI chat with this job selected (and optionally runs a task).
   askAi(task?: TaskKey): void {
     const job = this.job();
     if (job) {

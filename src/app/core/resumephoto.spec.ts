@@ -27,7 +27,6 @@ const SAMPLE: ResumeData = normalizeResume({
   languages: ['Filipino', 'English'],
 });
 
-// A made up portrait (sky, shoulders, head, hair) so the photo features can be tested and looked at.
 async function fakePortrait(): Promise<string> {
   const zlib = await import('node:zlib');
   const n = 180;
@@ -99,7 +98,7 @@ describe('photo, section order and fit to one page', () => {
       const withPhoto = { ...SAMPLE, photo };
       const pdf = await buildResumePdf(withPhoto, template, ACCENTS[4].hex);
       const plain = await buildResumePdf(SAMPLE, template, ACCENTS[4].hex);
-      expect(pdf.size).toBeGreaterThan(plain.size + 1000); // the picture is inside the file
+      expect(pdf.size).toBeGreaterThan(plain.size + 1000);
       await save(`photo-${template}.pdf`, pdf);
       await save(`nophoto-${template}.pdf`, plain);
       const docx = await buildResumeDocx(withPhoto, template, ACCENTS[4].hex);
@@ -136,6 +135,6 @@ describe('photo, section order and fit to one page', () => {
     const lightYellow = '#facc15';
     expect(contrastWithWhite(hexToRgb(lightYellow))).toBeLessThan(4.5);
     expect(contrastWithWhite(hexToRgb(ensureContrast(lightYellow)))).toBeGreaterThanOrEqual(4.5);
-    expect(ensureContrast('#1e3a8a')).toBe('#1e3a8a'); // already dark enough: unchanged
+    expect(ensureContrast('#1e3a8a')).toBe('#1e3a8a');
   });
 });

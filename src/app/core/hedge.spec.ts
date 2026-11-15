@@ -5,7 +5,6 @@ import { TestBed } from '@angular/core/testing';
 import { AiService } from './ai.service';
 import { ProviderService } from './provider.service';
 
-// When one model hangs, the chat must not wait for it: the next model is asked too and the first answer wins.
 describe('AiService asks the next model when one hangs', () => {
   let http: HttpTestingController;
 
@@ -36,7 +35,6 @@ describe('AiService asks the next model when one hangs', () => {
     await vi.advanceTimersByTimeAsync(0);
     const first = http.match(() => true);
     expect(first.map(modelOf)).toEqual(['hormachuelos/claude-sonnet-4-6']);
-    // 10 seconds without an answer: the next model is asked as well
     await vi.advanceTimersByTimeAsync(10000);
     const second = http.match(() => true);
     expect(second.map(modelOf)).toEqual(['ddgw/gpt-5.6-luna']);
@@ -77,13 +75,11 @@ describe('AiService when the free AI is busy', () => {
     expect(pings.length).toBe(6);
     pings.forEach((p) => p.flush({}, { status: 429, statusText: 'Too Many Requests' }));
     const err = (await answer) as Error;
-    // no second batch was tried
     expect(http.match((r) => r.url.endsWith('/chat/completions')).length).toBe(0);
     expect(err.message).toMatch(/busy/i);
   });
 });
 
-// When every working model fails in the middle of a question, the app goes down the full list of models.
 describe('AiService falls back to the full model list', () => {
   let http: HttpTestingController;
 
@@ -115,7 +111,6 @@ describe('AiService falls back to the full model list', () => {
     const result = await answer;
     expect(result.model).toBe('dva/c');
     expect(result.content).toBe('Saved by the backup');
-    // the backup model is now known to work
     expect(providers.workingModels().some((h) => h.model === 'dva/c')).toBe(true);
   });
 
@@ -134,7 +129,6 @@ describe('AiService falls back to the full model list', () => {
     await tick();
     http.expectOne((r) => modelOf(r) === 'hormachuelos/b').flush({}, { status: 429, statusText: 'Too Many Requests' });
     await tick();
-    // hormachuelos is busy, so its other models are not asked: the next group is
     const next = http.match(() => true);
     expect(next.map((r) => modelOf(r.request))).toEqual(['dva/c']);
     next[0].flush({ choices: [{ message: { content: 'OK' } }] });
@@ -157,3 +151,61 @@ describe('AiService falls back to the full model list', () => {
     expect((await answer).model).toBe('dva/c');
   });
 });
+
+describe('AiService checks every model in the background', () => {
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  const modelOf = (r: { body: unknown }) => (r.body as { model: string }).model;
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  it('marks every model that answers as working and the rest as failed', async () => {
+    const providers = TestBed.inject(ProviderService);
+    const id = providers.providers()[0].id;
+    providers.setCatalog(id, ['dva/a', 'cxa/b', 'zc/c']);
+    const ai = TestBed.inject(AiService);
+    const done = ai.sweep(true);
+    for (let round = 0; round < 5; round++) {
+      await tick();
+      for (const req of http.match((r) => r.url.endsWith('/chat/completions'))) {
+        const m = modelOf(req.request);
+        if (m === 'cxa/b') {
+          req.flush({}, { status: 500, statusText: 'Server error' });
+        } else {
+          req.flush({ choices: [{ message: { content: 'OK' } }] });
+        }
+      }
+    }
+    await done;
+    const ok = providers.health().filter((h) => h.ok).map((h) => h.model).sort();
+    expect(ok).toEqual(['dva/a', 'zc/c']);
+    expect(providers.health().find((h) => h.model === 'cxa/b')?.ok).toBe(false);
+    expect(ai.sweepDone()).toBe(3);
+  });
+
+  it('leaves a group alone after its server says it is busy three times', async () => {
+    const providers = TestBed.inject(ProviderService);
+    const id = providers.providers()[0].id;
+    providers.setCatalog(id, ['h/1', 'h/2', 'h/3', 'h/4', 'h/5', 'h/6']);
+    const ai = TestBed.inject(AiService);
+    const done = ai.sweep(true);
+    let asked = 0;
+    for (let round = 0; round < 8; round++) {
+      await tick();
+      for (const req of http.match((r) => r.url.endsWith('/chat/completions'))) {
+        asked++;
+        req.flush({}, { status: 429, statusText: 'Too Many Requests' });
+      }
+    }
+    await done;
+    expect(asked).toBeLessThanOrEqual(5);
+    expect(asked).toBeLessThan(6);
+    expect(ai.sweepDone()).toBe(6);
+  });
+});
+

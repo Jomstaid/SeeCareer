@@ -10,7 +10,6 @@ import { readJson, writeJson } from '../../core/storage';
 
 const prefKey = 'seecareer.resumeDesign';
 
-// Pick a layout and colour, preview the resume, ask the AI for changes, and download it as PDF or Word.
 @Component({
   selector: 'app-resume-designer',
   templateUrl: './resumedesigner.component.html',
@@ -22,14 +21,10 @@ export class ResumeDesignerComponent implements OnChanges {
 
   @Input() open = false;
   @Input() data: ResumeData | null = null;
-  // The layout and colour to start with (for example the ones the resume was already made in).
   @Input() design: { template: ResumeTemplate; accent: string } | null = null;
   @Output() closed = new EventEmitter<void>();
-  // The user picked another layout or colour.
   @Output() designChanged = new EventEmitter<{ template: ResumeTemplate; accent: string }>();
-  // The resume changed (the AI applied a request).
   @Output() changed = new EventEmitter<ResumeData>();
-  // The user wants this resume saved as "my resume" (plain text).
   @Output() saveText = new EventEmitter<string>();
 
   readonly templates = TEMPLATES;
@@ -51,7 +46,6 @@ export class ResumeDesignerComponent implements OnChanges {
     }
   }
 
-  // One line about the chosen design: what it looks like and who it suits.
   hint(): string {
     const t = TEMPLATES.find((x) => x.key === this.template());
     return t ? `${t.blurb}. Suits ${t.fits}.` : '';
@@ -75,7 +69,6 @@ export class ResumeDesignerComponent implements OnChanges {
     this.designChanged.emit({ template: this.template(), accent: this.accent() });
   }
 
-  // Adds or replaces the profile photo with a picture the user chose.
   async pickPhoto(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -103,7 +96,6 @@ export class ResumeDesignerComponent implements OnChanges {
     this.instruction = text;
   }
 
-  // Asks the AI to change the resume as the user described.
   async applyChange(): Promise<void> {
     const text = this.instruction.trim();
     if (!this.data || this.busy()) {

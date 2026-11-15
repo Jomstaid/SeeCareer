@@ -55,7 +55,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Job board | List of jobs from the API with search, category filter, saved jobs and more jobs when you scroll down |
 | Job details | One job (route `/job/:id`) with the full description, an Apply button and buttons to ask the AI about it |
 | AI Assistant | The chat with 7 modes: Chat, Resume, Find jobs, Match, Apply, Skills gap, Interview |
-| Settings | AI providers, the list of every AI model (with search, filter and a Test button), theme, text size, reply length and your data |
+| Settings | AI providers, the list of every AI model and which ones work, theme, text size, reply length and your data. It fits on one screen |
 | About Our Group | Project title and description, course, section, members and their roles |
 
 ## How we followed the case study 📋
@@ -69,7 +69,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Data binding and events | `[(ngModel)]`, `{{ }}`, `[src]`, `(click)`, `(ionInput)`, `(ionChange)` |
 | TypeScript interface and class | `src/app/core/models.ts` (`Job` interface, `GroupMember` class and more) |
 | Reusable component | `<app-page-header title="...">`, the same header on every page with a different title |
-| Testing | 169 unit tests plus our own walkthrough of every button (see below) |
+| Testing | 174 unit tests plus our own walkthrough of every button (see below) |
 
 ## APIs we used 🌐
 
@@ -90,7 +90,7 @@ All of these are free and need no API key.
 
 `api.jomstaid.com` is our own small server (a Cloudflare Worker, code in `worker/gatewayproxy.js`). It passes the chat to free AI models (free LLMs) that we set up on **OmniRoute**. The secret key stays on the server, so there is no key in the app, the APK or this repository.
 
-* **It shows every model.** Settings lists all the models on our OmniRoute gateway (more than 500). Each one shows if it is working, not working or not tested yet. You can search them, filter them, test one model, or test all of them.
+* **It checks every model by itself.** Settings lists every chat model on our OmniRoute gateway (image and video models are left out). The app checks all of them in the background, a few at a time, so you never have to press Test. Every model that answers is marked working and used by the chat. Models that failed are checked again every 30 minutes, so a model that comes back is used again.
 * **It finds working models by itself.** Every 10 minutes the app tests the smart models first (like GPT 6.1, Claude Sonnet, Grok, DeepSeek, Kimi and Gemini) and keeps a list of the ones that answer. It takes turns between the different servers behind the gateway, so one server that is down does not slow down the check.
 * **It never gets stuck on one model.** If a model gives an error, the next one is asked right away. If a model is slow and has not answered after about 10 seconds, the next one is asked too and the first answer is used. Your question, the chat so far and your resume go with it, so you still get a full answer. If all the working models fail in the middle of a question, the app keeps going down the full list of models (skipping the servers that are busy) until one answers.
 * **It tells you when the AI is busy.** If every model says "too many requests", the app shows "The free AI is busy right now, try again in a minute" instead of waiting.
@@ -142,7 +142,7 @@ Run the unit tests with:
 npm test
 ```
 
-Result: **169 tests passed** (input checks, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list and more).
+Result: **174 tests passed** (input checks, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list, checking every model in the background, reading a person's name for an example resume and more).
 
 We also clicked through every button of the app one by one, on a phone screen (390 x 844) in light mode and on a laptop screen (1440 x 900) in dark mode. All **74 checks passed** on both, plus **24 more checks** for the model list, the questions about the AI, nonsense messages and the model fallback:
 
@@ -157,7 +157,7 @@ We also clicked through every button of the app one by one, on a phone screen (3
 | Off topic questions get a polite "I focus on careers" | ✅ Passed |
 | "What can you do", "is this free", "do you save my data" get the app's own answers | ✅ Passed |
 | Random letters like "asdfgh" or "???" get a friendly "I didn't understand" | ✅ Passed |
-| Settings lists every model (500+), with search, filter and Test | ✅ Passed |
+| Settings lists every chat model and checks all of them by itself, on one screen at every text size | ✅ Passed |
 | When the working models are down, the chat still answers from the full model list | ✅ Passed |
 | Upload a resume, design it, download PDF and Word, cover letter in Word | ✅ Passed |
 | Settings: theme, text size, reply length, providers, a wrong API key, export chats | ✅ Passed |

@@ -1,4 +1,3 @@
-// the card fills its whole grid cell, so every card in a row has the same height
 :host {
   display: block;
   height: 100%;
@@ -105,7 +104,6 @@ ion-chip {
   }
 }
 
-// a real logo sits on a white tile so it reads on both light and dark glass
 .logo:not(.initial) {
   background: #fff;
   padding: 4px;

@@ -51,7 +51,6 @@ describe('AI answer parsing and helpers', () => {
   it('reads the AI verdict JSON, even with extra words around it', () => {
     const v = parseVerdict('Sure! {"type":"notJobRelated","confidence":91,"reason":"A school essay"} done');
     expect(v?.type).toBe('notJobRelated');
-    // older answers and other spellings still work
     expect(parseVerdict('{"type":"job_posting","confidence":80,"reason":"x"}')?.type).toBe('jobPosting');
     expect(parseVerdict('{"type":"Cover Letter","confidence":80,"reason":"x"}')?.type).toBe('coverLetter');
     expect(v?.confidence).toBe(91);

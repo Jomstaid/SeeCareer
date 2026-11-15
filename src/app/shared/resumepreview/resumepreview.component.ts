@@ -2,7 +2,6 @@ import { Component, Input } from '@angular/core';
 
 import { ResumeData, ResumeTemplate, SectionKey, sectionOrder } from '../../core/resumedata';
 
-// On screen preview of the resume in the chosen design. Mirrors the PDF and Word layouts.
 @Component({
   selector: 'app-resume-preview',
   templateUrl: './resumepreview.component.html',
@@ -14,12 +13,10 @@ export class ResumePreviewComponent {
   @Input() template: ResumeTemplate = 'modern';
   @Input() accent = '#0369a1';
 
-  // Sections in the order the design uses; the modern side column keeps skills, languages and certifications.
   get mainOrder(): SectionKey[] {
     return sectionOrder(this.data).filter((k) => ['summary', 'experience', 'education', 'projects'].includes(k));
   }
 
-  // The designs with a side column (the others are one column).
   get isSide(): boolean {
     return this.template === 'modern' || this.template === 'bold' || this.template === 'creative';
   }

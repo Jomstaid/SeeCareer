@@ -1,4 +1,3 @@
-// ----- phone / tablet: floating glass tab bar -----
 ion-tab-bar {
   --background: var(--sc-panel);
   --border: 0;
@@ -41,7 +40,6 @@ ion-tab-button {
   display: none;
 }
 
-// ----- laptop / desktop: glass side navigation -----
 @media (min-width: 1024px) {
   ion-tabs {
     flex-direction: row !important;

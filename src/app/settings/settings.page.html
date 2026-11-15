@@ -1,9 +1,8 @@
 <app-page-header title="Settings"></app-page-header>
 
 <ion-content [fullscreen]="true">
-  <div class="container page" appFitPage>
+  <div class="container page">
     <div class="col">
-      <!-- ================= AI providers ================= -->
       <section class="card">
         <div class="head">
           <div>
@@ -47,7 +46,6 @@
         </ul>
       </section>
 
-      <!-- ================= Appearance & chat ================= -->
       <section class="card grow">
         <h2>Appearance &amp; chat</h2>
 
@@ -90,11 +88,10 @@
     </div>
 
     <div class="col">
-      <!-- ================= Model health: every model of the gateway ================= -->
-      <section class="card grow">
+      <section class="card grow models">
         <div class="head">
           <h2>Models</h2>
-          <ion-button size="small" fill="outline" (click)="recheck()" [disabled]="ai.scanning() || testingAll()">
+          <ion-button size="small" fill="outline" (click)="recheck()" [disabled]="ai.scanning() || ai.sweeping()">
             @if (ai.scanning()) {
               <ion-spinner name="dots" slot="start"></ion-spinner>
               Checking
@@ -113,13 +110,19 @@
             <b>{{ allRows.length }}</b> models ·
             <span class="ok">{{ countOk }} working</span> ·
             <span class="warn">{{ countBad }} not working</span> ·
-            {{ allRows.length - countOk - countBad }} not tested yet
+            {{ allRows.length - countOk - countBad }} not checked yet
           </p>
+          @if (ai.sweeping()) {
+            <p class="sweep" role="status">
+              <ion-spinner name="dots"></ion-spinner>
+              Checking every model by itself… {{ ai.sweepDone() }} of {{ ai.sweepTotal() }}
+            </p>
+          }
           <ion-searchbar class="msearch" [(ngModel)]="modelSearch" (ionInput)="modelLimit = 30" placeholder="Search models" [debounce]="150" aria-label="Search models"></ion-searchbar>
           <ion-segment [value]="modelFilter" (ionChange)="modelFilter = $any($event).detail.value; modelLimit = 30" aria-label="Show models">
             <ion-segment-button value="all"><ion-label>All</ion-label></ion-segment-button>
             <ion-segment-button value="ok"><ion-label>Working</ion-label></ion-segment-button>
-            <ion-segment-button value="new"><ion-label>Not tested</ion-label></ion-segment-button>
+            <ion-segment-button value="new"><ion-label>Unchecked</ion-label></ion-segment-button>
             <ion-segment-button value="bad"><ion-label>Failed</ion-label></ion-segment-button>
           </ion-segment>
           <ul class="health">
@@ -137,7 +140,7 @@
                   <span class="lat">{{ h.latency.toFixed(1) }}s</span>
                 }
                 @if (h.model !== '*') {
-                  <ion-button size="small" fill="clear" class="mtest" (click)="testOne(h)" [disabled]="testingOne() === h.providerId + h.model || testingAll()" [attr.aria-label]="'Test ' + h.model">
+                  <ion-button size="small" fill="clear" class="mtest" (click)="testOne(h)" [disabled]="testingOne() === h.providerId + h.model" [attr.aria-label]="'Test ' + h.model">
                     @if (testingOne() === h.providerId + h.model) {
                       <ion-spinner name="dots"></ion-spinner>
                     } @else {
@@ -154,21 +157,20 @@
             <ion-button size="small" fill="clear" expand="block" (click)="modelLimit = modelLimit + 50">Show more ({{ rows.length - modelLimit }} left)</ion-button>
           }
           <div class="buttons">
-            @if (testingAll()) {
-              <ion-button size="small" fill="outline" color="danger" (click)="stopTestAll()">Stop testing ({{ testedSoFar() }} done)</ion-button>
+            @if (ai.sweeping()) {
+              <ion-button size="small" fill="outline" color="danger" (click)="ai.stopSweeping()">Stop checking</ion-button>
             } @else {
-              <ion-button size="small" fill="outline" (click)="testAll()" [disabled]="ai.scanning()">
+              <ion-button size="small" fill="outline" (click)="checkAll()" [disabled]="ai.scanning()">
                 <ion-icon slot="start" name="pulse-outline"></ion-icon>
-                Test all not tested
+                Check all again
               </ion-button>
             }
           </div>
           <p class="note">
-            The chat uses the smartest working models first. If one stops answering in the middle of a question, the next one
-            answers, and if all of them fail, the app keeps trying the other models in this list.
-            Checked automatically every 10 minutes
+            Every model is checked by itself in the background, and every working one is used by the chat, smartest first.
+            If one stops answering in the middle of a question, the next one answers.
             @if (providers.lastScan()) {
-              (last check {{ providers.lastScan() | date: 'h:mm a' }}).
+              Last check {{ providers.lastScan() | date: 'h:mm a' }}.
             }
           </p>
         }
@@ -176,7 +178,6 @@
     </div>
 
     <div class="col">
-      <!-- ================= AI instructions ================= -->
       <section class="card grow">
         <div class="head">
           <h2>AI instructions</h2>
@@ -197,7 +198,6 @@
         </div>
       </section>
 
-      <!-- ================= Privacy & data ================= -->
       <section class="card">
         <h2>Privacy &amp; data</h2>
         <ul class="privacy">
@@ -223,7 +223,6 @@
   </div>
 </ion-content>
 
-<!-- ================= Add / edit a provider ================= -->
 <ion-modal [isOpen]="formOpen()" (didDismiss)="formOpen.set(false)" class="provider-modal" [initialBreakpoint]="1" [breakpoints]="[0, 1]">
   <ng-template>
     <ion-header class="ion-no-border">

@@ -30,8 +30,8 @@ describe('resume data', () => {
   it('cleans messy AI output into a complete resume', () => {
     const d = normalizeResume({ name: '  Ana  ', skills: ['A', 'B'], experience: [{ role: 'Dev', bullets: 'one, two' }, {}], extra: 1 });
     expect(d.name).toBe('Ana');
-    expect(d.skills).toEqual([{ group: 'Skills', items: ['A', 'B'] }]); // a flat list becomes one group
-    expect(d.experience.length).toBe(1); // the empty entry is dropped
+    expect(d.skills).toEqual([{ group: 'Skills', items: ['A', 'B'] }]);
+    expect(d.experience.length).toBe(1);
     expect(d.experience[0].bullets).toEqual(['one', 'two']);
     expect(d.contact.links).toEqual([]);
   });

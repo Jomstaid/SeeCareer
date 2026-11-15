@@ -105,7 +105,7 @@ describe('jobs for a named place', () => {
     expect(locationMentions('Cabanatuan, Nueva Ecija', ph)).toBe(true);
     expect(locationMentions('Texas,', ph)).toBe(false);
     expect(locationMentions('Hamburg, Hamburg, Deutschland', ph)).toBe(false);
-    expect(locationMentions('Anywhere in the World', { label: 'India', code: 'IN' })).toBe(false); // "in" is not India
+    expect(locationMentions('Anywhere in the World', { label: 'India', code: 'IN' })).toBe(false);
     expect(isWorldwide('Anywhere in the World')).toBe(true);
     expect(isWorldwide('Worldwide')).toBe(true);
     expect(isWorldwide('Texas,')).toBe(false);

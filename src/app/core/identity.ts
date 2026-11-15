@@ -1,7 +1,3 @@
-// The assistant is always "SeeCareer AI".
-// The free models behind it sometimes say their own name (like "I'm Claude from Anthropic"),
-// so we answer identity questions ourselves and clean the answers we get back.
-
 export const appName = 'SeeCareer AI';
 
 export const identityAnswer =
@@ -9,11 +5,9 @@ export const identityAnswer =
   'for our Mobile Application Development project and I run on free AI models.\n\n' +
   'I can help you find jobs, check and design your resume, write cover letters, find the skills you are missing and practice interviews. What do you want to work on?';
 
-// "who are you", "what model are you", "are you chatgpt", "who made you", "ano ka"
 const askWho =
   /\b(who|what)\s+(are|r)\s+(you|u)\b|\bwho\s+(made|created|built|developed|trained|owns)\s+(you|u)\b|\bwhat\s+(ai|model|llm|bot)\s+(are|is)\b|\bwhich\s+(ai|model|llm)\b|\bare\s+(you|u)\s+(chatgpt|claude|gemini|gpt|grok|deepseek|an?\s+ai|a\s+bot|human|real)\b|\byour\s+name\b|\bsino\s+ka\b|\bano\s+ka\b|\bwhat\s+(model|llm|ai)\s+(do|did)\s+(you|u)\s+use\b|\byour\s+(model|llm)\b|\bwhat\s+powers\s+(you|u)\b|\bpowered\s+by\s+what\b|\bare\s+(you|u)\s+(alive|sentient|conscious|a\s+person|a\s+robot|openai|anthropic|google)\b|\bikaw\s+ba\s+(si\s+)?(chat\s?gpt|claude|gemini|gpt|grok|ai|robot|tao)\b|\bsino\s+(ang\s+)?(gumawa|nagawa|gawa)\b|\bgawa\s+ka\s+ng\s+sino\b|\bano\s+(ang\s+)?pangalan\s+mo\b/i;
 
-// a short question about the assistant itself (a long message that happens to contain "who are you" is a real question)
 export function asksWhoYouAre(text: string): boolean {
   const t = (text ?? '').trim();
   return t.length > 0 && t.length <= 80 && askWho.test(t);
@@ -23,17 +17,14 @@ const models = String.raw`(?:Claude|ChatGPT|GPT[\s.]?\d[\w.]*|GPT|Gemini|Grok|De
 const versions = String.raw`(?:\s+(?:Sonnet|Opus|Haiku|Fable|Pro|Flash|Ultra|Turbo|Mini|Max|\d[\w.]*))*`;
 const companies = String.raw`(?:Anthropic|OpenAI|Google(?:\s+DeepMind)?|DeepMind|xAI|DeepSeek|Moonshot(?:\s+AI)?|Alibaba(?:\s+Cloud)?|Meta|Mistral(?:\s+AI)?|Zhipu(?:\s+AI)?|MiniMax|Microsoft)`;
 
-// "I'm Claude Sonnet 4.6 from Anthropic", "I am ChatGPT, made by OpenAI", "My name is Gemini"
 const selfIntro = new RegExp(
   String.raw`\b(I['’]m|I\s+am|my\s+name\s+is|this\s+is)\s+(?:an?\s+)?(?:AI\s+)?(?:assistant\s+)?(?:called\s+|named\s+)?${models}${versions}` +
     String.raw`(?:\s*(?:,|\(|-)?\s*(?:an?\s+)?(?:AI(?:\s+(?:assistant|model))?|large\s+language\s+model|language\s+model|assistant)?\s*(?:,\s*)?(?:made|created|built|developed|trained)?\s*(?:by|from)\s+${companies}\)?)?`,
   'gi',
 );
-// "made by Anthropic", "trained by OpenAI", "an AI from Google"
 const madeBy = new RegExp(String.raw`\b(made|created|built|developed|trained)\s+(by|at)\s+${companies}\b`, 'gi');
 const fromCompany = new RegExp(String.raw`\b(an?\s+AI(?:\s+(?:assistant|model))?)\s+from\s+${companies}\b`, 'gi');
 
-// Takes out the model's own name when it introduces itself, so the user always talks to SeeCareer AI.
 export function cleanIdentity(text: string): string {
   if (!text) {
     return text;
@@ -44,8 +35,6 @@ export function cleanIdentity(text: string): string {
     .replace(fromCompany, '$1 made for SeeCareer');
 }
 
-// Other short questions about the assistant itself. The app answers these by itself, so the answer is always right
-// (a free model could make up what it can do or say something wrong about privacy).
 const canDo =
   "Here's what I can do for you as **SeeCareer AI**:\n\n" +
   '- **Find jobs**: tell me the role and place (like "web developer in Manila") and I search real job boards with Apply links.\n' +
@@ -69,8 +58,6 @@ const howAnswer =
   'The app keeps a list of the smart models that are working right now. If one model is slow or stops answering, the next one answers for you, ' +
   'so you still get a reply. For jobs, the app searches real job boards (like Himalayas) and I explain the results.';
 
-// The whole message must be the question (with an optional "hi" in front or "po" at the end), so a real career question
-// like "what do you do as a nurse" still goes to the AI.
 const whole = (core: string) =>
   new RegExp(String.raw`^\W*(?:(?:hi|hey|hello|so|ok|okay|ai|seecareer(?:\s+ai)?)\W+)?(?:${core})(?:\s+(?:for\s+me|here|exactly|po|ba|talaga))*\W*$`, 'i');
 
@@ -93,7 +80,6 @@ const aboutQuestions: { test: RegExp; answer: string }[] = [
   },
 ];
 
-// The app's own answer for a short question about the assistant, or null when it is a normal question.
 export function aboutAssistantAnswer(text: string): string | null {
   const t = (text ?? '').trim();
   if (!t || t.length > 90) {

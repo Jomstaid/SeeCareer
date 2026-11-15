@@ -8,7 +8,6 @@ export type TaskKey = 'analyze' | 'improve' | 'skills' | 'generate' | 'match' | 
 export interface TaskContext {
   resume?: string;
   job?: Job;
-  // Extra instructions saved in Settings.
   instructions?: string;
   question?: string;
   answer?: string;
@@ -65,7 +64,6 @@ function jobSummary(job: Job): string {
   );
 }
 
-// Prompt templates for each AI feature. Developers can edit them here.
 export function buildTask(key: TaskKey, ctx: TaskContext): ApiMessage[] {
   const resume = (ctx.resume ?? '').slice(0, 8000);
   const job = ctx.job ? jobSummary(ctx.job) : '';
@@ -153,7 +151,6 @@ export function buildTask(key: TaskKey, ctx: TaskContext): ApiMessage[] {
   ];
 }
 
-// Reads "SCORE: 78" from the start of a match answer. Returns null when it is missing.
 export function parseScore(text: string): number | null {
   const m = /SCORE:\s*(\d{1,3})/i.exec(text);
   return m ? Math.min(100, Number(m[1])) : null;
