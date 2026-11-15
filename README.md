@@ -32,10 +32,10 @@ Instructor: Sir Angelito Cunanan Jr.
 
 | | Member | Role | What they did |
 |---|---|---|---|
-| <img src="src/assets/team/jomarAlcantaraLight.png" width="44" alt="Jomar"> | Jomar D. Alcantara | Leader / Developer | Planned the app, built the AI chat, job search and resume features, and set up the free AI server |
-| <img src="src/assets/team/eviaSindacLight.png" width="44" alt="Evia"> | Evia Cassandra Eliz D. Sindac | Designer | Made the pixel theme and icons, and designed the look of every page |
-| <img src="src/assets/team/anjoAdrianoLight.png" width="44" alt="Anjo"> | Anjo T. Adriano | Tester | Tested every page and feature on phones and laptops, checked the job APIs and reported the bugs we fixed |
-| <img src="src/assets/team/khimberlyBautistaLight.png" width="44" alt="Khimberly"> | Khimberly M. Bautista | Documentation | Wrote the documentation, the setup guide and the test results of the project |
+| <img src=".github/readme/jomarAlcantara.png" width="56" alt="Jomar"> | Jomar D. Alcantara | Leader / Developer | Planned the app, built the AI chat, job search and resume features, and set up the free AI server |
+| <img src=".github/readme/eviaSindac.png" width="56" alt="Evia"> | Evia Cassandra Eliz D. Sindac | Designer | Made the pixel theme and icons, and designed the look of every page |
+| <img src=".github/readme/anjoAdriano.png" width="56" alt="Anjo"> | Anjo T. Adriano | Tester | Tested every page and feature on phones and laptops, checked the job APIs and reported the bugs we fixed |
+| <img src=".github/readme/khimberlyBautista.png" width="56" alt="Khimberly"> | Khimberly M. Bautista | Documentation | Wrote the documentation, the setup guide and the test results of the project |
 
 ## What is in this repository 📂
 
