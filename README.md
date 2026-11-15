@@ -10,6 +10,10 @@
 </p>
 
 <p align="center">
+  <a href="https://seecareer.jomstaid.com/"><b>🌐 Try the demo website</b></a>
+</p>
+
+<p align="center">
   <a href="apk/SeeCareer.apk">📱 Download the APK</a> ·
   <a href="#how-to-run-it-">🚀 How to run</a> ·
   <a href="#apis-we-used-">🌐 APIs</a> ·
@@ -22,7 +26,7 @@
 
 SeeCareer is our final case study for **IT-PT02 Mobile Application Development**. It is a career helper app for students and fresh graduates. You can browse real remote jobs, open a job to see the details, and chat with an AI that helps with your resume, cover letters, job matching and interview practice.
 
-We made it with **Ionic 9 + Angular 22** and turned it into an **Android app with Capacitor**. It also runs in the browser. The design is a pixel theme with a light mode (sky blue) and a dark mode (purple) 🎨
+We made it with **Ionic 9 + Angular 22** and turned it into an **Android app with Capacitor**. It also runs in the browser, and you can try it right now on our demo website: **https://seecareer.jomstaid.com/**. The design is a pixel theme with a light mode (sky blue) and a dark mode (purple) 🎨
 
 ## Our group 👋
 
@@ -104,26 +108,163 @@ You can also add your own AI provider (Groq, OpenRouter, Google Gemini or any Op
 
 ## How to run it 🚀
 
-You need **Node.js 20 or newer**, **Git** and the **Ionic CLI** (`npm install -g @ionic/cli`).
+Just want to see it? Open the demo website: **https://seecareer.jomstaid.com/**
+
+To run it on your own computer, follow these steps one by one. You only need to do steps 1 to 3 once.
+
+### Step 1: Install Node.js
+
+Node.js runs the tools that build the app. It also installs `npm`, which downloads the app's packages.
+
+1. Go to **https://nodejs.org** and download the **LTS** version (version 20 or newer).
+2. Open the file you downloaded and click **Next** until it finishes. Keep all the default options.
+   * **Windows:** run the `.msi` file.
+   * **macOS:** run the `.pkg` file.
+   * **Linux (Ubuntu):** run `sudo apt install nodejs npm` in the terminal, or follow the steps on nodejs.org.
+3. Close and open your terminal again (on Windows: **PowerShell** or **Command Prompt**, on macOS: **Terminal**).
+4. Check that it works. Each command should show a version number:
+
+   ```bash
+   node -v
+   npm -v
+   ```
+
+### Step 2: Install Git
+
+Git downloads the code from GitHub.
+
+1. Go to **https://git-scm.com/downloads** and download Git for your computer.
+2. Install it with the default options. On macOS you can also run `xcode-select --install` in Terminal.
+3. Close and open your terminal again, then check:
+
+   ```bash
+   git --version
+   ```
+
+### Step 3: Install the Ionic CLI
+
+The Ionic CLI gives you the `ionic` command that runs and builds the app.
+
+```bash
+npm install -g @ionic/cli
+ionic --version
+```
+
+* **macOS or Linux:** if it says "permission denied", run `sudo npm install -g @ionic/cli` and type your computer password.
+* **Windows:** if PowerShell says "running scripts is disabled on this system", run this once, then try again:
+
+  ```powershell
+  Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+  ```
+
+### Step 4: Download the code
+
+Pick a folder (for example your Desktop), open the terminal there and run:
 
 ```bash
 git clone https://github.com/Jomstaid/SeeCareer.git
 cd SeeCareer
+```
+
+No Git? On the GitHub page click **Code ➜ Download ZIP**, unzip it and open the terminal inside the `SeeCareer` folder.
+
+### Step 5: Install the app's packages
+
+```bash
 npm install
+```
+
+This takes a few minutes the first time. It makes a `node_modules` folder.
+
+### Step 6: Start the app
+
+```bash
 ionic serve
 ```
 
-The app opens at http://localhost:8100 🎉
+The app opens in your browser at **http://localhost:8100** 🎉 Keep the terminal open while you use it. Press **Ctrl + C** in the terminal to stop it.
+
+Tip: to see the phone layout in the browser, press **F12**, then click the phone icon (device toolbar).
 
 ## Install the APK on a phone 📲
 
-1. Copy `apk/SeeCareer.apk` to your Android phone (Android 7.0 or newer).
-2. Open the file. If Android asks, allow "Install unknown apps" for your file manager or browser.
-3. Open SeeCareer and you're good to go! It needs internet for the jobs and the AI.
+You need an **Android phone with Android 7.0 or newer** and internet. No Play Store account is needed.
+
+### Step 1: Get the APK file on your phone
+
+Pick one way:
+
+* **Download it on the phone (easiest):** open this page in the phone's browser (Chrome), tap `apk` ➜ `SeeCareer.apk` ➜ the **Download** button (the ⬇ icon or "View raw"). If Chrome warns that the file can be harmful, tap **Download anyway**.
+* **From a computer with a USB cable:** connect the phone, choose **File transfer** on the phone, then copy `apk/SeeCareer.apk` into the phone's **Download** folder.
+* **From a computer without a cable:** send the file to yourself (Google Drive, Messenger, email) and download it on the phone.
+
+### Step 2: Open the APK
+
+Open the **Files** app (or **My Files**, or Chrome's **Downloads**) and tap **SeeCareer.apk**.
+
+### Step 3: Allow the install
+
+Android blocks apps from outside the Play Store the first time. This is normal for a school project app.
+
+* **Android 8 or newer:** a message says the app "is not allowed to install unknown apps". Tap **Settings**, turn on **Allow from this source**, then press **Back**.
+* **Android 7:** go to **Settings ➜ Security** and turn on **Unknown sources**, then tap the APK again.
+
+Then tap **Install**.
+
+### Step 4: If Google Play Protect shows a warning
+
+Play Protect does not know the app because it is not on the Play Store. Tap **More details ➜ Install anyway** (or **Install without scanning**). If it asks to send the app for scanning, you can tap **Don't send**.
+
+### Step 5: Open SeeCareer
+
+Tap **Open**, or find the **SeeCareer** icon on your home screen or app drawer. The app needs **internet** for the jobs and the AI. It asks for no other permissions. When you attach a resume or a photo, Android lets you pick the file.
+
+### Update to a newer version
+
+Download the new `SeeCareer.apk` and install it the same way. Your chats, resume and settings stay.
+
+### Uninstall
+
+Press and hold the SeeCareer icon ➜ **Uninstall** (or **Settings ➜ Apps ➜ SeeCareer ➜ Uninstall**). This also deletes the chats and resume saved in the app.
+
+### If the install does not work
+
+| What you see | What to do |
+|---|---|
+| "App not installed" | An older SeeCareer made from a different computer is installed. Uninstall it first, then install again. Also check that the phone has free storage. |
+| "There was a problem parsing the package" | The download did not finish, or the phone is older than Android 7.0. Download the APK again. |
+| The Install button does nothing or is grey | Turn off screen filters or apps that draw over the screen (blue light filter, chat bubbles), then try again. |
+| "Blocked by Play Protect" | Tap **More details ➜ Install anyway** (Step 4). |
+| The app opens but shows no jobs or no AI answer | Check the internet connection. If the chat says the free AI is busy, wait a minute and try again. |
 
 ## How to build the APK 🔧
 
-You need Android Studio (or JDK 21 and the Android SDK).
+Do Steps 1 to 5 above first.
+
+### Step 1: Install Android Studio
+
+1. Download **Android Studio** from **https://developer.android.com/studio** and install it with the default options. It comes with Java (JDK 21), so you do not need to install Java yourself.
+2. Open Android Studio once. The setup wizard downloads the **Android SDK**. Click **Next** and **Finish** until it is done.
+3. Tell your terminal where the SDK is (you can find the path in Android Studio under **Settings ➜ Languages & Frameworks ➜ Android SDK**):
+   * **Windows (PowerShell):**
+
+     ```powershell
+     setx ANDROID_HOME "$env:LOCALAPPDATA\Android\Sdk"
+     setx JAVA_HOME "C:\Program Files\Android\Android Studio\jbr"
+     ```
+
+   * **macOS (Terminal):**
+
+     ```bash
+     echo 'export ANDROID_HOME=$HOME/Library/Android/sdk' >> ~/.zshrc
+     echo 'export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"' >> ~/.zshrc
+     ```
+
+   Close and open the terminal again after this.
+
+### Step 2: Build the APK
+
+In the `SeeCareer` folder run:
 
 ```bash
 ionic build
@@ -132,7 +273,16 @@ cd android
 gradlew assembleDebug
 ```
 
-The APK will be at `android/app/build/outputs/apk/debug/app-debug.apk`. You can also open the `android` folder in Android Studio and use Build, Build APK.
+On macOS or Linux, use `./gradlew assembleDebug` instead of `gradlew assembleDebug`.
+
+The APK will be at `android/app/build/outputs/apk/debug/app-debug.apk`.
+
+### Or build it inside Android Studio
+
+1. Run `ionic build` and `npx cap sync android` in the terminal.
+2. Run `npx cap open android`, or open the `android` folder in Android Studio.
+3. Wait until Gradle finishes (the progress bar at the bottom), then click **Build ➜ Build App Bundle(s) / APK(s) ➜ Build APK(s)**.
+4. To try it on a phone: turn on **Developer options ➜ USB debugging** on your Android phone, connect it with a USB cable and press the green **Run** ▶ button.
 
 ## Testing ✅
 
