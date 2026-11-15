@@ -159,7 +159,7 @@ export const generalModeInfo: ModeInfo = {
   darkImage: 'assets/icon/darkModeChat.png',
   color: '#6366f1',
   intro: '',
-  placeholder: 'Ask anything, or ask about your career…',
+  placeholder: 'Ask about your career…',
   needsResume: false,
   needsJob: false,
   starters: [],

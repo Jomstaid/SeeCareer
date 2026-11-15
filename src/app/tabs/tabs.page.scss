@@ -3,10 +3,13 @@ ion-tab-bar {
   --border: 0;
   --color: var(--sc-muted);
   --color-selected: var(--sc-primary);
-  margin: 0 var(--sp-2) calc(var(--sp-2) + env(safe-area-inset-bottom));
+  margin: 0 var(--sp-2) calc(var(--sp-2) + var(--ion-safe-area-bottom, 0px));
+  padding-bottom: 0;
   border: 1px solid var(--sc-border);
   border-radius: 0;
-  box-shadow: var(--sc-shadow);
+  box-shadow:
+    var(--sc-shadow),
+    0 calc(var(--sp-2) + var(--ion-safe-area-bottom, 0px)) 0 var(--sp-2) var(--sc-bg);
   overflow: hidden;
   contain: none;
 }
@@ -54,7 +57,8 @@ ion-tab-button {
     flex: 0 0 264px;
     flex-direction: column;
     gap: var(--sp-1);
-    margin: var(--sp-3);
+    margin: calc(var(--sp-3) + var(--ion-safe-area-top, 0px)) var(--sp-3) calc(var(--sp-3) + var(--ion-safe-area-bottom, 0px))
+      calc(var(--sp-3) + var(--ion-safe-area-left, 0px));
     padding: var(--sp-4) var(--sp-3);
     background: var(--sc-panel);
     border: 1px solid var(--sc-border);

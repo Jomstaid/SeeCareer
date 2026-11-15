@@ -766,6 +766,23 @@
     max-height: 160px;
     min-height: 40px;
     font-size: 15.5px;
+    overflow: hidden;
+  }
+
+  ion-textarea ::ng-deep .native-wrapper {
+    max-height: 140px;
+    overflow-y: auto;
+  }
+
+  ion-textarea ::ng-deep textarea {
+    max-height: 140px;
+    overflow-y: auto !important;
+  }
+
+  ion-textarea ::ng-deep textarea::placeholder {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   ion-textarea:focus-visible,

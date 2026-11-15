@@ -1,6 +1,10 @@
 ion-header {
-  padding: var(--sp-2) var(--sp-3) 0;
+  padding: calc(var(--sp-2) + var(--ion-safe-area-top, 0px)) var(--sp-3) 0;
   background: transparent;
+}
+
+ion-header ion-toolbar:first-of-type {
+  padding-top: 0;
 }
 
 ion-header::after {

@@ -1,4 +1,5 @@
 import { Injectable, signal } from '@angular/core';
+import { Capacitor, SystemBars, SystemBarsStyle } from '@capacitor/core';
 
 import { defaultSettings } from './defaults';
 import { AppSettings } from './models';
@@ -32,5 +33,8 @@ export class SettingsService {
     root.classList.toggle('ion-palette-dark', dark);
     this.darkMode.set(dark);
     root.dataset['fontsize'] = fontSize;
+    if (Capacitor.isNativePlatform()) {
+      void SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => undefined);
+    }
   }
 }
