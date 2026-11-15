@@ -7,7 +7,7 @@ import { AiTaskService } from '../core/aitask.service';
 import { jobTasks, resumeTasks, TaskKey } from '../core/aitasks';
 import { isLetterRequest, letterize, nameFromRequest, stripChatter, titleOf } from '../core/docclean';
 import { deliverBlob, exportFile, safeFileName } from '../core/fileexport';
-import { appName, asksWhoYouAre, identityAnswer } from '../core/identity';
+import { aboutAssistantAnswer, appName, asksWhoYouAre, identityAnswer } from '../core/identity';
 import { Intent, detectDesign, detectIntent, isQuestion, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
 import { acceptedFiles, FileReadError, formatBytes, readAttachment } from '../core/filereader';
 import { ChatStore } from '../core/chatstore.service';
@@ -24,7 +24,7 @@ import { AiError, Attachment, ChatAction, ChatMessage, ChatMode, Conversation, E
 import { PhotoService } from '../core/photo';
 import { findWebPhoto, isSearchableName } from '../core/webphoto';
 import { needsWeb, personFacts, searchQuery, webContext, webLookup } from '../core/websearch';
-import { offTopicReply, scopeQuestion, obviouslyCareer } from '../core/scope';
+import { looksLikeNonsense, nonsenseReply, offTopicReply, scopeQuestion, obviouslyCareer } from '../core/scope';
 import { Place, splitPlace } from '../core/places';
 import { ProviderService } from '../core/provider.service';
 import { ResumeService } from '../core/resume.service';
@@ -1367,6 +1367,30 @@ export class ChatPage implements OnDestroy {
     if (!files.length && asksWhoYouAre(text)) {
       this.push({ role: 'user', content: text });
       this.push({ role: 'assistant', content: identityAnswer, model: appName });
+      this.persist();
+      return;
+    }
+    // other questions about the assistant ("what can you do", "is it free", "do you save my data"): the app answers them
+    const about = files.length ? null : aboutAssistantAnswer(text);
+    if (about) {
+      this.push({ role: 'user', content: text });
+      this.push({ role: 'assistant', content: about, model: appName });
+      this.persist();
+      return;
+    }
+    // keyboard mashing or random letters: a friendly "I did not get that" with buttons for what the app can do
+    if (!files.length && looksLikeNonsense(text)) {
+      this.push({ role: 'user', content: text });
+      this.push({
+        role: 'assistant',
+        content: nonsenseReply,
+        model: appName,
+        actions: [
+          { label: 'Find jobs', icon: 'search', mode: 'finder' },
+          { label: 'Resume Assistant', icon: 'document-text', mode: 'resume' },
+          { label: 'Interview prep', icon: 'chatbubbles', mode: 'interview' },
+        ],
+      });
       this.persist();
       return;
     }

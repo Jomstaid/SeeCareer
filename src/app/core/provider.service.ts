@@ -6,6 +6,7 @@ import { newId, readJson, writeJson } from './storage';
 
 const providersKey = 'seecareer.providers';
 const healthKey = 'seecareer.modelHealth';
+const catalogKey = 'seecareer.modelList';
 
 // A bare IP address, as saved by early versions of the app.
 const oldAddress = /^https?:\/\/\d{1,3}(\.\d{1,3}){3}(:\d+)?(\/v1)?\/?$/;
@@ -21,6 +22,9 @@ export class ProviderService {
   readonly providers = signal<AiProvider[]>(this.load());
   readonly health = signal<ModelStatus[]>(this.freshHealth());
   readonly lastScan = signal<number>(readJson<number>(healthKey + '.time', 0));
+  // Every chat model each provider offers (smartest first), so Settings can list them all and the chat can fall
+  // back to any of them when the working ones fail.
+  readonly catalog = signal<Record<string, string[]>>(readJson<Record<string, string[]>>(catalogKey, {}));
 
   // The saved check results, unless the app's list of favourite models changed since they were saved (a new app
   // version, new models on the gateway): then they are dropped so the new models are checked straight away.
@@ -114,6 +118,10 @@ export class ProviderService {
     const list = this.providers().filter((p) => p.id !== id);
     this.providers.set(list);
     writeJson(providersKey, list);
+    const others = { ...this.catalog() };
+    delete others[id];
+    this.catalog.set(others);
+    writeJson(catalogKey, others);
     this.setHealth(this.health().filter((h) => h.providerId !== id));
   }
 
@@ -122,6 +130,20 @@ export class ProviderService {
     writeJson(providersKey, null);
     this.providers.set(this.load());
     this.setHealth([]);
+  }
+
+  setCatalog(providerId: string, models: string[]): void {
+    const next = { ...this.catalog(), [providerId]: models };
+    this.catalog.set(next);
+    writeJson(catalogKey, next);
+  }
+
+  // Saves the result of one model test without changing the time of the last full check.
+  setOne(status: ModelStatus): void {
+    const rest = this.health().filter((h) => !(h.providerId === status.providerId && h.model === status.model));
+    const next = status.ok ? [status, ...rest] : [...rest, status];
+    this.health.set(next);
+    writeJson(healthKey, next);
   }
 
   setHealth(statuses: ModelStatus[]): void {

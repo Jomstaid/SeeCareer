@@ -1,4 +1,4 @@
-import { asksWhoYouAre, cleanIdentity } from './identity';
+import { aboutAssistantAnswer, asksWhoYouAre, cleanIdentity } from './identity';
 
 describe('identity', () => {
   it('knows when the user asks who the assistant is', () => {
@@ -20,5 +20,28 @@ describe('identity', () => {
   it('leaves normal career talk alone', () => {
     const t = 'Google and OpenAI are hiring prompt engineers. I am happy to help you apply.';
     expect(cleanIdentity(t)).toBe(t);
+  });
+
+  it('knows more ways of asking about the assistant', () => {
+    for (const t of ['what model do you use?', 'ikaw ba si chatgpt', 'are you alive', 'sino gumawa sayo', 'ano pangalan mo', 'are you openai', 'what powers you']) {
+      expect(asksWhoYouAre(t), t).toBe(true);
+    }
+  });
+
+  it('answers questions about the assistant by itself', () => {
+    expect(aboutAssistantAnswer('what can you do?')).toContain('Find jobs');
+    expect(aboutAssistantAnswer('hi, how can you help me')).toContain('Resume');
+    expect(aboutAssistantAnswer('ano kaya mo')).toContain('Find jobs');
+    expect(aboutAssistantAnswer('is this free?')).toContain('free');
+    expect(aboutAssistantAnswer('libre ba')).toContain('free');
+    expect(aboutAssistantAnswer('do you save my data?')).toContain('only on your device');
+    expect(aboutAssistantAnswer('is my resume safe')).toContain('only on your device');
+    expect(aboutAssistantAnswer('how do you work')).toContain('free AI model');
+  });
+
+  it('leaves real career questions to the AI', () => {
+    for (const t of ['what do you do as a nurse', 'do you see my resume?', 'how do you work in a team in an interview answer', 'is this job free to apply', 'what can you do with an IT degree', 'find remote jobs']) {
+      expect(aboutAssistantAnswer(t), t).toBeNull();
+    }
   });
 });

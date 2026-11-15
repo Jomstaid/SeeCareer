@@ -1,4 +1,4 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { AlertController, ToastController } from '@ionic/angular/lazy';
 
 import { AiService } from '../core/ai.service';
@@ -6,7 +6,7 @@ import { chatsFromBackup, chatsToBackup } from '../core/chatbackup';
 import { ChatStore } from '../core/chatstore.service';
 import { providerPresets } from '../core/defaults';
 import { deliverBlob } from '../core/fileexport';
-import { AiError, AiProvider, AppSettings, ProviderPreset } from '../core/models';
+import { AiError, AiProvider, AppSettings, ModelStatus, ProviderPreset } from '../core/models';
 import { ProviderService } from '../core/provider.service';
 import { SettingsService } from '../core/settings.service';
 import { FieldErrors, maxInstructionsLength, validateProvider } from '../core/validators';
@@ -52,9 +52,30 @@ export class SettingsPage {
   statusText = signal('');
   statusColor = signal<StatusColor>('muted');
 
+  // ----- the list of every model -----
+  modelSearch = '';
+  modelFilter: 'all' | 'ok' | 'new' | 'bad' = 'all';
+  modelLimit = 30;
+  loadingList = signal(false);
+  testingAll = signal(false);
+  testingOne = signal('');
+  testedSoFar = signal(0);
+  private stopAll = false;
+
   constructor() {
     this.instructions = this.settings.settings().customInstructions;
     this.applyPreset();
+  }
+
+  // Opening Settings: get the full list of models if the app does not have it yet.
+  async ionViewWillEnter(): Promise<void> {
+    const missing = this.providers.enabled().filter((p) => !p.model && !this.providers.catalog()[p.id]?.length);
+    if (!missing.length) {
+      return;
+    }
+    this.loadingList.set(true);
+    await Promise.all(missing.map((p) => this.ai.listModels(p).catch(() => [])));
+    this.loadingList.set(false);
   }
 
   // Providers to pick from: the built in one is only listed while editing it.
@@ -263,14 +284,99 @@ export class SettingsPage {
     this.notify(n ? `${n} model(s) working` : 'No model answered');
   }
 
-  // Models that answered (a provider that could not be reached at all is shown too, so the reason is visible).
-  get shown() {
-    return this.providers.health().filter((h) => h.ok !== false || h.model === '*');
+  // Every model of every enabled provider with its last test result (not tested yet = ok null).
+  // (computed: it is worked out again only when the models or their results change)
+  private readonly rowList = computed(() => {
+    const health = this.providers.health();
+    const out: ModelStatus[] = [];
+    for (const p of this.providers.enabled()) {
+      const mine = new Map(health.filter((h) => h.providerId === p.id).map((h) => [h.model, h]));
+      const list = p.model ? [p.model] : (this.providers.catalog()[p.id] ?? []);
+      const names = new Set(list);
+      // models from the last check that are not in the list (or a provider that could not be reached) come first
+      out.push(...[...mine.values()].filter((h) => !names.has(h.model)));
+      for (const model of list) {
+        out.push(mine.get(model) ?? { providerId: p.id, model, ok: null });
+      }
+    }
+    // working ones first (fastest first), then not tested, then failed
+    const rank = (h: ModelStatus) => (h.ok === true ? 0 : h.ok === null ? 1 : 2);
+    return out
+      .map((h, i) => ({ h, i }))
+      .sort((a, b) => rank(a.h) - rank(b.h) || (a.h.ok ? (a.h.latency ?? 99) - (b.h.latency ?? 99) : a.i - b.i))
+      .map((x) => x.h);
+  });
+
+  get allRows(): ModelStatus[] {
+    return this.rowList();
   }
 
-  // Models that did not answer and are not used.
-  get skipped(): number {
-    return this.providers.health().filter((h) => h.ok === false && h.model !== '*').length;
+  // The rows after the search box and the filter.
+  get rows(): ModelStatus[] {
+    const q = this.modelSearch.trim().toLowerCase();
+    return this.allRows.filter((h) => {
+      const show = this.modelFilter === 'all' || (this.modelFilter === 'ok' ? h.ok === true : this.modelFilter === 'bad' ? h.ok === false : h.ok === null);
+      return show && (!q || h.model.toLowerCase().includes(q));
+    });
+  }
+
+  get countOk(): number {
+    return this.allRows.filter((h) => h.ok === true).length;
+  }
+
+  get countBad(): number {
+    return this.allRows.filter((h) => h.ok === false && h.model !== '*').length;
+  }
+
+  // Where the model comes from: the provider name and the group in front of the model name (like "hormachuelos").
+  groupOf(h: ModelStatus): string {
+    const parts = h.model.split('/');
+    return parts.length > 1 ? `${this.providerName(h.providerId)} · ${parts.slice(0, -1).join('/')}` : this.providerName(h.providerId);
+  }
+
+  async testOne(h: ModelStatus): Promise<void> {
+    const p = this.providers.get(h.providerId);
+    if (!p) {
+      return;
+    }
+    this.testingOne.set(h.providerId + h.model);
+    const r = await this.ai.checkModel(p, h.model);
+    this.testingOne.set('');
+    this.notify(r.ok ? `${this.shortModel(r)} works (${r.latency?.toFixed(1)}s)` : `${this.shortModel(r)} did not answer`);
+  }
+
+  // Tests every model that was not tested yet, 4 at a time. Stops when the server says it is busy, or on Stop.
+  async testAll(): Promise<void> {
+    const todo = this.allRows.filter((h) => h.ok === null && h.model !== '*');
+    if (!todo.length) {
+      this.notify('Every model was already tested. Press Re-check to test the best ones again.');
+      return;
+    }
+    this.stopAll = false;
+    this.testingAll.set(true);
+    this.testedSoFar.set(0);
+    let busyRounds = 0;
+    for (let i = 0; i < todo.length && !this.stopAll; i += 4) {
+      const batch = todo.slice(i, i + 4);
+      const results = await Promise.all(
+        batch.map((h) => {
+          const p = this.providers.get(h.providerId);
+          return p ? this.ai.checkModel(p, h.model) : Promise.resolve({ ...h, ok: false, error: 'Provider removed.' });
+        }),
+      );
+      this.testedSoFar.update((n) => n + batch.length);
+      busyRounds = results.every((r) => !r.ok && /rate limited/i.test(r.error ?? '')) ? busyRounds + 1 : 0;
+      if (busyRounds >= 2) {
+        this.notify('The free AI is busy. Testing stopped, try again in a minute.');
+        break;
+      }
+    }
+    this.testingAll.set(false);
+    this.notify(`Done. ${this.countOk} model(s) working.`);
+  }
+
+  stopTestAll(): void {
+    this.stopAll = true;
   }
 
   // The model name without the provider path in front of it.

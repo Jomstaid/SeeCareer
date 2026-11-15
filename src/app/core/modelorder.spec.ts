@@ -1,4 +1,4 @@
-import { orderModels, smartRank } from './ai.service';
+import { groupOf, orderModels, smartRank, spreadGroups } from './ai.service';
 import { providerPresets } from './defaults';
 
 describe('orderModels', () => {
@@ -61,5 +61,17 @@ describe('built-in preset', () => {
     expect(smartRank('hormachuelos/gpt-6.1-sol')).toBeLessThanOrEqual(1);
     expect(smartRank('hormachuelos/grok-4.7')).toBeLessThanOrEqual(1);
     expect(smartRank('hormachuelos/claude-fable-5-2')).toBeLessThanOrEqual(1);
+  });
+});
+
+describe('spreadGroups', () => {
+  it('takes turns between groups and keeps the order inside each group', () => {
+    expect(spreadGroups(['h/a1', 'h/a2', 'h/a3', 'd/b1', 'c/c1', 'd/b2'])).toEqual(['h/a1', 'd/b1', 'c/c1', 'h/a2', 'd/b2', 'h/a3']);
+  });
+
+  it('knows the group of a model', () => {
+    expect(groupOf('hormachuelos/claude-sonnet-4-6')).toBe('hormachuelos');
+    expect(groupOf('no-think/hormachuelos/claude-sonnet-4-6')).toBe('no-think/hormachuelos');
+    expect(groupOf('gemini-2.5-flash')).toBe('gemini-2.5-flash');
   });
 });

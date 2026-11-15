@@ -418,3 +418,40 @@ ion-range {
     justify-content: space-between;
   }
 }
+
+// ----- the list of every model -----
+.summary {
+  margin: 0 0 var(--sp-2);
+  font-size: 12.5px;
+
+  .ok {
+    color: var(--sc-ok);
+  }
+
+  .warn {
+    color: var(--sc-danger);
+  }
+}
+
+.msearch {
+  padding: 0 0 var(--sp-2);
+}
+
+.health {
+  max-height: 440px;
+  overflow-y: auto;
+  margin-top: var(--sp-2);
+
+  .mtest {
+    flex: none;
+    margin: 0;
+    font-size: 11.5px;
+    min-height: 26px;
+  }
+
+  .none {
+    color: var(--sc-muted);
+    font-size: 12.5px;
+    padding: var(--sp-2) 0;
+  }
+}

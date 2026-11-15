@@ -20,3 +20,34 @@ export const scopeQuestion =
 export const offTopicReply =
   "That's outside what I do. I'm the SeeCareer assistant and I focus on your career: finding jobs, building resumes and cover letters, " +
   'preparing for interviews and planning the skills you need. Pick one of these, or ask me something about your work.';
+
+// Keyboard mashing and random letters ("asdfgh", "jsjsjsjs", "qwerty", "???") get a friendly "I did not get that"
+// instead of being sent to the AI, which would only guess what the user meant.
+const keyboardRuns = /(qwer|asdf|sdfg|dfgh|fghj|ghjk|hjkl|zxcv|xcvb|cvbn|vbnm|uiop|yuio|tyui)/;
+
+function gibberishWord(word: string): boolean {
+  return (
+    (word.length >= 5 && !/[aeiouy]/.test(word)) || // no vowels at all: "jskdjf"
+    /(.)\1{3,}/.test(word) || // the same letter again and again: "aaaaa"
+    (word.length >= 6 && /^(.{1,3})\1{2,}$/.test(word)) || // a short piece repeated: "jsjsjs", "asdasd"
+    (word.length >= 4 && (keyboardRuns.test(word) || keyboardRuns.test([...word].reverse().join('')))) // keys next to each other: "asdf", "fdsa"
+  );
+}
+
+export function looksLikeNonsense(text: string): boolean {
+  const t = (text ?? '').trim().toLowerCase();
+  if (!t || t.length > 60 || obviouslyCareer(t)) {
+    return false;
+  }
+  // only symbols or punctuation ("???", "...", "!!!")
+  if (!/[\p{L}\p{N}]/u.test(t)) {
+    return true;
+  }
+  const words = t.match(/[a-z]+/g) ?? [];
+  const bad = words.filter(gibberishWord);
+  return bad.length > 0 && words.every((w) => w.length <= 2 || gibberishWord(w));
+}
+
+export const nonsenseReply =
+  "Sorry, I didn't understand that message. I'm **SeeCareer AI** and I help with your career. " +
+  'You can ask me to find jobs, check your resume, write a cover letter or practice an interview. Try one of these:';

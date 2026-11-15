@@ -76,6 +76,32 @@ export function orderModels(ids: string[], preferred: string[], prefixes: string
   const matches = (m: string) => prefixes.some((p) => m.startsWith(p));
   return [...first, ...rest.filter(matches).sort(byQuality), ...rest.filter((m) => !matches(m)).sort(byQuality)];
 }
+// "hormachuelos/claude-sonnet-4-6" is in the group "hormachuelos"; a model without a slash is its own group.
+export function groupOf(model: string): string {
+  const i = model.lastIndexOf('/');
+  return i > 0 ? model.slice(0, i) : model;
+}
+
+// Takes turns between groups, keeping the order inside each group: [a1, a2, b1, c1, b2] becomes [a1, b1, c1, a2, b2].
+// When one group's server is down, the next try is already a model from another server.
+export function spreadGroups(models: string[]): string[] {
+  const groups = new Map<string, string[]>();
+  for (const m of models) {
+    const g = groupOf(m);
+    groups.set(g, [...(groups.get(g) ?? []), m]);
+  }
+  const lists = [...groups.values()];
+  const out: string[] = [];
+  for (let i = 0; out.length < models.length; i++) {
+    for (const l of lists) {
+      if (i < l.length) {
+        out.push(l[i]);
+      }
+    }
+  }
+  return out;
+}
+
 const chatTimeoutMs = 45000;
 const pingTimeoutMs = 25000;
 
@@ -106,7 +132,13 @@ export class AiService {
       return error;
     }
     if (error instanceof HttpErrorResponse) {
+      const reason = String((error.error as { error?: { message?: string } } | null)?.error?.message ?? '');
       if (error.status === 401 || error.status === 403) {
+        // the built in AI has no key, so a "no" from it is about that one model ("not available on your account");
+        // the same goes for a message that talks about the model and not the key
+        if (!p.apiKey || (/model/i.test(reason) && !/api.?key|token|auth/i.test(reason))) {
+          return new AiError('Not available right now.', 'models');
+        }
         return new AiError(`The API key for ${p.name} was rejected.`, 'key');
       }
       if (error.status === 0) {
@@ -115,7 +147,10 @@ export class AiService {
       if (error.status === 429) {
         return new AiError('Rate limited (too many requests).', 'models');
       }
-      return new AiError(`HTTP ${error.status}`, 'models');
+      if (error.status === 404) {
+        return new AiError('Model not found.', 'models');
+      }
+      return new AiError(error.status >= 500 ? `Server error (HTTP ${error.status}).` : `HTTP ${error.status}`, 'models');
     }
     if ((error as { name?: string })?.name === 'TimeoutError') {
       return new AiError('Too slow (timed out).', 'models');
@@ -165,6 +200,12 @@ export class AiService {
     if (p.model) {
       return [p.model];
     }
+    return this.listModels(p);
+  }
+
+  // Every chat model of the provider (smartest first). The list is saved, so Settings shows all of them
+  // and the chat can still use any of them when the checked ones stop answering.
+  async listModels(p: AiProvider): Promise<string[]> {
     const preset = providerPresets.find((x) => x.key === p.preset);
     let ids: string[] = [];
     // the model list can fail for a moment (a gateway hiccup): try twice before deciding
@@ -191,7 +232,48 @@ export class AiService {
         throw err;
       }
     }
-    return orderModels(ids, preset?.preferred ?? [], preset?.preferPrefixes ?? []);
+    const ordered = orderModels(ids, preset?.preferred ?? [], preset?.preferPrefixes ?? []);
+    if (ordered.length) {
+      this.store.setCatalog(p.id, ordered);
+    }
+    return ordered;
+  }
+
+  // Tests one model (the Test button in Settings) and saves the result.
+  async checkModel(p: AiProvider, model: string): Promise<ModelStatus> {
+    try {
+      const ok: ModelStatus = { providerId: p.id, model, ok: true, latency: await this.ping(p, model) };
+      this.store.setOne(ok);
+      return ok;
+    } catch (e) {
+      const bad: ModelStatus = { providerId: p.id, model, ok: false, error: this.toAiError(e, p).message };
+      this.store.setOne(bad);
+      return bad;
+    }
+  }
+
+  // Models that were not tried yet, from the full list of every enabled provider (smartest first). They are used
+  // when all the working models fail in the middle of a question, so the user still gets an answer.
+  // A group is the part in front of the model name ("hormachuelos/claude-sonnet-4-6" is in "hormachuelos"): models of one
+  // group share a server, so when that server says "too many requests", the other models of the group are skipped.
+  private backupRoutes(tried: ModelStatus[], limit: number, busyGroups = new Set<string>()): ModelStatus[] {
+    const used = new Set(tried.map((r) => r.providerId + ' ' + r.model));
+    const failed = new Set(this.store.health().filter((h) => h.ok === false).map((h) => h.providerId + ' ' + h.model));
+    const lists = this.store.enabled().map((p) =>
+      spreadGroups(p.model ? [p.model] : (this.store.catalog()[p.id] ?? []))
+        .filter((m) => !used.has(p.id + ' ' + m) && !failed.has(p.id + ' ' + m) && !busyGroups.has(p.id + ' ' + groupOf(m)))
+        .map((model): ModelStatus => ({ providerId: p.id, model, ok: null })),
+    );
+    // take turns between providers so one provider that is down does not use up every try
+    const out: ModelStatus[] = [];
+    for (let i = 0; out.length < limit && lists.some((l) => i < l.length); i++) {
+      for (const l of lists) {
+        if (i < l.length && out.length < limit) {
+          out.push(l[i]);
+        }
+      }
+    }
+    return out;
   }
 
   // Sends a tiny question and measures how long the model takes. Throws if it does not answer.
@@ -279,6 +361,7 @@ export class AiService {
     }
     // check the best models first; if too few of them answer, keep going down the list (up to 3 rounds)
     const results: ModelStatus[] = [];
+    all = spreadGroups(all);
     for (let round = 0; round < 3; round++) {
       const batch = all.slice(round * maxScanPerProvider, (round + 1) * maxScanPerProvider);
       if (!batch.length) {
@@ -356,8 +439,11 @@ export class AiService {
 
   // Asks the models in order, but does not wait forever on one that hangs: if the first one has not answered
   // after a few seconds, the next one is asked too, and the first good answer wins (at most 3 at the same time).
-  private firstAnswer(routes: ModelStatus[], messages: ApiMessage[], maxTokens: number, options: ChatOptions, errors: string[]): Promise<ChatResult | null> {
-    const waitBeforeNext = options.fast ? 8000 : 10000;
+  // Backup models (not tested yet) are asked faster: a new one every 4 seconds, up to 4 at once, 25 seconds each at most.
+  private firstAnswer(routes: ModelStatus[], messages: ApiMessage[], maxTokens: number, options: ChatOptions, errors: string[], backup = false): Promise<ChatResult | null> {
+    const waitBeforeNext = backup ? 4000 : options.fast ? 8000 : 10000;
+    const atOnce = backup ? 4 : 3;
+    const timeLimit = backup ? 25000 : options.fast ? 30000 : chatTimeoutMs;
     return new Promise<ChatResult | null>((resolve, reject) => {
       let next = 0;
       let running = 0;
@@ -385,7 +471,7 @@ export class AiService {
         const route = routes[next++];
         const provider = this.store.get(route.providerId)!;
         running++;
-        this.complete(provider, route.model, messages, maxTokens, options.fast ? 30000 : chatTimeoutMs, options.temperature)
+        this.complete(provider, route.model, messages, maxTokens, timeLimit, options.temperature)
           .then((content) => {
             if (!done) {
               finish();
@@ -408,12 +494,49 @@ export class AiService {
             launch();
           });
         // still no answer after a while: ask the next model as well
-        if (running < 3) {
+        if (running < atOnce) {
           timer = setTimeout(launch, waitBeforeNext);
         }
       };
       launch();
     });
+  }
+
+  // Asks up to 8 models that were not tried yet. A model that answers is marked as working.
+  private async tryBackup(tried: ModelStatus[], messages: ApiMessage[], maxTokens: number, options: ChatOptions, errors: string[]): Promise<ChatResult | null> {
+    // groups whose models just said "too many requests" (from this question or from the last check)
+    // (one model can be rate limited on its own, so a group counts as busy only when 2 or more of its models are)
+    const limited = new Map<string, Set<string>>();
+    for (const h of [...this.store.health(), ...tried]) {
+      if (h.ok === false && /rate limited/i.test(h.error ?? '')) {
+        const g = h.providerId + ' ' + groupOf(h.model);
+        limited.set(g, (limited.get(g) ?? new Set()).add(h.model));
+      }
+    }
+    const busyGroups = new Set([...limited].filter(([, models]) => models.size >= 2).map(([g]) => g));
+    // a provider whose full list is not saved yet (for example after an app update): get the list first
+    const noList = this.store.enabled().filter((p) => !p.model && !this.store.catalog()[p.id]?.length);
+    if (noList.length) {
+      await Promise.all(noList.map((p) => this.listModels(p).catch(() => [])));
+    }
+    const backup = this.backupRoutes(tried, 8, busyGroups);
+    if (!backup.length) {
+      return null;
+    }
+    const started = performance.now();
+    const saved = await this.firstAnswer(backup, messages, maxTokens, options, errors, true).catch((e) => {
+      if (e instanceof AiError && (e.kind === 'cancelled' || e.kind === 'key')) {
+        throw e;
+      }
+      return null;
+    });
+    if (saved) {
+      const route = backup.find((r) => r.model === saved.model);
+      if (route) {
+        this.store.setOne({ ...route, ok: true, latency: (performance.now() - started) / 1000 });
+      }
+    }
+    return saved;
   }
 
   // ---------- chat ----------
@@ -429,6 +552,11 @@ export class AiService {
     await this.firstWorking();
     let routes = this.store.workingModels();
     if (!routes.length) {
+      // the check found nothing that works: still try the other models from the full list before giving up
+      const spare = await this.tryBackup([], messages, maxTokens, options, []);
+      if (spare) {
+        return spare;
+      }
       const reasons = this.store
         .health()
         .map((h) => h.error)
@@ -436,9 +564,13 @@ export class AiService {
       if (reasons.length && reasons.filter((r) => /rate limited|timed out/i.test(r ?? '')).length >= reasons.length / 2) {
         throw new AiError('The free AI is busy right now (too many people are using it). Please try again in a minute.', 'models');
       }
+      const wrongKey = reasons.some((r) => /rejected/.test(r ?? ''));
+      const ownProvider = providers.some((p) => !p.builtin);
       throw new AiError(
-        'No AI model is working right now. ' + (reasons[0] ?? 'Check your internet and Settings.'),
-        reasons.some((r) => /rejected/.test(r ?? '')) ? 'key' : 'models',
+        wrongKey || ownProvider
+          ? 'No AI model is working right now. ' + (reasons[0] ?? 'Check your internet and Settings.')
+          : 'The free AI is not answering right now. Please check your internet, or try again in a minute.',
+        wrongKey ? 'key' : 'models',
       );
     }
     routes = [...routes]
@@ -455,8 +587,16 @@ export class AiService {
     if (won) {
       return won;
     }
-    // every model said "too many requests": the free AI is busy, checking again now would only make it worse
-    if (errors.length && errors.every((e) => /rate limited|too many/i.test(e))) {
+    // every working model failed while answering: go down the full model list so the question still gets an answer
+    const saved = await this.tryBackup(routes, messages, maxTokens, options, errors);
+    if (saved) {
+      return saved;
+    }
+    // most models said "too many requests" (the rest had server errors or were too slow): the free AI is busy,
+    // and checking again now would only make it worse
+    const busyNow = errors.filter((e) => /rate limited|too many/i.test(e)).length;
+    const brokenNow = errors.filter((e) => /rate limited|too many|server error|timed out|not available/i.test(e)).length;
+    if (errors.length && busyNow > 0 && brokenNow === errors.length) {
       throw new AiError('The free AI is busy right now (too many people are using it). Please try again in a minute.', 'models');
     }
     // everything that was working failed: check again right now and try the models that answer today (once)
@@ -466,6 +606,11 @@ export class AiService {
         return this.chat(messages, maxTokens, options, true);
       }
     }
-    throw new AiError('No AI model is working right now. ' + (errors[0] ?? 'Check your internet and Settings.'), 'models');
+    // a user's own provider can have a clear reason (like a wrong model name); the free AI gets a simple message
+    const own = this.store.enabled().some((p) => !p.builtin);
+    throw new AiError(
+      own && errors[0] ? 'No AI model is working right now. ' + errors[0] : 'The free AI is not answering right now. Please try again in a minute.',
+      'models',
+    );
   }
 }

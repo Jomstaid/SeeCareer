@@ -34,7 +34,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Job board | List of jobs from the API with search, category filter, saved jobs and more jobs when you scroll down |
 | Job details | One job (route `/job/:id`) with the full description, an Apply button and buttons to ask the AI about it |
 | AI Assistant | The chat with 7 modes: Chat, Resume, Find jobs, Match, Apply, Skills gap, Interview |
-| Settings | AI providers, model check, theme, text size, reply length and your data |
+| Settings | AI providers, the list of every AI model (with search, filter and a Test button), theme, text size, reply length and your data |
 | About Our Group | Project title and description, course, section, members and their roles |
 
 ## How we followed the case study
@@ -48,7 +48,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Data binding and events | `[(ngModel)]`, `{{ }}`, `[src]`, `(click)`, `(ionInput)`, `(ionChange)` |
 | TypeScript interface and class | `src/app/core/models.ts` (`Job` interface, `GroupMember` class and more) |
 | Reusable component | `<app-page-header title="...">`, the same header on every page with a different title |
-| Testing | 158 unit tests plus our own walkthrough of every button (see below) |
+| Testing | 169 unit tests plus our own walkthrough of every button (see below) |
 
 ## APIs we used
 
@@ -69,10 +69,13 @@ Note: Himalayas does not allow requests from a web page (CORS), so in the browse
 
 `api.jomstaid.com` is our own small server (a Cloudflare Worker, code in `worker/gatewayproxy.js`). It passes the chat to free AI models (free LLMs) that we set up on **OmniRoute**. The secret key stays on the server, so there is no key in the app, the APK or this repository.
 
-* **It finds working models by itself.** Every 10 minutes the app tests the smart models first (like GPT 6.1, Claude Sonnet, Grok, DeepSeek, Kimi and Gemini) and keeps a list of the ones that answer.
-* **It never gets stuck on one model.** If a model gives an error, the next one is asked right away. If a model is slow and has not answered after about 10 seconds, the next one is asked too and the first answer is used. Your question, the chat so far and your resume go with it, so you still get a full answer.
+* **It shows every model.** Settings lists all the models on our OmniRoute gateway (more than 500). Each one shows if it is working, not working or not tested yet. You can search them, filter them, test one model, or test all of them.
+* **It finds working models by itself.** Every 10 minutes the app tests the smart models first (like GPT 6.1, Claude Sonnet, Grok, DeepSeek, Kimi and Gemini) and keeps a list of the ones that answer. It takes turns between the different servers behind the gateway, so one server that is down does not slow down the check.
+* **It never gets stuck on one model.** If a model gives an error, the next one is asked right away. If a model is slow and has not answered after about 10 seconds, the next one is asked too and the first answer is used. Your question, the chat so far and your resume go with it, so you still get a full answer. If all the working models fail in the middle of a question, the app keeps going down the full list of models (skipping the servers that are busy) until one answers.
 * **It tells you when the AI is busy.** If every model says "too many requests", the app shows "The free AI is busy right now, try again in a minute" instead of waiting.
-* **It is always SeeCareer AI.** Questions like "who are you" get a fixed answer, and the app removes the model's own name if it ever says it.
+* **It is always SeeCareer AI.** Questions like "who are you", "are you ChatGPT" or "ikaw ba si Claude" get a fixed answer, and the app removes the model's own name if it ever says it.
+* **It answers questions about itself correctly.** "What can you do", "is this free", "do you save my data" and "how do you work" get the app's own answers, so the AI never makes them up.
+* **It handles nonsense.** Random letters like "asdfgh", "jsjsjs" or "???" get a friendly "Sorry, I didn't understand that" with buttons for what the app can do. Questions that are not about careers (like sports or jokes) get a polite "I focus on careers".
 
 To use a new model from OmniRoute, add its name to `preferred` (or its provider to `preferPrefixes`) in `src/app/core/defaults.ts`.
 
@@ -118,9 +121,9 @@ Run the unit tests with:
 npm test
 ```
 
-Result: **158 tests passed** (input checks, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter and more).
+Result: **169 tests passed** (input checks, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list and more).
 
-We also clicked through every button of the app one by one, on a phone screen (390 x 844) in light mode and on a laptop screen (1440 x 900) in dark mode. All **74 checks passed** on both:
+We also clicked through every button of the app one by one, on a phone screen (390 x 844) in light mode and on a laptop screen (1440 x 900) in dark mode. All **74 checks passed** on both, plus **24 more checks** for the model list, the questions about the AI, nonsense messages and the model fallback:
 
 | Test | Result |
 |---|---|
@@ -131,6 +134,10 @@ We also clicked through every button of the app one by one, on a phone screen (3
 | All 7 modes, mock interview, attach menu, commands like `/help` and `/settings` | Passed |
 | "Who are you" always answers SeeCareer AI | Passed |
 | Off topic questions get a polite "I focus on careers" | Passed |
+| "What can you do", "is this free", "do you save my data" get the app's own answers | Passed |
+| Random letters like "asdfgh" or "???" get a friendly "I didn't understand" | Passed |
+| Settings lists every model (500+), with search, filter and Test | Passed |
+| When the working models are down, the chat still answers from the full model list | Passed |
 | Upload a resume, design it, download PDF and Word, cover letter in Word | Passed |
 | Settings: theme, text size, reply length, providers, a wrong API key, export chats | Passed |
 | Turning off chat history asks first, Cancel keeps the chats | Passed |

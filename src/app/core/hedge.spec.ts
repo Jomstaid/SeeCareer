@@ -82,3 +82,78 @@ describe('AiService when the free AI is busy', () => {
     expect(err.message).toMatch(/busy/i);
   });
 });
+
+// When every working model fails in the middle of a question, the app goes down the full list of models.
+describe('AiService falls back to the full model list', () => {
+  let http: HttpTestingController;
+
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    http = TestBed.inject(HttpTestingController);
+  });
+
+  const modelOf = (r: { body: unknown }) => (r.body as { model: string }).model;
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  it('uses a model that was not tested yet when the working ones fail', async () => {
+    const providers = TestBed.inject(ProviderService);
+    const id = providers.providers()[0].id;
+    providers.setCatalog(id, ['hormachuelos/a', 'hormachuelos/b', 'dva/c', 'cxa/d']);
+    providers.setHealth([
+      { providerId: id, model: 'hormachuelos/a', ok: true, latency: 2 },
+      { providerId: id, model: 'hormachuelos/b', ok: true, latency: 3 },
+    ]);
+    const ai = TestBed.inject(AiService);
+    const answer = ai.chat([{ role: 'user', content: 'hi' }]);
+    await tick();
+    http.expectOne((r) => modelOf(r) === 'hormachuelos/a').flush({}, { status: 500, statusText: 'Server error' });
+    await tick();
+    http.expectOne((r) => modelOf(r) === 'hormachuelos/b').flush({}, { status: 500, statusText: 'Server error' });
+    await tick();
+    http.expectOne((r) => modelOf(r) === 'dva/c').flush({ choices: [{ message: { content: 'Saved by the backup' } }] });
+    const result = await answer;
+    expect(result.model).toBe('dva/c');
+    expect(result.content).toBe('Saved by the backup');
+    // the backup model is now known to work
+    expect(providers.workingModels().some((h) => h.model === 'dva/c')).toBe(true);
+  });
+
+  it('skips the busy group and tries another group', async () => {
+    const providers = TestBed.inject(ProviderService);
+    const id = providers.providers()[0].id;
+    providers.setCatalog(id, ['hormachuelos/a', 'hormachuelos/b', 'hormachuelos/x', 'dva/c']);
+    providers.setHealth([
+      { providerId: id, model: 'hormachuelos/a', ok: true, latency: 2 },
+      { providerId: id, model: 'hormachuelos/b', ok: true, latency: 3 },
+    ]);
+    const ai = TestBed.inject(AiService);
+    const answer = ai.chat([{ role: 'user', content: 'hi' }]);
+    await tick();
+    http.expectOne((r) => modelOf(r) === 'hormachuelos/a').flush({}, { status: 429, statusText: 'Too Many Requests' });
+    await tick();
+    http.expectOne((r) => modelOf(r) === 'hormachuelos/b').flush({}, { status: 429, statusText: 'Too Many Requests' });
+    await tick();
+    // hormachuelos is busy, so its other models are not asked: the next group is
+    const next = http.match(() => true);
+    expect(next.map((r) => modelOf(r.request))).toEqual(['dva/c']);
+    next[0].flush({ choices: [{ message: { content: 'OK' } }] });
+    expect((await answer).model).toBe('dva/c');
+  });
+
+  it('treats "model not available" from the free AI as a model problem, not a wrong key', async () => {
+    const providers = TestBed.inject(ProviderService);
+    const id = providers.providers()[0].id;
+    providers.setCatalog(id, ['hormachuelos/gone', 'dva/c']);
+    providers.setHealth([{ providerId: id, model: 'hormachuelos/gone', ok: true, latency: 1 }]);
+    const ai = TestBed.inject(AiService);
+    const answer = ai.chat([{ role: 'user', content: 'hi' }]);
+    await tick();
+    http
+      .expectOne((r) => modelOf(r) === 'hormachuelos/gone')
+      .flush({ error: { message: '[403]: This model is not available on your account' } }, { status: 403, statusText: 'Forbidden' });
+    await tick();
+    http.expectOne((r) => modelOf(r) === 'dva/c').flush({ choices: [{ message: { content: 'OK' } }] });
+    expect((await answer).model).toBe('dva/c');
+  });
+});
