@@ -176,6 +176,12 @@
   width: min(520px, 100%);
   color: var(--sc-muted);
 
+  &.streaming {
+    width: fit-content;
+    max-width: 100%;
+    color: inherit;
+  }
+
   small {
     font-size: 13px;
   }

@@ -1,5 +1,5 @@
 <div class="fit" [style.width.px]="paperWidth * scale()" [style.height.px]="fitHeight()">
-<div #sheet class="sheet {{ template }}" [style.--accent]="accent" [style.transform]="'scale(' + scale() + ')'">
+<div #sheet class="sheet {{ template }}" [style.--accent]="accent" [style.width.px]="paperWidth" [style.min-height.px]="paperHeight" [style.transform]="'scale(' + scale() + ')'">
   @if (isSide) {
     @if (template === 'modern') {
       <header class="band">

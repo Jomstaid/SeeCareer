@@ -89,7 +89,7 @@ export const maxScanPerProvider = 6;
 export const minWorking = 6;
 export const autoCheckMs = 10 * 60 * 1000;
 export const sweepEveryMs = 30 * 60 * 1000;
-export const sweepAtOnce = 3;
+export const sweepAtOnce = 6;
 
 export const SUGGESTIONS: string[] = [
   'What careers fit someone who likes design and coding?',

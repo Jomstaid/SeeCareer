@@ -13,7 +13,7 @@ import { acceptedFiles, FileReadError, formatBytes, readAttachment } from '../co
 import { ChatStore } from '../core/chatstore.service';
 import { docLabels, DocVerdict, jobFromText, looksLikeResume } from '../core/doccheck';
 import { RecommendService } from '../core/recommend.service';
-import { ACCENTS, ResumeData, ResumeTemplate, TEMPLATES, resumeToText } from '../core/resumedata';
+import { ACCENTS, ResumeData, ResumeTemplate, TEMPLATES, detectPaper, paperOf, resumeToText } from '../core/resumedata';
 import { buildResumeFile } from '../core/resumerender';
 import { ResumeDesignService } from '../core/resumedesign.service';
 import { systemPrompt } from '../core/defaults';
@@ -119,6 +119,17 @@ export class ChatPage implements OnDestroy {
   mock = signal(false);
   sending = signal(false);
   elapsed = signal(0);
+  live = signal('');
+  waitText = computed(() => {
+    if (this.live()) {
+      return 'Writing…';
+    }
+    if (this.stepText()) {
+      return this.stepText();
+    }
+    const s = this.elapsed();
+    return s >= 15 ? 'The free AI is busy, still trying…' : s >= 6 ? 'Picking the fastest free AI for you…' : 'Thinking…';
+  });
   historyOpen = signal(false);
   designerOpen = signal(false);
   designerData = signal<ResumeData | null>(null);
@@ -617,6 +628,10 @@ export class ChatPage implements OnDestroy {
         hasInfo && lookIn.length ? this.photos.findPhoto(lookIn) : Promise.resolve(null),
       ]);
       const d: ResumeData = photo ? { ...out.data, photo } : { ...out.data };
+      const askedPaper = detectPaper(text);
+      if (askedPaper) {
+        d.design = { ...d.design, paper: askedPaper };
+      }
       const template = intent.template ?? d.design?.template ?? 'modern';
       const accent = intent.accent ?? d.design?.accent ?? ACCENTS[0].hex;
       const format = intent.format === 'docx' ? 'docx' : 'pdf';
@@ -653,7 +668,7 @@ export class ChatPage implements OnDestroy {
         resumeDesign: { template, accent },
         resumeFormat: format,
         content: hasInfo
-          ? `Done. I made ${publicFacts ? `a resume for ${d.name}` : 'your resume'} from ${source} in the ${label} design${photo ? ', with your photo' : ''}.${webNote} Use a button below to download it, or open the designer to change the layout, colour or wording.`
+          ? `Done. I made ${publicFacts ? `a resume for ${d.name}` : 'your resume'} from ${source} in the ${label} design${photo ? ', with your photo' : ''}${d.design?.paper ? ` on ${paperOf(d.design.paper).label} paper` : ''}.${webNote} Use a button below to download it, or open the designer to change the layout, colour or wording.`
           : `I did not have ${person ? person + "'s" : 'your'} details yet, so I made a ready-to-fill **template** in the ${label} design with [placeholders].${webNote} ` +
             `Send ${person ? 'their' : 'your'} details or a resume file and I will fill it in. You can also say "add picture", "make it red" or "add skill Python", then download it with a button below.`,
         actions,
@@ -777,7 +792,7 @@ export class ChatPage implements OnDestroy {
     this.mock.set(true);
     this.push({ role: 'user', content: 'Start mock interview' });
     await this.busy(async () => {
-      const result = await this.ai.chat(await this.contextMessages(), this.settings.settings().maxTokens);
+      const result = await this.talk(await this.contextMessages(), this.settings.settings().maxTokens);
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -1098,13 +1113,17 @@ export class ChatPage implements OnDestroy {
         said = `I added ${from}. Download the new version below.`;
       } else {
         const look = detectDesign(text);
+        const paper = detectPaper(text);
         if (look.template) {
           template = look.template;
         }
         if (look.accent) {
           accent = look.accent;
         }
-        const designOnly = (look.template || look.accent) && text.length < 45;
+        if (paper) {
+          d = { ...d, design: { ...d.design, paper } };
+        }
+        const designOnly = (look.template || look.accent || paper) && text.length < 60;
         if (wantsDifferentDesign(text) && !look.template) {
           this.stepText.set('Choosing a new design…');
           const pick = await this.design.chooseDesign(d, text, { template, accent });
@@ -1112,7 +1131,11 @@ export class ChatPage implements OnDestroy {
           accent = look.accent ?? pick.accent;
           said = `I switched to the ${TEMPLATES.find((t) => t.key === template)?.label} design${pick.reason ? ': ' + pick.reason.replace(/\.$/, '') : ''}. Download it below, or say "different" again for another look.`;
         } else if (designOnly) {
-          said = `I changed the design to ${TEMPLATES.find((t) => t.key === template)?.label ?? 'your choice'}. Download the new version below.`;
+          const changes = [
+            ...(look.template || look.accent ? [`the design to ${TEMPLATES.find((t) => t.key === template)?.label ?? 'your choice'}`] : []),
+            ...(paper ? [`the paper size to ${paperOf(paper).label}`] : []),
+          ];
+          said = `I changed ${changes.join(' and ')}. Download the new version below.`;
         } else {
           if (!(await this.tasks.ensureConsent())) {
             throw new AiError('Cancelled. The AI needs your permission to read the resume.', 'config');
@@ -1431,7 +1454,7 @@ export class ChatPage implements OnDestroy {
           ? `WEB RESULTS (Wikipedia, searched just now for the user's last message):\n${webContext(pages)}`
           : 'WEB RESULTS: the search found nothing for the last message. Say so briefly, then help from what you know.';
       }
-      const result = await this.ai.chat(await this.contextMessages(web), Math.max(this.settings.settings().maxTokens, web ? 1000 : 0));
+      const result = await this.talk(await this.contextMessages(web), Math.max(this.settings.settings().maxTokens, web ? 1000 : 0));
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -1443,7 +1466,7 @@ export class ChatPage implements OnDestroy {
         this.push({ role: 'assistant', content: offTopicReply });
         return;
       }
-      const result = await this.ai.chat(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 900));
+      const result = await this.talk(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 900));
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -1544,7 +1567,7 @@ export class ChatPage implements OnDestroy {
         ? ''
         : `The attached file is a ${docLabels[verdict.type].toLowerCase()}. Respond to it on its own terms: say briefly what it is and what you can do with it (review it, improve it, rewrite it, summarize it, turn it into a PDF or Word file). ` +
           'Do not compare it to a resume and do not say it is the wrong kind of file.';
-    const result = await this.ai.chat(await this.contextMessages(hint), Math.max(this.settings.settings().maxTokens, 1000));
+    const result = await this.talk(await this.contextMessages(hint), Math.max(this.settings.settings().maxTokens, 1000));
     const actions: ChatAction[] = [];
     if (verdict.type === 'resume') {
       actions.push(
@@ -1587,7 +1610,7 @@ export class ChatPage implements OnDestroy {
 
   async askAnyway(): Promise<void> {
     await this.busy(async () => {
-      const result = await this.ai.chat(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 1000));
+      const result = await this.talk(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 1000));
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -1694,7 +1717,7 @@ export class ChatPage implements OnDestroy {
     }
     this.chat.set({ ...this.chat(), messages: this.chat().messages.filter((m) => !m.error) });
     await this.busy(async () => {
-      const result = await this.ai.chat(await this.contextMessages(), this.settings.settings().maxTokens);
+      const result = await this.talk(await this.contextMessages(), this.settings.settings().maxTokens);
       this.push({ role: 'assistant', content: result.content, model: result.model });
     });
   }
@@ -1772,6 +1795,9 @@ export class ChatPage implements OnDestroy {
 
   private push(m: Partial<ChatMessage> & Pick<ChatMessage, 'role' | 'content'>): ChatMessage {
     const message: ChatMessage = { id: newId(), time: Date.now(), ...m };
+    if (m.role === 'assistant') {
+      this.live.set('');
+    }
     if (m.role === 'user') {
       message.quote = this.takeQuote();
       message.auto = this.takeAuto();
@@ -1796,7 +1822,24 @@ export class ChatPage implements OnDestroy {
     this.store.upsert({ ...this.chat(), mode: this.mode(), job: this.job() });
   }
 
+  private talk(messages: ApiMessage[], tokens: number) {
+    return this.ai.chat(messages, tokens, {
+      onText: (text) => {
+        const first = !this.live();
+        this.live.set(text);
+        if (first) {
+          this.scrollDown();
+        }
+      },
+    });
+  }
+
+  liveHtml(): string {
+    return renderMarkdown(this.live());
+  }
+
   private async busy(work: () => Promise<void>): Promise<void> {
+    this.live.set('');
     this.sending.set(true);
     this.elapsed.set(0);
     this.stepText.set('');
@@ -1816,6 +1859,7 @@ export class ChatPage implements OnDestroy {
       }
     } finally {
       clearInterval(this.timer);
+      this.live.set('');
       this.sending.set(false);
       this.persist();
       this.scrollDown();

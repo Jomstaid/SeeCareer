@@ -35,12 +35,93 @@ export interface ResumeData {
   projects: ResumeProject[];
   certifications: string[];
   languages: string[];
-  design?: { template?: ResumeTemplate; accent?: string; order?: SectionKey[] };
+  design?: { template?: ResumeTemplate; accent?: string; order?: SectionKey[]; paper?: string };
   photo?: string;
 }
 
 export type SectionKey = 'summary' | 'skills' | 'experience' | 'education' | 'projects' | 'certifications' | 'languages';
 export const sectionKeys: SectionKey[] = ['summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'languages'];
+
+export interface PaperSize {
+  key: string;
+  label: string;
+  short: string;
+  w: number;
+  h: number;
+}
+
+const mm = (v: number) => Math.round((v * 72) / 25.4 * 100) / 100;
+
+export const PAPERS: PaperSize[] = [
+  { key: 'a4', label: 'A4 (210 × 297 mm)', short: 'A4', w: 595.28, h: 841.89 },
+  { key: 'letter', label: 'Letter / short bond (8.5 × 11 in)', short: 'Letter', w: 612, h: 792 },
+  { key: 'legal', label: 'Legal (8.5 × 14 in)', short: 'Legal', w: 612, h: 1008 },
+  { key: 'folio', label: 'Long bond / Folio (8.5 × 13 in)', short: 'Long bond', w: 612, h: 936 },
+  { key: 'a5', label: 'A5 (148 × 210 mm)', short: 'A5', w: mm(148), h: mm(210) },
+  { key: 'a3', label: 'A3 (297 × 420 mm)', short: 'A3', w: mm(297), h: mm(420) },
+  { key: 'b5', label: 'B5 (176 × 250 mm)', short: 'B5', w: mm(176), h: mm(250) },
+  { key: 'b4', label: 'B4 (250 × 353 mm)', short: 'B4', w: mm(250), h: mm(353) },
+  { key: 'executive', label: 'Executive (7.25 × 10.5 in)', short: 'Executive', w: 522, h: 756 },
+  { key: 'tabloid', label: 'Tabloid (11 × 17 in)', short: 'Tabloid', w: 792, h: 1224 },
+];
+
+const minSide = 216;
+const maxSide = 1728;
+
+export function customPaper(wPt: number, hPt: number): string | undefined {
+  if (!(wPt > 0 && hPt > 0)) {
+    return undefined;
+  }
+  const w = Math.round(Math.min(maxSide, Math.max(minSide, wPt)));
+  const h = Math.round(Math.min(maxSide, Math.max(minSide, hPt)));
+  const known = PAPERS.find((p) => Math.abs(p.w - w) <= 2 && Math.abs(p.h - h) <= 2);
+  return known ? known.key : `custom-${w}x${h}`;
+}
+
+export function paperOf(key?: string): PaperSize {
+  const known = PAPERS.find((p) => p.key === key);
+  if (known) {
+    return known;
+  }
+  const m = /^custom-(\d+)x(\d+)$/.exec(key ?? '');
+  if (m) {
+    const w = Math.min(maxSide, Math.max(minSide, +m[1]));
+    const h = Math.min(maxSide, Math.max(minSide, +m[2]));
+    const inch = (v: number) => Math.round((v / 72) * 100) / 100;
+    const size = `${inch(w)} × ${inch(h)} in`;
+    return { key: `custom-${w}x${h}`, label: `Custom (${size})`, short: size, w, h };
+  }
+  return PAPERS[0];
+}
+
+const paperWords = /\b(paper|size|sized|page|sheet|bond|format|print(ed|ing)?|layout)\b/i;
+
+export function detectPaper(text: string): string | undefined {
+  const t = (text ?? '').toLowerCase();
+  const context = paperWords.test(t) || t.trim().length <= 24;
+  const dims = /(\d+(?:\.\d+)?)\s*(in(?:ch(?:es)?)?|"|mm|cm)?\s*(?:x|×|by|\*)\s*(\d+(?:\.\d+)?)\s*(in(?:ch(?:es)?)?|"|mm|cm)?/i.exec(t);
+  if (dims && (context || dims[2] || dims[4])) {
+    const unit = (dims[2] || dims[4] || '').toLowerCase();
+    const a = parseFloat(dims[1]);
+    const b = parseFloat(dims[3]);
+    const factor = unit.startsWith('mm') ? 72 / 25.4 : unit === 'cm' ? 720 / 25.4 : unit ? 72 : Math.max(a, b) > 40 ? 72 / 25.4 : 72;
+    const found = customPaper(Math.min(a, b) * factor, Math.max(a, b) * factor);
+    if (found) {
+      return found;
+    }
+  }
+  if (/\blong\s*bond\b|\bfolio\b|\bf4\b/.test(t)) return 'folio';
+  if (/\bshort\s*bond\b/.test(t)) return 'letter';
+  if (/\btabloid\b|\bledger\b/.test(t)) return 'tabloid';
+  const iso = /\b([ab][3-5])\b/.exec(t);
+  if (iso && (context || /\b(to|in|on|into|use|make it)\s+[ab][3-5]\b/.test(t))) return iso[1];
+  if (!context) return undefined;
+  if (/\blegal\b/.test(t) && !/\blegal (assistant|secretary|officer|counsel|advisor|adviser|analyst|clerk|aide|researcher|writer|department|team)\b/.test(t)) return 'legal';
+  const strict = paperWords.test(t) || /^\s*(make it|use|to|switch to|change (it )?to|in|on)?\s*(us\s*)?letter\s*[.!]?\s*$/.test(t);
+  if (strict && /\bletter\b/.test(t) && !/\bcover letter\b|\bletter of\b/.test(t)) return 'letter';
+  if (/\bexecutive (paper|size|sized|page|sheet)\b/.test(t)) return 'executive';
+  return undefined;
+}
 
 export type ResumeTemplate = 'modern' | 'bold' | 'creative' | 'classic' | 'minimal' | 'executive' | 'elegant';
 
@@ -82,7 +163,7 @@ export const resumeJsonShape = `{
   "projects": [ { "name": "", "description": "", "tech": "" } ],
   "certifications": [ "" ],
   "languages": [ "English", "Filipino" ],
-  "design": { "template": "modern | bold | creative | classic | minimal | executive | elegant (choose one)", "accent": "a colour name such as Teal, or a hex like #0e7490", "order": ["summary", "experience", "education", "skills", "projects", "certifications", "languages"] }
+  "design": { "template": "modern | bold | creative | classic | minimal | executive | elegant (choose one)", "accent": "a colour name such as Teal, or a hex like #0e7490", "order": ["summary", "experience", "education", "skills", "projects", "certifications", "languages"], "paper": "a4 | letter | legal | folio | a5 | a3 | b5 | b4 | executive | tabloid, or custom-WIDTHxHEIGHT in points. Only set it when the user asks for a paper size, otherwise leave it out" }
 }`;
 
 export function accentFromName(name: unknown): string | undefined {
@@ -155,8 +236,10 @@ export function normalizeResume(raw: unknown): ResumeData {
   const order = (Array.isArray(d['order']) ? d['order'] : [])
     .map((k) => String(k).toLowerCase() as SectionKey)
     .filter((k, i, all) => sectionKeys.includes(k) && all.indexOf(k) === i);
-  if (TEMPLATES.some((t) => t.key === template) || accent || order.length) {
-    data.design = { template: TEMPLATES.some((t) => t.key === template) ? template : undefined, accent, order: order.length ? order : undefined };
+  const paperKey = String(d['paper'] ?? '').toLowerCase().trim();
+  const paper = PAPERS.some((p) => p.key === paperKey) || /^custom-\d+x\d+$/.test(paperKey) ? paperOf(paperKey).key : detectPaper(paperKey);
+  if (TEMPLATES.some((t) => t.key === template) || accent || order.length || paper) {
+    data.design = { template: TEMPLATES.some((t) => t.key === template) ? template : undefined, accent, order: order.length ? order : undefined, paper };
   }
   const photo = r['photo'];
   if (typeof photo === 'string' && /^data:image\/(jpeg|png);base64,/.test(photo) && photo.length < 300000) {

@@ -58,7 +58,8 @@ Instructor: Sir Angelito Cunanan Jr.
 | Home | Welcome card, shortcuts and the newest jobs from the API |
 | Job board | List of jobs from the API with search, category filter, saved jobs and more jobs when you scroll down |
 | Job details | One job (route `/job/:id`) with the full description, an Apply button and buttons to ask the AI about it |
-| AI Assistant | The chat with 7 modes: Chat, Resume, Find jobs, Match, Apply, Skills gap, Interview |
+| AI Assistant | The chat with 7 modes: Chat, Resume, Find jobs, Match, Apply, Skills gap, Interview. The answer shows word by word while the AI writes it |
+| Resume designer | Opens from the chat: 7 designs, 14 colours, photo, **paper size** (A4, Letter / short bond, Legal, Long bond, A5, A3, B5, B4, Executive, Tabloid or any custom size), AI changes and PDF or Word download |
 | Settings | AI providers, the list of every AI model and which ones work, theme, text size, reply length and your data. It fits on one screen |
 | About Our Group | Project title and description, course, section, members and their roles |
 
@@ -73,7 +74,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Data binding and events | `[(ngModel)]`, `{{ }}`, `[src]`, `(click)`, `(ionInput)`, `(ionChange)` |
 | TypeScript interface and class | `src/app/core/models.ts` (`Job` interface, `GroupMember` class and more) |
 | Reusable component | `<app-page-header title="...">`, the same header on every page with a different title |
-| Testing | 174 unit tests plus our own walkthrough of every button (see below) |
+| Testing | 200 unit tests plus our own walkthrough of every button (see below) |
 
 ## APIs we used 🌐
 
@@ -94,10 +95,12 @@ All of these are free and need no API key.
 
 `api.jomstaid.com` is our own small server (a Cloudflare Worker, code in `worker/gatewayproxy.js`). It passes the chat to free AI models (free LLMs) that we set up on **OmniRoute**. The secret key stays on the server, so there is no key in the app, the APK or this repository.
 
-* **It checks every model by itself.** Settings lists every chat model on our OmniRoute gateway (image and video models are left out). The app checks all of them in the background, a few at a time, so you never have to press Test. Every model that answers is marked working and used by the chat. Models that failed are checked again every 30 minutes, so a model that comes back is used again.
+* **It answers fast.** The answer appears word by word while the AI writes it, so the first words show in about 1 to 2 seconds instead of waiting for the whole answer. The app picks the smartest model that is also quick, so a slow model is not used first.
+* **It checks every model by itself.** Settings lists every chat model on our OmniRoute gateway (image and video models are left out). The app checks all of them in the background, 6 at a time, so you never have to press Test. Servers that already work are checked first, and a server whose first 3 models all fail is skipped, so working models are found in seconds. Every model that answers is marked working and used by the chat. Models that failed are checked again every 30 minutes, so a model that comes back is used again.
 * **It finds working models by itself.** Every 10 minutes the app tests the smart models first (like GPT 6.1, Claude Sonnet, Grok, DeepSeek, Kimi and Gemini) and keeps a list of the ones that answer. It takes turns between the different servers behind the gateway, so one server that is down does not slow down the check.
-* **It never gets stuck on one model.** If a model gives an error, the next one is asked right away. If a model is slow and has not answered after about 10 seconds, the next one is asked too and the first answer is used. Your question, the chat so far and your resume go with it, so you still get a full answer. If all the working models fail in the middle of a question, the app keeps going down the full list of models (skipping the servers that are busy) until one answers.
+* **It never gets stuck on one model.** If a model gives an error, the next one is asked right away. If a model is slow and has not started answering after about 4 seconds, the next one is asked too and the first one that starts writing is used (the others are stopped). Your question, the chat so far and your resume go with it, so you still get a full answer. If all the working models fail in the middle of a question, the app keeps going down the full list of models (skipping the servers that are busy) until one answers.
 * **It tells you when the AI is busy.** If every model says "too many requests", the app shows "The free AI is busy right now, try again in a minute" instead of waiting.
+* **It shows what it is doing.** While you wait, the chat says "Thinking…", then "Picking the fastest free AI for you…", and "Writing…" once the answer starts.
 * **It is always SeeCareer AI.** Questions like "who are you", "are you ChatGPT" or "ikaw ba si Claude" get a fixed answer, and the app removes the model's own name if it ever says it.
 * **It answers questions about itself correctly.** "What can you do", "is this free", "do you save my data" and "how do you work" get the app's own answers, so the AI never makes them up.
 * **It handles nonsense.** Random letters like "asdfgh", "jsjsjs" or "???" get a friendly "Sorry, I didn't understand that" with buttons for what the app can do. Questions that are not about careers (like sports or jokes) get a polite "I focus on careers".
@@ -292,9 +295,9 @@ Run the unit tests with:
 npm test
 ```
 
-Result: **174 tests passed** (input checks, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list, checking every model in the background, reading a person's name for an example resume and more).
+Result: **200 tests passed** (input checks, paper sizes and custom sizes in the PDF and Word files, showing the answer word by word, skipping a server that is down, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list, checking every model in the background, reading a person's name for an example resume and more).
 
-We also clicked through every button of the app one by one, on a phone screen (390 x 844) in light mode and on a laptop screen (1440 x 900) in dark mode. All **74 checks passed** on both, plus **24 more checks** for the model list, the questions about the AI, nonsense messages and the model fallback:
+We also clicked through every button of the app one by one, on a phone screen (390 x 844) in light mode and on a laptop screen (1440 x 900) in dark mode. All **74 checks passed** on both, and again on a small phone (360 x 780). We also ran **72 checks** on Android phone sizes with the status bar and navigation bar, and **69 checks** for the paper size on a phone, a small phone and a laptop:
 
 | Test | Result |
 |---|---|
@@ -310,6 +313,9 @@ We also clicked through every button of the app one by one, on a phone screen (3
 | Settings lists every chat model and checks all of them by itself, on one screen at every text size | ✅ Passed |
 | When the working models are down, the chat still answers from the full model list | ✅ Passed |
 | Upload a resume, design it, download PDF and Word, cover letter in Word | ✅ Passed |
+| Paper size in the designer (Legal, A5, custom 8 x 10 in) changes the page shape and the files | ✅ Passed |
+| Asking the chat "make it legal size", "use long bond paper", "make the paper 8 x 10 inches" or "back to A4" changes the paper | ✅ Passed |
+| The answer shows word by word, and the first words come in about 1 to 2 seconds | ✅ Passed |
 | Settings: theme, text size, reply length, providers, a wrong API key, export chats | ✅ Passed |
 | Turning off chat history asks first, Cancel keeps the chats | ✅ Passed |
 | About Our Group shows the project, course, section and all members | ✅ Passed |

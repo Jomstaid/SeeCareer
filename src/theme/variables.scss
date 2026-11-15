@@ -275,6 +275,11 @@ ion-popover {
   --border-radius: var(--sc-radius);
 }
 
+ion-popover.paper-pop {
+  --width: min(340px, calc(100vw - 32px));
+  --max-height: min(420px, 70vh);
+}
+
 ion-popover::part(content),
 ion-alert .alert-wrapper,
 ion-action-sheet .action-sheet-group {

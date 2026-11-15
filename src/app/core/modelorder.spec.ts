@@ -1,4 +1,4 @@
-import { groupOf, orderModels, smartRank, spreadGroups, writesText } from './ai.service';
+import { groupOf, orderModels, quickRank, smartRank, spreadGroups, writesText } from './ai.service';
 import { providerPresets } from './defaults';
 
 describe('orderModels', () => {
@@ -84,3 +84,15 @@ describe('writesText', () => {
   });
 });
 
+
+describe('quickRank', () => {
+  it('picks a fast good model over a slow top model', () => {
+    const slowTop = { model: 'hormachuelos/claude-sonnet-4-6', latency: 14 };
+    const fastGood = { model: 'antigravity/gemini-3-flash', latency: 1.1 };
+    expect(quickRank(fastGood)).toBeLessThan(quickRank(slowTop));
+  });
+
+  it('still picks the smarter model when both are fast', () => {
+    expect(quickRank({ model: 'antigravity/claude-sonnet-4-6', latency: 1.4 })).toBeLessThan(quickRank({ model: 'ddgw/gpt-5.4-mini', latency: 1 }));
+  });
+});

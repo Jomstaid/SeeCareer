@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { AiService, ApiMessage, ContentPart } from './ai.service';
-import { ACCENTS, resumeJsonShape, ResumeData, ResumeTemplate, TEMPLATES, accentFromName, parseResumeJson } from './resumedata';
+import { ACCENTS, resumeJsonShape, ResumeData, ResumeTemplate, TEMPLATES, accentFromName, detectPaper, parseResumeJson } from './resumedata';
 
 export interface DesignResult {
   data: ResumeData;
@@ -107,7 +107,11 @@ export class ResumeDesignService {
       `Here is the current resume as JSON:\n${JSON.stringify(withoutPhoto)}\n\n` +
       `Change request: ${instruction.trim()}\n\n` +
       'Return the complete updated resume in the same JSON shape. Do not add facts that are not in the current resume or the request.';
-    return this.ask([{ role: 'user', content: user }]).then((r) => (photo ? { ...r, data: { ...r.data, photo } } : r));
+    return this.ask([{ role: 'user', content: user }]).then((r) => {
+      const paper = detectPaper(instruction) ?? r.data.design?.paper ?? data.design?.paper;
+      const out = paper ? { ...r.data, design: { ...r.data.design, paper } } : r.data;
+      return { ...r, data: photo ? { ...out, photo } : out };
+    });
   }
 
   private async ask(user: ApiMessage[]): Promise<DesignResult> {

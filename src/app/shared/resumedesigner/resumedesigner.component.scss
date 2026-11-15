@@ -209,3 +209,35 @@ ion-segment.designs {
     align-items: center;
   }
 }
+
+ion-select.paper {
+  width: 100%;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 var(--sp-3);
+  border: 1px solid var(--sc-border);
+  background: var(--sc-panel);
+}
+
+.custom-paper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: end;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+
+  ion-input {
+    min-width: 0;
+    border-bottom: 1px solid var(--sc-border);
+  }
+
+  > span {
+    padding-bottom: var(--sp-2);
+  }
+
+  ion-segment,
+  ion-button {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+}

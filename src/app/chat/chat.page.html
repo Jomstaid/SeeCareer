@@ -230,9 +230,13 @@
 
       @if (sending()) {
         <div class="row ai">
-          <div class="bubble ai-bubble typing" role="status">
-            <div class="skel" aria-hidden="true"><i></i><i></i><i></i></div>
-            <small>{{ stepText() || 'Thinking…' }} {{ elapsed() }}s{{ queue().length ? ' · ' + queue().length + ' waiting' : '' }}</small>
+          <div class="bubble ai-bubble typing" [class.streaming]="live()" role="status" aria-live="polite">
+            @if (live()) {
+              <div class="prose" [innerHTML]="liveHtml()"></div>
+            } @else {
+              <div class="skel" aria-hidden="true"><i></i><i></i><i></i></div>
+            }
+            <small>{{ waitText() }} {{ elapsed() }}s{{ queue().length ? ' · ' + queue().length + ' waiting' : '' }}</small>
           </div>
         </div>
       }

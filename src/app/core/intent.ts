@@ -1,5 +1,5 @@
 import { ExportFormat } from './models';
-import { ACCENTS, ResumeTemplate } from './resumedata';
+import { ACCENTS, ResumeTemplate, detectPaper } from './resumedata';
 
 export interface Intent {
   kind: 'resume' | 'document' | 'convert';
@@ -39,7 +39,7 @@ export function detectDesign(text: string): { template?: ResumeTemplate; accent?
   const looks: [RegExp, ResumeTemplate][] = [
     [/\b(bold|dark (side|sidebar|column|theme|resume|design|layout)|dark mode|black sidebar|strong look|edgy)\b/i, 'bold'],
     [/\b(creative|artistic|colou?rful|playful|fun|eye.?catching|vibrant|stand out|standout|unique|magazine|portfolio style)\b/i, 'creative'],
-    [/\b(executive|corporate|boardroom|authoritative|leadership)\b/i, 'executive'],
+    [/\b(executive(?! (paper|size|sized|page|sheet))|corporate|boardroom|authoritative|leadership)\b/i, 'executive'],
     [/\b(elegant|refined|luxur\w+|sophisticated|graceful|centou?red|centered|fine lines|fashion)\b/i, 'elegant'],
     [/\b(classic|traditional|formal|conservative|serif|old school|timeless)\b/i, 'classic'],
     [/\b(minimal\w*|clean|simple|airy|plain|understated|whitespace)\b/i, 'minimal'],
@@ -164,7 +164,7 @@ const questionStart = /^\s*(how|what|why|when|where|which|who|can you tell|expla
 
 export function isResumeEdit(text: string): boolean {
   const t = (text ?? '').trim();
-  return t.length >= 4 && t.length <= 240 && !t.startsWith('/') && !questionStart.test(t) && (editVerb.test(t) || photoWord.test(t) || Object.keys(detectDesign(t)).length > 0 || wantsDifferentDesign(t));
+  return t.length >= 4 && t.length <= 240 && !t.startsWith('/') && !questionStart.test(t) && (editVerb.test(t) || photoWord.test(t) || Object.keys(detectDesign(t)).length > 0 || !!detectPaper(t) || wantsDifferentDesign(t));
 }
 
 export function wantsOnlinePhoto(text: string): boolean {

@@ -207,5 +207,30 @@ describe('AiService checks every model in the background', () => {
     expect(asked).toBeLessThan(6);
     expect(ai.sweepDone()).toBe(6);
   });
+
+  it('skips a group whose first three models all fail but keeps a group that works', async () => {
+    const providers = TestBed.inject(ProviderService);
+    const id = providers.providers()[0].id;
+    providers.setCatalog(id, ['dva/1', 'dva/2', 'dva/3', 'dva/4', 'dva/5', 'dva/6', 'dva/7', 'gc/1', 'gc/2']);
+    const ai = TestBed.inject(AiService);
+    const done = ai.sweep(true);
+    const asked: string[] = [];
+    for (let round = 0; round < 10; round++) {
+      await tick();
+      for (const req of http.match((r) => r.url.endsWith('/chat/completions'))) {
+        const m = modelOf(req.request);
+        asked.push(m);
+        if (m.startsWith('dva/')) {
+          req.flush({}, { status: 503, statusText: 'Not configured' });
+        } else {
+          req.flush({ choices: [{ message: { content: 'OK' } }] });
+        }
+      }
+    }
+    await done;
+    expect(asked.filter((m) => m.startsWith('dva/')).length).toBeLessThan(7);
+    expect(providers.health().filter((h) => h.ok).map((h) => h.model).sort()).toEqual(['gc/1', 'gc/2']);
+    expect(ai.sweepDone()).toBe(9);
+  });
 });
 

@@ -2,7 +2,7 @@ import { Component, EventEmitter, Input, OnChanges, Output, signal, inject } fro
 
 import { AiError } from '../../core/models';
 import { deliverBlob, safeFileName } from '../../core/fileexport';
-import { ACCENTS, ResumeData, ResumeTemplate, TEMPLATES, resumeToText } from '../../core/resumedata';
+import { ACCENTS, PAPERS, ResumeData, ResumeTemplate, TEMPLATES, customPaper, detectPaper, paperOf, resumeToText } from '../../core/resumedata';
 import { buildResumeFile } from '../../core/resumerender';
 import { ResumeDesignService } from '../../core/resumedesign.service';
 import { squarePhotoFromFile } from '../../core/photo';
@@ -29,7 +29,12 @@ export class ResumeDesignerComponent implements OnChanges {
 
   readonly templates = TEMPLATES;
   readonly accents = ACCENTS;
-  readonly ideas = ['Make it fit one page', 'Shorter summary', 'Stronger action verbs', 'Emphasize teamwork', 'Make it more senior'];
+  readonly papers = PAPERS;
+  customOpen = signal(false);
+  customW = 8.5;
+  customH = 13;
+  customUnit: 'in' | 'mm' = 'in';
+  readonly ideas = ['Make it fit one page', 'Use legal paper', 'Shorter summary', 'Stronger action verbs', 'Emphasize teamwork', 'Make it more senior'];
 
   template = signal<ResumeTemplate>(readJson<{ t?: ResumeTemplate }>(prefKey, {}).t ?? 'modern');
   accent = signal<string>(readJson<{ a?: string }>(prefKey, {}).a ?? ACCENTS[0].hex);
@@ -92,6 +97,53 @@ export class ResumeDesignerComponent implements OnChanges {
     }
   }
 
+  paperKey(): string {
+    return paperOf(this.data?.design?.paper).key;
+  }
+
+  paperLabel(): string {
+    return paperOf(this.data?.design?.paper).label;
+  }
+
+  isCustomPaper(): boolean {
+    return this.paperKey().startsWith('custom-');
+  }
+
+  setPaper(value: string | number | null | undefined): void {
+    const key = String(value ?? '');
+    if (key === 'custom') {
+      const now = paperOf(this.data?.design?.paper);
+      const toUnit = (pt: number) => (this.customUnit === 'mm' ? Math.round((pt / 72) * 25.4) : Math.round((pt / 72) * 100) / 100);
+      this.customW = toUnit(now.w);
+      this.customH = toUnit(now.h);
+      this.customOpen.set(true);
+      return;
+    }
+    this.customOpen.set(false);
+    this.applyPaper(paperOf(key).key);
+  }
+
+  applyCustom(): void {
+    const factor = this.customUnit === 'mm' ? 72 / 25.4 : 72;
+    const w = Number(this.customW);
+    const h = Number(this.customH);
+    const key = customPaper(w * factor, h * factor);
+    if (!key || !(w > 0 && h > 0)) {
+      this.say('Type a width and a height, for example 8.5 and 13 inches.', true);
+      return;
+    }
+    this.customOpen.set(false);
+    this.applyPaper(key);
+  }
+
+  private applyPaper(key: string): void {
+    if (!this.data || paperOf(this.data.design?.paper).key === key) {
+      return;
+    }
+    this.changed.emit({ ...this.data, design: { ...this.data.design, paper: key } });
+    this.say(`Paper size: ${paperOf(key).label}.`, false);
+  }
+
   useIdea(text: string): void {
     this.instruction = text;
   }
@@ -103,6 +155,13 @@ export class ResumeDesignerComponent implements OnChanges {
     }
     if (text.length < 4) {
       this.say('Tell me what to change, for example "make it fit one page".', true);
+      return;
+    }
+    const paper = detectPaper(text);
+    if (paper && text.length <= 60 && !/(and|also|then|plus)/i.test(text)) {
+      this.applyPaper(paper);
+      this.say(`Done. The paper size is now ${paperOf(paper).label}.`, false);
+      this.instruction = '';
       return;
     }
     this.busy.set(true);

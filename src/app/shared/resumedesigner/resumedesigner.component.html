@@ -43,6 +43,34 @@
               }
             </div>
 
+            <h3>Paper size</h3>
+            <ion-select
+              class="paper"
+              interface="popover"
+              [interfaceOptions]="{ cssClass: 'paper-pop' }"
+              [value]="isCustomPaper() ? 'custom' : paperKey()"
+              (ionChange)="setPaper($any($event).detail.value)"
+              aria-label="Paper size"
+              [selectedText]="paperLabel()"
+            >
+              @for (p of papers; track p.key) {
+                <ion-select-option [value]="p.key">{{ p.label }}</ion-select-option>
+              }
+              <ion-select-option value="custom">Custom size…</ion-select-option>
+            </ion-select>
+            @if (customOpen()) {
+              <div class="custom-paper">
+                <ion-input type="number" inputmode="decimal" [(ngModel)]="customW" label="Width" labelPlacement="stacked" min="1" aria-label="Paper width"></ion-input>
+                <span aria-hidden="true">×</span>
+                <ion-input type="number" inputmode="decimal" [(ngModel)]="customH" label="Height" labelPlacement="stacked" min="1" aria-label="Paper height"></ion-input>
+                <ion-segment [value]="customUnit" (ionChange)="customUnit = $any($event).detail.value" aria-label="Unit">
+                  <ion-segment-button value="in"><ion-label>in</ion-label></ion-segment-button>
+                  <ion-segment-button value="mm"><ion-label>mm</ion-label></ion-segment-button>
+                </ion-segment>
+                <ion-button size="small" (click)="applyCustom()">Use size</ion-button>
+              </div>
+            }
+
             <h3>Photo</h3>
             <div class="photo-row">
               @if (d.photo) {
@@ -111,7 +139,7 @@
           </div>
 
           <div class="stage">
-            <app-resume-preview [data]="d" [template]="template()" [accent]="accent()"></app-resume-preview>
+            <app-resume-preview [data]="d" [template]="template()" [accent]="accent()" [paper]="d.design?.paper"></app-resume-preview>
           </div>
         </div>
       }

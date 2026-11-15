@@ -36,6 +36,38 @@ export interface ChatOptions {
   fast?: boolean;
   temperature?: number;
   spread?: number;
+  onText?: (soFar: string) => void;
+}
+
+export function readStreamText(raw: string): { text: string; done: boolean } {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith('{')) {
+    try {
+      const json = JSON.parse(trimmed) as CompletionResponse;
+      return { text: json.choices?.[0]?.message?.content ?? '', done: true };
+    } catch {
+      return { text: '', done: false };
+    }
+  }
+  let text = '';
+  let done = false;
+  for (const line of raw.split('\n')) {
+    const data = line.startsWith('data:') ? line.slice(5).trim() : '';
+    if (!data) {
+      continue;
+    }
+    if (data === '[DONE]') {
+      done = true;
+      continue;
+    }
+    try {
+      const chunk = JSON.parse(data) as { choices?: { delta?: { content?: string | null }; message?: { content?: string | null } }[] };
+      text += chunk.choices?.[0]?.delta?.content ?? chunk.choices?.[0]?.message?.content ?? '';
+    } catch {
+      continue;
+    }
+  }
+  return { text, done };
 }
 
 export function smartRank(model: string): number {
@@ -97,8 +129,12 @@ export function spreadGroups(models: string[]): string[] {
   return out;
 }
 
-const chatTimeoutMs = 45000;
-const pingTimeoutMs = 25000;
+const chatTimeoutMs = 40000;
+const pingTimeoutMs = 15000;
+
+export function quickRank(s: { model: string; latency?: number }): number {
+  return smartRank(s.model) + Math.min(s.latency ?? 10, 20) / 2;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AiService {
@@ -181,6 +217,97 @@ export class AiService {
       throw new AiError('Empty answer.', 'models');
     }
     return content;
+  }
+
+  private async completeStream(
+    p: AiProvider,
+    model: string,
+    messages: ApiMessage[],
+    maxTokens: number,
+    firstWordMs: number,
+    temperature: number,
+    stop: AbortController,
+    onText: (soFar: string) => void,
+  ): Promise<string> {
+    let timedOut = false;
+    let cancelled = false;
+    let timer = setTimeout(() => {
+      timedOut = true;
+      stop.abort();
+    }, firstWordMs);
+    const sub = this.cancel$.subscribe(() => {
+      cancelled = true;
+      stop.abort();
+    });
+    const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json' };
+    if (p.apiKey) {
+      headers['Authorization'] = `Bearer ${p.apiKey}`;
+    }
+    try {
+      const res = await fetch(this.url(p, '/chat/completions'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature, stream: true }),
+        signal: stop.signal,
+      });
+      if (!res.ok) {
+        let error: unknown = null;
+        try {
+          error = await res.json();
+        } catch {
+          error = null;
+        }
+        throw new HttpErrorResponse({ status: res.status, statusText: res.statusText, error });
+      }
+      let raw = '';
+      let shown = '';
+      const show = () => {
+        const text = readStreamText(raw).text;
+        if (text.trim() && text !== shown) {
+          shown = text;
+          clearTimeout(timer);
+          timer = setTimeout(() => {
+            timedOut = true;
+            stop.abort();
+          }, 30000);
+          onText(text);
+        }
+      };
+      const reader = res.body?.getReader?.();
+      if (reader) {
+        const decoder = new TextDecoder();
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) {
+            break;
+          }
+          raw += decoder.decode(value, { stream: true });
+          show();
+        }
+      } else {
+        raw = await res.text();
+        show();
+      }
+      const content = readStreamText(raw).text.trim();
+      if (!content) {
+        throw new AiError('Empty answer.', 'models');
+      }
+      return content;
+    } catch (e) {
+      if (cancelled) {
+        throw new AiError('Stopped.', 'cancelled');
+      }
+      if (timedOut) {
+        throw new AiError('Too slow (timed out).', 'models');
+      }
+      if (e instanceof TypeError) {
+        throw new HttpErrorResponse({ status: 0, statusText: 'Network error' });
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
+      sub.unsubscribe();
+    }
   }
 
   async discoverModels(p: AiProvider): Promise<string[]> {
@@ -404,6 +531,7 @@ export class AiService {
       const noList = this.store.enabled().filter((p) => !p.model && !this.store.catalog()[p.id]?.length);
       await Promise.all(noList.map((p) => this.listModels(p).catch(() => [])));
       const known = new Map(this.store.health().map((h) => [h.providerId + ' ' + h.model, h]));
+      const goodGroups = new Set(this.store.health().filter((h) => h.ok).map((h) => h.providerId + ' ' + groupOf(h.model)));
       const todo: { p: AiProvider; model: string }[] = [];
       for (const p of this.store.enabled()) {
         for (const model of spreadGroups(p.model ? [p.model] : (this.store.catalog()[p.id] ?? []))) {
@@ -412,18 +540,40 @@ export class AiService {
           }
         }
       }
+      const rank = (t: { p: AiProvider; model: string }) => (goodGroups.has(t.p.id + ' ' + groupOf(t.model)) ? 0 : 1);
+      todo.sort((a, b) => rank(a) - rank(b));
       this.sweepTotal.set(todo.length);
       this.sweepDone.set(0);
       const busy = new Map<string, number>();
+      const failed = new Map<string, number>();
+      const worked = new Set<string>();
+      const running = new Map<string, Set<Promise<ModelStatus>>>();
+      const skip = (group: string) => (busy.get(group) ?? 0) >= 3 || (!worked.has(group) && (failed.get(group) ?? 0) >= 3);
+      const mustWait = (group: string) => {
+        const now = running.get(group)?.size ?? 0;
+        return now > 0 && !worked.has(group) && (failed.get(group) ?? 0) + now >= 3;
+      };
       let next = 0;
       const worker = async () => {
         while (next < todo.length && !this.stopSweep) {
           const { p, model } = todo[next++];
           const group = p.id + ' ' + groupOf(model);
-          if ((busy.get(group) ?? 0) < 3 && this.store.get(p.id)?.enabled) {
-            const r = await this.checkModel(p, model);
-            if (!r.ok && /rate limited/i.test(r.error ?? '')) {
-              busy.set(group, (busy.get(group) ?? 0) + 1);
+          while (mustWait(group) && !skip(group)) {
+            await Promise.race(running.get(group)!);
+          }
+          if (!skip(group) && this.store.get(p.id)?.enabled) {
+            const check = this.checkModel(p, model);
+            const set = running.get(group) ?? new Set<Promise<ModelStatus>>();
+            running.set(group, set.add(check));
+            const r = await check;
+            set.delete(check);
+            if (r.ok) {
+              worked.add(group);
+            } else {
+              failed.set(group, (failed.get(group) ?? 0) + 1);
+              if (/rate limited/i.test(r.error ?? '')) {
+                busy.set(group, (busy.get(group) ?? 0) + 1);
+              }
             }
           }
           this.sweepDone.update((n) => n + 1);
@@ -460,9 +610,12 @@ export class AiService {
   }
 
   private firstAnswer(routes: ModelStatus[], messages: ApiMessage[], maxTokens: number, options: ChatOptions, errors: string[], backup = false): Promise<ChatResult | null> {
-    const waitBeforeNext = backup ? 4000 : options.fast ? 8000 : 10000;
+    const waitBeforeNext = backup ? 2500 : options.fast ? 3000 : 4500;
     const atOnce = backup ? 4 : 3;
-    const timeLimit = backup ? 25000 : options.fast ? 30000 : chatTimeoutMs;
+    const timeLimit = backup ? 20000 : options.fast ? 25000 : chatTimeoutMs;
+    if (options.onText && typeof fetch === 'function') {
+      return this.firstStream(routes, messages, maxTokens, options, errors, waitBeforeNext, atOnce, timeLimit, options.onText);
+    }
     return new Promise<ChatResult | null>((resolve, reject) => {
       let next = 0;
       let running = 0;
@@ -490,10 +643,14 @@ export class AiService {
         const route = routes[next++];
         const provider = this.store.get(route.providerId)!;
         running++;
+        const started = performance.now();
         this.complete(provider, route.model, messages, maxTokens, timeLimit, options.temperature)
           .then((content) => {
             if (!done) {
               finish();
+              if (route.ok !== true) {
+                this.store.setOne({ ...route, ok: true, latency: (performance.now() - started) / 1000 });
+              }
               resolve({ content: cleanIdentity(content), model: route.model, providerName: provider.name });
             }
           })
@@ -513,6 +670,102 @@ export class AiService {
             launch();
           });
         if (running < atOnce) {
+          timer = setTimeout(launch, waitBeforeNext);
+        }
+      };
+      launch();
+    });
+  }
+
+  private firstStream(
+    routes: ModelStatus[],
+    messages: ApiMessage[],
+    maxTokens: number,
+    options: ChatOptions,
+    errors: string[],
+    waitBeforeNext: number,
+    atOnce: number,
+    timeLimit: number,
+    onText: (soFar: string) => void,
+  ): Promise<ChatResult | null> {
+    return new Promise<ChatResult | null>((resolve, reject) => {
+      let next = 0;
+      let done = false;
+      let leader: AbortController | null = null;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const live = new Set<AbortController>();
+      const finish = () => {
+        done = true;
+        clearTimeout(timer);
+        live.forEach((c) => c.abort());
+        live.clear();
+      };
+      const launch = () => {
+        clearTimeout(timer);
+        if (done || leader) {
+          return;
+        }
+        while (next < routes.length && !this.store.get(routes[next].providerId)) {
+          next++;
+        }
+        if (next >= routes.length) {
+          if (!live.size) {
+            finish();
+            resolve(null);
+          }
+          return;
+        }
+        const route = routes[next++];
+        const provider = this.store.get(route.providerId)!;
+        const stop = new AbortController();
+        live.add(stop);
+        const started = performance.now();
+        let firstWord = 0;
+        const forward = (text: string) => {
+          if (done) {
+            return;
+          }
+          if (!leader) {
+            leader = stop;
+            firstWord = (performance.now() - started) / 1000;
+            clearTimeout(timer);
+            live.forEach((c) => c !== stop && c.abort());
+            live.clear();
+            live.add(stop);
+          }
+          if (leader === stop) {
+            onText(cleanIdentity(text));
+          }
+        };
+        this.completeStream(provider, route.model, messages, maxTokens, timeLimit, options.temperature ?? 0.4, stop, forward)
+          .then((content) => {
+            if (done || (leader && leader !== stop)) {
+              return;
+            }
+            finish();
+            this.store.setOne({ ...route, ok: true, latency: firstWord || route.latency });
+            resolve({ content: cleanIdentity(content), model: route.model, providerName: provider.name });
+          })
+          .catch((e) => {
+            live.delete(stop);
+            if (done || (leader && leader !== stop)) {
+              return;
+            }
+            const err = this.toAiError(e, provider);
+            errors.push(`${route.model}: ${err.message}`);
+            if (err.kind === 'key' || err.kind === 'cancelled') {
+              finish();
+              reject(err);
+              return;
+            }
+            this.demote(route.providerId, route.model, err.message);
+            if (leader === stop) {
+              leader = null;
+              onText('');
+            }
+            launch();
+          });
+        if (live.size < atOnce) {
           timer = setTimeout(launch, waitBeforeNext);
         }
       };
@@ -583,10 +836,11 @@ export class AiService {
       );
     }
     routes = [...routes]
-      .sort((a, b) =>
-        options.fast ? (a.latency ?? 99) - (b.latency ?? 99) : smartRank(a.model) - smartRank(b.model) || (a.latency ?? 99) - (b.latency ?? 99),
-      )
+      .sort((a, b) => (options.fast ? (a.latency ?? 99) - (b.latency ?? 99) : quickRank(a) - quickRank(b) || (a.latency ?? 99) - (b.latency ?? 99)))
       .slice(0, 6);
+    if (routes.length < 4) {
+      routes = [...routes, ...this.backupRoutes(routes, 4 - routes.length)];
+    }
     if (options.spread && routes.length > 1) {
       const n = options.spread % routes.length;
       routes = [...routes.slice(n), ...routes.slice(0, n)];

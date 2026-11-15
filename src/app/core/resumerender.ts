@@ -1,10 +1,11 @@
 import type { jsPDF } from 'jspdf';
 
-import { ResumeData, ResumeTemplate, SectionKey, sectionOrder } from './resumedata';
+import { ResumeData, ResumeTemplate, SectionKey, paperOf, sectionOrder } from './resumedata';
 
 type RGB = [number, number, number];
 
-const PAGE = { w: 595.28, h: 841.89 };
+const A4_PAGE = { w: 595.28, h: 841.89 };
+let PAGE = { ...A4_PAGE };
 let A4 = { w: PAGE.w, h: PAGE.h };
 let pageStart: () => void = () => undefined;
 
@@ -719,10 +720,13 @@ function singleColumn(doc: jsPDF, d: ResumeData, accent: RGB, kind: ColumnVarian
 
 async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, scale: number): Promise<{ blob: Blob; pages: number }> {
   const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const paper = paperOf(data.design?.paper);
+  PAGE = { w: paper.w, h: paper.h };
+  const doc = new jsPDF({ unit: 'pt', format: [paper.w, paper.h], orientation: 'portrait' });
   const raw = doc.internal as unknown as { write: (...parts: string[]) => void };
-  A4 = { w: PAGE.w / scale, h: PAGE.h / scale };
-  pageStart = scale < 1 ? () => raw.write(`q ${scale} 0 0 ${scale} 0 ${(PAGE.h * (1 - scale)).toFixed(3)} cm`) : () => undefined;
+  const total = Math.min(1, paper.w / 540) * scale;
+  A4 = { w: PAGE.w / total, h: PAGE.h / total };
+  pageStart = total < 1 ? () => raw.write(`q ${total.toFixed(4)} 0 0 ${total.toFixed(4)} 0 ${(PAGE.h * (1 - total)).toFixed(3)} cm`) : () => undefined;
   try {
     if (template === 'modern' || template === 'bold' || template === 'creative') {
       sidebar(doc, data, accent, template);
@@ -730,7 +734,7 @@ async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, sca
       singleColumn(doc, data, accent, template);
     }
     const pages = doc.getNumberOfPages();
-    if (scale < 1) {
+    if (total < 1) {
       for (let i = 1; i <= pages; i++) {
         doc.setPage(i);
         raw.write('Q');
@@ -739,6 +743,7 @@ async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, sca
     doc.setProperties({ title: `${clean(data.name)} - Resume`, creator: 'SeeCareer' });
     return { blob: doc.output('blob'), pages };
   } finally {
+    PAGE = { ...A4_PAGE };
     A4 = { w: PAGE.w, h: PAGE.h };
     pageStart = () => undefined;
   }
@@ -772,6 +777,10 @@ export async function buildResumeDocx(data: ResumeData, template: ResumeTemplate
     .toUpperCase();
   const sideLayout = template === 'modern' || template === 'bold' || template === 'creative';
   const classic = template === 'classic' || template === 'executive' || template === 'elegant';
+  const paper = paperOf(data.design?.paper);
+  const pageW = Math.round(paper.w * 20);
+  const pageH = Math.round(paper.h * 20);
+  const fit = (twips: number) => Math.max(1000, Math.round(twips * (pageW / 11906)));
   const font = classic ? 'Times New Roman' : 'Calibri';
   const T = (text: string, o: { bold?: boolean; italics?: boolean; size?: number; color?: string; caps?: boolean } = {}) =>
     new TextRun({ text, font, bold: o.bold, italics: o.italics, size: o.size ?? 21, color: o.color, allCaps: o.caps });
@@ -896,14 +905,14 @@ export async function buildResumeDocx(data: ResumeData, template: ResumeTemplate
     const mainKeys: SectionKey[] = ['summary', 'experience', 'education', 'projects'];
     const mainBuilders: Partial<Record<SectionKey, () => (InstanceType<typeof Paragraph>)[]>> = {
       summary,
-      experience: () => experience(7000),
-      education: () => education(7000),
+      experience: () => experience(fit(7000)),
+      education: () => education(fit(7000)),
       projects,
     };
     const bodyTable = new Table({
       width: { size: 100, type: WidthType.PERCENTAGE },
       borders: noBorders,
-      columnWidths: [3000, 7700],
+      columnWidths: [fit(3000), fit(7700)],
       rows: [
         new TableRow({
           children: [
@@ -926,7 +935,7 @@ export async function buildResumeDocx(data: ResumeData, template: ResumeTemplate
     });
     children = [headerTable, new Paragraph({ spacing: { after: 60 } }), bodyTable];
   } else {
-    const width = 9600;
+    const width = fit(9600);
     const headParagraphs =
       template === 'classic'
         ? [
@@ -971,7 +980,7 @@ export async function buildResumeDocx(data: ResumeData, template: ResumeTemplate
   const doc = new Document({
     creator: 'SeeCareer',
     title: `${data.name} - Resume`,
-    sections: [{ properties: { page: { margin: margins } }, children }],
+    sections: [{ properties: { page: { margin: margins, size: { width: pageW, height: pageH } } }, children }],
   });
   return Packer.toBlob(doc);
 }
