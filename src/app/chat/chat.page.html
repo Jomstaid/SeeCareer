@@ -8,15 +8,17 @@
 </app-page-header>
 
 <!-- the six AI features: a tab bar on big screens and a button grid on phones -->
-<div class="modebar" [class.dark-theme]="settings.darkMode()">
+<div class="modebar">
   <div class="container narrow">
     <ion-segment [scrollable]="true" [value]="mode()" (ionChange)="onMode($any($event).detail.value)" aria-label="AI feature">
-      <ion-segment-button value="general" layout="icon-only" aria-label="Chat">
+      <ion-segment-button value="general">
         <img class="mode-icon" [src]="settings.darkMode() ? generalMode.darkImage : generalMode.image" alt="" aria-hidden="true" />
+        <ion-label>Chat</ion-label>
       </ion-segment-button>
       @for (m of modes; track m.key) {
-        <ion-segment-button [value]="m.key" layout="icon-only" [attr.aria-label]="m.short">
-          <img class="mode-icon" [class.mode-icon-interview]="m.key === 'interview'" [src]="settings.darkMode() ? m.darkImage : m.image" alt="" aria-hidden="true" />
+        <ion-segment-button [value]="m.key">
+          <img class="mode-icon" [src]="settings.darkMode() ? m.darkImage : m.image" alt="" aria-hidden="true" />
+          <ion-label>{{ m.short }}</ion-label>
         </ion-segment-button>
       }
     </ion-segment>
@@ -24,12 +26,14 @@
 
     <!-- phones: every feature as a button in a grid, so nothing scrolls sideways or gets cut -->
     <div class="mode-grid" role="tablist" aria-label="AI feature">
-      <button type="button" role="tab" aria-label="Chat" [class.on]="mode() === 'general'" [attr.aria-selected]="mode() === 'general'" (click)="onMode('general')">
+      <button type="button" role="tab" [class.on]="mode() === 'general'" [attr.aria-selected]="mode() === 'general'" (click)="onMode('general')">
         <img class="mode-icon" [src]="settings.darkMode() ? generalMode.darkImage : generalMode.image" alt="" aria-hidden="true" />
+        <span>Chat</span>
       </button>
       @for (m of modes; track m.key) {
-        <button type="button" role="tab" [attr.aria-label]="m.short" [class.on]="mode() === m.key" [attr.aria-selected]="mode() === m.key" (click)="onMode(m.key)">
-          <img class="mode-icon" [class.mode-icon-interview]="m.key === 'interview'" [src]="settings.darkMode() ? m.darkImage : m.image" alt="" aria-hidden="true" />
+        <button type="button" role="tab" [class.on]="mode() === m.key" [attr.aria-selected]="mode() === m.key" (click)="onMode(m.key)">
+          <img class="mode-icon" [src]="settings.darkMode() ? m.darkImage : m.image" alt="" aria-hidden="true" />
+          <span>{{ m.short }}</span>
         </button>
       }
     </div>
@@ -119,7 +123,7 @@
                 @if (m.verdict; as v) {
                   <div class="verdict {{ v.type }}">
                     <ion-icon
-                      [name]="v.type === 'resume' ? 'shield-checkmark-outline' : v.type === 'not_job_related' ? 'close-circle-outline' : 'document-text-outline'"
+                      [name]="v.type === 'resume' ? 'shield-checkmark-outline' : v.type === 'notJobRelated' ? 'close-circle-outline' : 'document-text-outline'"
                       aria-hidden="true"
                     ></ion-icon>
                     <span><strong>{{ v.label }}</strong> · {{ v.confidence }}% sure</span>
@@ -190,7 +194,7 @@
 
                 @if (!m.error) {
                   <div class="meta">
-                    <span>{{ m.model }}</span>
+                    <span [title]="m.model ?? ''">SeeCareer AI</span>
                     <button type="button" class="icon-btn" (click)="startReply(m)" aria-label="Reply to this message">
                       <ion-icon name="arrow-undo-outline"></ion-icon>
                     </button>
@@ -307,32 +311,30 @@
     }
 
     <div class="inputbox" [class.invalid]="inputError">
+      <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or upload your resume">
+        <ion-icon name="attach-outline"></ion-icon>
+      </button>
       <input #filePicker type="file" multiple [accept]="accepted" hidden (change)="onFiles($event)" />
       <ion-textarea
         #msgBox
         [(ngModel)]="inputText"
         (keydown)="onKeydown($event)"
         (paste)="onPaste($any($event))"
-        (ionInput)="onMessageInput()"
+        (ionInput)="inputError = ''"
         [autoGrow]="true"
         rows="1"
         [maxlength]="maxLength"
         [placeholder]="pending().length ? 'Ask about the file (optional)…' : mock() ? 'Type your answer…' : info().placeholder"
         aria-label="Message"
       ></ion-textarea>
-      <div class="composer-actions">
-        <button type="button" class="attach" [class.on]="hasResume()" (click)="openAttachMenu()" aria-label="Attach a file or upload your resume">
-          <ion-icon name="attach-outline"></ion-icon>
+      @if (sending()) {
+        <button type="button" class="stop" (click)="stop()" aria-label="Stop (Esc)">
+          <ion-icon name="stop"></ion-icon>
         </button>
-        @if (sending()) {
-          <button type="button" class="stop" (click)="stop()" aria-label="Stop (Esc)">
-            <ion-icon name="stop"></ion-icon>
-          </button>
-        }
-        <button type="button" class="send" (click)="send()" [disabled]="reading()" [attr.aria-label]="sending() ? 'Send after the answer finishes' : 'Send message'">
-          <ion-icon name="arrow-up"></ion-icon>
-        </button>
-      </div>
+      }
+      <button type="button" class="send" (click)="send()" [disabled]="reading()" [attr.aria-label]="sending() ? 'Send after the answer finishes' : 'Send message'">
+        <ion-icon name="arrow-up"></ion-icon>
+      </button>
     </div>
     <div class="hint">
       @if (inputError) {

@@ -4,14 +4,12 @@ import { ResumeData, ResumeTemplate, SectionKey, sectionOrder } from './resumeda
 
 type RGB = [number, number, number];
 
-/** A4 in points. */
+// A4 in points.
 const PAGE = { w: 595.28, h: 841.89 };
-/**
- * The size the layout is worked out for. It equals PAGE, except when a resume is shrunk to fit one page:
- * the layout is then worked out on a bigger "virtual" page and the whole page is scaled down when it is drawn.
- */
+// The size the layout is worked out for. It equals PAGE, except when a resume is shrunk to fit one page:
+// the layout is then worked out on a bigger "virtual" page and the whole page is scaled down when it is drawn.
 let A4 = { w: PAGE.w, h: PAGE.h };
-/** Called whenever a page begins (it starts the scaling when a resume is being shrunk). */
+// Called whenever a page begins (it starts the scaling when a resume is being shrunk).
 let pageStart: () => void = () => undefined;
 
 // ---------- colour helpers ----------
@@ -23,12 +21,12 @@ export function hexToRgb(hex: string): RGB {
 
 const rgbToHex = (c: RGB) => '#' + c.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
 
-/** Mixes a colour with white. amount 0 = the colour, 1 = white. */
+// Mixes a colour with white. amount 0 = the colour, 1 = white.
 export function tint(rgb: RGB, amount: number): RGB {
   return rgb.map((c) => Math.round(c + (255 - c) * amount)) as RGB;
 }
 
-/** Mixes a colour with black. amount 0 = the colour, 1 = black. */
+// Mixes a colour with black. amount 0 = the colour, 1 = black.
 export function shade(rgb: RGB, amount: number): RGB {
   return rgb.map((c) => Math.round(c * (1 - amount))) as RGB;
 }
@@ -41,12 +39,12 @@ function luminance(c: RGB): number {
   return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
 }
 
-/** How well white text reads on this colour (WCAG contrast ratio). 4.5 or more is good. */
+// How well white text reads on this colour (WCAG contrast ratio). 4.5 or more is good.
 export function contrastWithWhite(c: RGB): number {
   return 1.05 / (luminance(c) + 0.05);
 }
 
-/** Darkens a colour just enough that white text on it stays easy to read. */
+// Darkens a colour just enough that white text on it stays easy to read.
 export function ensureContrast(hex: string): string {
   let c = hexToRgb(hex);
   for (let i = 0; i < 30 && contrastWithWhite(c) < 4.5; i++) {
@@ -55,7 +53,7 @@ export function ensureContrast(hex: string): string {
   return rgbToHex(c);
 }
 
-/** Standard PDF fonts only cover Western characters, so replace or drop the rest. */
+// Standard PDF fonts only cover Western characters, so replace or drop the rest.
 export function clean(text: string): string {
   return (text ?? '')
     .replace(/[‘’‚]/g, "'")
@@ -179,7 +177,7 @@ function bullets(doc: jsPDF, f: Flow, t: Theme, items: string[], x: number, w: n
   }
 }
 
-/** Role on the left, dates on the right (or all in one muted line), then the company line. */
+// Role on the left, dates on the right (or all in one muted line), then the company line.
 function entry(doc: jsPDF, f: Flow, t: Theme, head: string, sub: string, dates: string, x: number, w: number): void {
   const size = t.body + 0.6;
   const lh = size * 1.38;
@@ -286,8 +284,8 @@ function summaryBlock(doc: jsPDF, f: Flow, t: Theme, d: ResumeData, x: number, w
   para(doc, f, t, d.summary, x, w, { size: t.body + 0.2, color: t.text, gap: 4 });
 }
 
-/** The profile photo, as a circle when `round` is true (with an optional ring around it). */
-/** Limits what is drawn next to a circle (jsPDF's own clip() does not apply to a path it has already closed). */
+// The profile photo, as a circle when `round` is true (with an optional ring around it).
+// Limits what is drawn next to a circle (jsPDF's own clip() does not apply to a path it has already closed).
 function circleClip(doc: jsPDF, cx: number, cy: number, r: number): void {
   const k = doc.internal.scaleFactor;
   const h = doc.internal.pageSize.getHeight();
@@ -325,11 +323,11 @@ function drawPhoto(doc: jsPDF, photo: string, x: number, y: number, size: number
       doc.rect(x, y, size, size, 'S');
     }
   } catch {
-    /* a photo that cannot be drawn is simply left out */
+    // a photo that cannot be drawn is simply left out
   }
 }
 
-/** Skills as small rounded tags that wrap onto new lines. */
+// Skills as small rounded tags that wrap onto new lines.
 function pills(doc: jsPDF, f: Flow, t: Theme, items: string[], x: number, w: number, style?: { fill: RGB; border: RGB; text: RGB }): void {
   const size = 8.3;
   const h = 14.5;
@@ -367,7 +365,7 @@ function pills(doc: jsPDF, f: Flow, t: Theme, items: string[], x: number, w: num
 // ---------- templates ----------
 type SideVariant = 'modern' | 'bold' | 'creative';
 
-/** A column of skills, one per line with a small square, for dark and colour columns. */
+// A column of skills, one per line with a small square, for dark and colour columns.
 function skillList(doc: jsPDF, f: Flow, t: Theme, items: string[], x: number, w: number, color: RGB, mark: RGB): void {
   for (const item of items) {
     const label = clean(item);
@@ -394,10 +392,8 @@ function skillList(doc: jsPDF, f: Flow, t: Theme, items: string[], x: number, w:
   f.y += 4;
 }
 
-/**
- * The designs with a side column: Modern (colour header, light column), Bold (dark column that holds the photo and the name)
- * and Creative (a big colour column, the name in large type on the white side, filled rounded labels).
- */
+// The designs with a side column: Modern (colour header, light column), Bold (dark column that holds the photo and the name)
+// and Creative (a big colour column, the name in large type on the white side, filled rounded labels).
 function sidebar(doc: jsPDF, d: ResumeData, accent: RGB, variant: SideVariant): void {
   const modernV = variant === 'modern';
   const bold = variant === 'bold';
@@ -421,8 +417,8 @@ function sidebar(doc: jsPDF, d: ResumeData, accent: RGB, variant: SideVariant): 
     }
   };
 
-  // main-column heading: Modern and Bold use an accent bar, Creative a filled rounded label
-  const heading = (f: Flow, label: string, x: number, _w: number) => {
+  // main column heading: Modern and Bold use an accent bar, Creative a filled rounded label
+  const heading = (f: Flow, label: string, x: number, width: number) => {
     f.y += creative ? 10 : 7;
     f.need(72); // a heading always keeps its first lines with it
     if (creative) {
@@ -445,7 +441,7 @@ function sidebar(doc: jsPDF, d: ResumeData, accent: RGB, variant: SideVariant): 
     doc.text(clean(label).toUpperCase(), x + 10, f.y + 10, { charSpace: 0.9 });
     f.y += 21;
   };
-  // side-column heading: the title with a short underline
+  // side column heading: the title with a short underline
   const sideHeading = (f: Flow, label: string, x: number) => {
     f.y += 6;
     f.need(60);
@@ -594,7 +590,7 @@ function sidebar(doc: jsPDF, d: ResumeData, accent: RGB, variant: SideVariant): 
 
 type ColumnVariant = 'classic' | 'minimal' | 'executive' | 'elegant';
 
-/** The one-column designs: Classic, Minimal, Executive (heavy rule under the name) and Elegant (centred, fine lines). */
+// The one column designs: Classic, Minimal, Executive (heavy rule under the name) and Elegant (centred, fine lines).
 function singleColumn(doc: jsPDF, d: ResumeData, accent: RGB, kind: ColumnVariant): void {
   const classic = kind === 'classic';
   const executive = kind === 'executive';
@@ -756,7 +752,7 @@ function singleColumn(doc: jsPDF, d: ResumeData, accent: RGB, kind: ColumnVarian
 }
 
 // ---------- public: PDF ----------
-/** Draws the resume once at the given scale (1 = normal) and returns the file and how many pages it has. */
+// Draws the resume once at the given scale (1 = normal) and returns the file and how many pages it has.
 async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, scale: number): Promise<{ blob: Blob; pages: number }> {
   const { jsPDF } = await import('jspdf');
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
@@ -784,10 +780,8 @@ async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, sca
   }
 }
 
-/**
- * Builds the PDF. A resume that is only a little too long for one page is shrunk to fit it,
- * the way a designer would. A longer one simply runs onto a second page.
- */
+// Builds the PDF. A resume that is only a little too long for one page is shrunk to fit it,
+// the way a designer would. A longer one simply runs onto a second page.
 export async function buildResumePdf(data: ResumeData, template: ResumeTemplate, accentHex: string): Promise<Blob> {
   const accent = hexToRgb(ensureContrast(accentHex));
   const natural = await draw(data, template, accent, 1);

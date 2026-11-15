@@ -13,7 +13,7 @@ export interface TaskOutput {
   model: string;
 }
 
-/** Runs the AI career tools (resume, match, cover letter, gap, interview) and handles the privacy consent. */
+// Runs the AI career tools (resume, match, cover letter, gap, interview) and handles the privacy consent.
 @Injectable({ providedIn: 'root' })
 export class AiTaskService {
   private ai = inject(AiService);
@@ -22,7 +22,7 @@ export class AiTaskService {
   private alerts = inject(AlertController);
 
 
-  /** Tells the user their resume goes to an external AI provider and asks once for permission. */
+  // Tells the user their resume goes to an external AI provider and asks once for permission.
   async ensureConsent(): Promise<boolean> {
     if (this.resume.consent()) {
       return true;

@@ -24,14 +24,13 @@
   width: 56px;
   height: 56px;
   flex: 0 0 56px;
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--sc-panel-2);
   border: 1px solid var(--sc-border);
   display: grid;
   place-items: center;
   overflow: hidden;
   color: var(--sc-accent);
-  font-family: var(--sc-font-pixel);
   font-weight: 700;
   font-size: 22px;
   font-family: var(--sc-mono);
@@ -54,17 +53,14 @@
 }
 
 ion-accordion-group {
-  border: 2px solid var(--sc-frame-color);
-  border-image: linear-gradient(135deg, var(--sc-frame-color), var(--sc-frame-accent), var(--sc-frame-color)) 1;
-  clip-path: var(--sc-frame-clip);
-  box-shadow: 3px 5px 0 var(--sc-frame-shadow);
+  border: 1px solid var(--sc-border);
+  border-radius: 0;
   overflow: hidden;
 }
 
 ion-accordion ion-item[slot='header'] {
   --background: var(--sc-panel);
   --color: var(--sc-text);
-  --ion-font-family: var(--sc-font-pixel);
   font-weight: 600;
 }
 
@@ -104,20 +100,6 @@ ion-accordion ion-item[slot='header'] {
   --color: var(--sc-text);
 }
 
-:host-context(:root.ion-palette-dark) ion-accordion-group ion-accordion ion-item[slot='header'],
-:host-context(:root.ion-palette-dark) ion-accordion-group ion-accordion .desc,
-:host-context(:root.ion-palette-dark) ion-accordion-group ion-accordion .info {
-  --background: #290044;
-  background: #290044;
-}
-
-ion-accordion-group ion-accordion ion-item[slot='header'],
-ion-accordion-group ion-accordion .desc,
-ion-accordion-group ion-accordion .info {
-  --background: #E8F9FF;
-  background: #E8F9FF;
-}
-
 .state {
   text-align: center;
   padding: 64px 24px;
@@ -148,7 +130,7 @@ ion-accordion-group ion-accordion .info {
   margin: 0 0 16px;
   padding: 12px 14px;
   border: 1px solid var(--sc-border);
-  border-radius: 12px;
+  border-radius: 0;
   background: var(--sc-panel);
 
   h3 {
@@ -158,20 +140,6 @@ ion-accordion-group ion-accordion .info {
     display: flex;
     align-items: center;
     gap: 6px;
-  }
-
-  .ai-icon {
-    width: 18px;
-    height: 18px;
-    object-fit: contain;
-  }
-
-  .task-icon {
-    width: 18px;
-    height: 18px;
-    margin-inline-end: 6px;
-    object-fit: contain;
-    image-rendering: pixelated;
   }
 
   .hint {

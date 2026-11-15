@@ -7,15 +7,13 @@
 
 .hero {
   padding: var(--sp-5);
-  border-radius: 28px;
+  border-radius: 0;
   background: var(--sc-panel);
-  border: 1px solid var(--sc-edge);
+  border: 1px solid var(--sc-border);
   box-shadow: var(--sc-shadow);
-  backdrop-filter: blur(var(--sc-blur, 16px));
 
   .eyebrow {
     margin: 0 0 var(--sp-1);
-    font-family: var(--sc-font-pixel);
     font-size: 13px;
     font-weight: 600;
     color: var(--sc-primary);
@@ -38,15 +36,6 @@
     display: flex;
     flex-wrap: wrap;
     gap: var(--sp-2);
-
-    .cta-icon {
-      flex: none;
-      width: 18px;
-      height: 18px;
-      margin-inline-end: 8px;
-      object-fit: contain;
-    }
-
   }
 }
 
@@ -66,11 +55,10 @@
   font: inherit;
   color: inherit;
   cursor: pointer;
-  border-radius: 20px;
+  border-radius: 0;
   background: var(--sc-panel);
-  border: 1px solid var(--sc-edge);
+  border: 1px solid var(--sc-border);
   box-shadow: var(--sc-shadow);
-  backdrop-filter: blur(var(--sc-blur, 16px));
   transition: transform 160ms ease, border-color 160ms ease;
 
   &:hover,
@@ -84,16 +72,10 @@
     place-items: center;
     width: 42px;
     height: 42px;
-    border-radius: 14px;
+    border-radius: 0;
+    font-size: 22px;
+    color: var(--sc-primary);
     background: var(--sc-panel-2);
-
-    img {
-      display: block;
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-    }
-
   }
 
   strong {
@@ -135,8 +117,8 @@
     text-align: center;
     color: var(--sc-muted);
     background: var(--sc-panel);
-    border: 1px solid var(--sc-edge);
-    border-radius: 24px;
+    border: 1px solid var(--sc-border);
+    border-radius: 0;
     box-shadow: var(--sc-shadow);
 
     p {

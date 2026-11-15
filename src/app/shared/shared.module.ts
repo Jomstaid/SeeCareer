@@ -12,7 +12,7 @@ import { RecCarouselComponent } from './reccarousel/reccarousel.component';
 import { ResumeDesignerComponent } from './resumedesigner/resumedesigner.component';
 import { ResumePreviewComponent } from './resumepreview/resumepreview.component';
 
-/** Components used by more than one page. */
+// Components used by more than one page.
 @NgModule({
   imports: [CommonModule, FormsModule, IonicModule],
   declarations: [CompanyLogoComponent, FitPageDirective, PageHeaderComponent, JobCardComponent, FeatureListComponent, RecCarouselComponent, ResumePreviewComponent, ResumeDesignerComponent],

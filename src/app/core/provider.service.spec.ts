@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { DEFAULT_FREE_AI } from './defaults';
+import { defaultFreeAi } from './defaults';
 import { ProviderService } from './provider.service';
 
 const STORE = 'seecareer.providers';
@@ -14,7 +14,7 @@ describe('ProviderService (built-in provider needs no key)', () => {
     expect(first.preset).toBe('free');
     expect(first.baseUrl).toBe('https://api.jomstaid.com/v1');
     expect(first.apiKey).toBe('');
-    expect(Object.keys(DEFAULT_FREE_AI)).not.toContain('apiKey'); // nothing secret in the source code
+    expect(Object.keys(defaultFreeAi)).not.toContain('apiKey'); // nothing secret in the source code
   });
 
   it('never stores a key for the built-in provider and keeps its address locked', () => {
@@ -22,7 +22,7 @@ describe('ProviderService (built-in provider needs no key)', () => {
     const p = service.providers()[0];
     service.save({ ...p, baseUrl: 'https://evil.example/v1', preset: 'custom', apiKey: 'typed-key-123456' });
     const after = service.providers()[0];
-    expect(after.baseUrl).toBe(DEFAULT_FREE_AI.baseUrl);
+    expect(after.baseUrl).toBe(defaultFreeAi.baseUrl);
     expect(after.apiKey).toBe('');
     expect(localStorage.getItem(STORE)).not.toContain('typed-key-123456');
   });
@@ -34,7 +34,7 @@ describe('ProviderService (built-in provider needs no key)', () => {
     );
     const p = TestBed.inject(ProviderService).providers()[0];
     expect(p.builtin).toBe(true);
-    expect(p.baseUrl).toBe(DEFAULT_FREE_AI.baseUrl);
+    expect(p.baseUrl).toBe(defaultFreeAi.baseUrl);
     expect(p.apiKey).toBe('');
     expect(p.model).toBe('m1'); // the user's model choice is kept
     expect(p.enabled).toBe(false); // and the on/off switch
@@ -44,7 +44,7 @@ describe('ProviderService (built-in provider needs no key)', () => {
   it('wipes a key that an earlier version saved for the current address', () => {
     localStorage.setItem(
       STORE,
-      JSON.stringify([{ id: 'a1', name: 'Free AI', preset: 'free', baseUrl: DEFAULT_FREE_AI.baseUrl, apiKey: 'saved-secret-key-1', model: '', enabled: true }]),
+      JSON.stringify([{ id: 'a1', name: 'Free AI', preset: 'free', baseUrl: defaultFreeAi.baseUrl, apiKey: 'saved-secret-key-1', model: '', enabled: true }]),
     );
     TestBed.inject(ProviderService);
     expect(localStorage.getItem(STORE)).not.toContain('saved-secret-key-1');

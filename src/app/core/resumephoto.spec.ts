@@ -27,7 +27,7 @@ const SAMPLE: ResumeData = normalizeResume({
   languages: ['Filipino', 'English'],
 });
 
-/** A made-up portrait (sky, shoulders, head, hair) so the photo features can be tested and looked at. */
+// A made up portrait (sky, shoulders, head, hair) so the photo features can be tested and looked at.
 async function fakePortrait(): Promise<string> {
   const zlib = await import('node:zlib');
   const n = 180;
@@ -76,7 +76,7 @@ const countPages = async (blob: Blob): Promise<number> =>
   (new TextDecoder('latin1').decode(new Uint8Array(await blob.arrayBuffer())).match(/\/Type\s*\/Page(?!s)/g) ?? []).length;
 
 describe('photo, section order and fit to one page', () => {
-  const dir = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.['RESUME_SAMPLES_DIR'];
+  const dir = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.['resumeSamplesDir'];
   const save = async (name: string, blob: Blob) => {
     if (!dir) {
       return;

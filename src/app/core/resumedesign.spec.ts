@@ -61,7 +61,7 @@ describe('resume data', () => {
 });
 
 describe('resume designs', () => {
-  const dir = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.['RESUME_SAMPLES_DIR'];
+  const dir = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process?.env?.['resumeSamplesDir'];
 
   async function save(name: string, blob: Blob) {
     if (!dir) {

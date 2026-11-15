@@ -1,35 +1,34 @@
 import { GroupMember } from '../core/models';
 
-/**
- * ============ EDIT THIS FILE ============
- * Fill in your real group details. The About Our Group page reads everything from here.
- */
+// Our group details. The About Our Group page shows everything from here.
 export const PROJECT = {
   title: 'SeeCareer',
   tagline: 'AI job finder and career assistant',
   description:
-    'SeeCareer is an AI career chat for students and fresh graduates: find real remote jobs, upload or generate a resume (PDF/Word), ' +
-    'check job match scores, write cover letters, find skill gaps and practice interviews. ' +
-    'Jobs are loaded from the public Himalayas jobs REST API (100,000+ remote jobs) using Angular HttpClient GET.',
-  course: 'Mobile Application Development',
+    'SeeCareer is an AI career app for students and fresh graduates. You can find real remote jobs, upload or make a resume (PDF or Word), ' +
+    'check how well you fit a job, write cover letters, see the skills you are missing and practice interviews. ' +
+    'The jobs come from the free Himalayas Jobs REST API (100,000+ remote jobs) using Angular HttpClient GET.',
+  group: 'Group 2',
+  course: 'IT-PT02 Mobile Application Development',
   program: 'BSIT',
   year: '3rd Year',
-  section: 'IT-PT02',
+  section: 'BSIT 3E',
   school: 'Nueva Ecija University of Science and Technology (NEUST)',
+  instructor: 'Sir Angelito Cunanan Jr.',
   api: 'Himalayas Jobs API',
   endpoint: 'https://himalayas.app/jobs/api',
 };
 
 export const MEMBERS: GroupMember[] = [
-  new GroupMember('Jomar Alcantara', 'Leader / Developer', '', 'assets/team/jomar-alcantara.png'),
-  new GroupMember('Evia Cassandra Eliz Sindac', 'Member / Designer', '', 'assets/team/evia-cassandra-eliz-sindac.png'),
-  new GroupMember('Anjo Adriano', 'Member / Developer', '', 'assets/team/anjo-adriano.png'),
-  new GroupMember('Khimberly Bautista', 'Member / Developer', '', 'assets/team/khimberly-bautista.png'),
+  new GroupMember('Jomar D. Alcantara', 'Leader / Developer', 'Planned the app, built the AI chat, job search and resume features, and set up the free AI server.', 'assets/team/jomarAlcantara'),
+  new GroupMember('Evia Cassandra Eliz D. Sindac', 'Member / Designer', 'Made the pixel theme and icons, and designed the look of every page.', 'assets/team/eviaSindac'),
+  new GroupMember('Anjo T. Adriano', 'Member / Tester', 'Tested every page and feature on phones and laptops, checked the job APIs and reported the bugs we fixed.', 'assets/team/anjoAdriano'),
+  new GroupMember('Khimberly M. Bautista', 'Member / Documentation', 'Wrote the documentation, the setup guide and the test results of the project.', 'assets/team/khimberlyBautista'),
 ];
 
 export const TECH = ['Ionic 9', 'Angular 22', 'TypeScript', 'Capacitor (Android)', 'RxJS HttpClient'];
 
-/** Every web service the app talks to, so the About page lists them all. */
+// Every web service the app talks to, so the About page lists them all.
 export interface ApiInfo {
   name: string;
   use: string;

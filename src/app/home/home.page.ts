@@ -5,7 +5,7 @@ import { JobService } from '../core/job.service';
 import { Job } from '../core/models';
 import { SettingsService } from '../core/settings.service';
 
-/** One shortcut card on the Home page. */
+// One shortcut card on the Home page.
 interface Shortcut {
   image: string;
   darkImage: string;
@@ -14,7 +14,7 @@ interface Shortcut {
   path: string;
 }
 
-/** Home page: a welcome, shortcuts to every part of the app, and a few fresh jobs from the public API. */
+// Home page: a welcome, shortcuts to every part of the app, and a few fresh jobs from the public API.
 @Component({
   selector: 'app-home',
   templateUrl: './home.page.html',
@@ -27,10 +27,10 @@ export class HomePage implements OnInit {
   private router = inject(Router);
 
   readonly shortcuts: Shortcut[] = [
-    { image: 'assets/icon/nav-chat.png', darkImage: 'assets/icon/dark-nav-chat.png', title: 'AI Assistant', text: 'Chat, build a resume, check your match, write cover letters and practice interviews.', path: '/chat' },
-    { image: 'assets/icon/nav-jobs.png', darkImage: 'assets/icon/dark-nav-jobs.png', title: 'Job board', text: 'Browse and search thousands of remote openings.', path: '/jobs' },
-    { image: 'assets/icon/nav-settings.png', darkImage: 'assets/icon/dark-nav-settings.png', title: 'Settings', text: 'AI providers, theme, text size and your data.', path: '/settings' },
-    { image: 'assets/icon/nav-about.png', darkImage: 'assets/icon/dark-nav-about.png', title: 'About our group', text: 'The project, the course and the team behind it.', path: '/about' },
+    { image: 'assets/icon/navChat.png', darkImage: 'assets/icon/darkNavChat.png', title: 'AI Assistant', text: 'Chat, build a resume, check your match, write cover letters and practice interviews.', path: '/chat' },
+    { image: 'assets/icon/navJobs.png', darkImage: 'assets/icon/darkNavJobs.png', title: 'Job board', text: 'Browse and search thousands of remote openings.', path: '/jobs' },
+    { image: 'assets/icon/navSettings.png', darkImage: 'assets/icon/darkNavSettings.png', title: 'Settings', text: 'AI providers, theme, text size and your data.', path: '/settings' },
+    { image: 'assets/icon/navAbout.png', darkImage: 'assets/icon/darkNavAbout.png', title: 'About our group', text: 'The project, the course and the team behind it.', path: '/about' },
   ];
 
   latest = signal<Job[]>([]);
@@ -41,7 +41,7 @@ export class HomePage implements OnInit {
     this.loadLatest();
   }
 
-  /** Fetches the newest jobs with HttpClient GET (through the job service). */
+  // Fetches the newest jobs with HttpClient GET (through the job service).
   async loadLatest(): Promise<void> {
     this.loading.set(true);
     this.failed.set(false);
@@ -61,5 +61,12 @@ export class HomePage implements OnInit {
 
   openJob(job: Job): void {
     this.router.navigate(['/job', job.id]);
+  }
+
+  // The bookmark inside a job row: saves the job without opening it.
+  toggleSave(job: Job, event: Event): void {
+    event.stopPropagation();
+    event.preventDefault();
+    this.jobService.toggleSaved(job.id);
   }
 }

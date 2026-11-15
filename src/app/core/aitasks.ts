@@ -1,5 +1,5 @@
 import type { ApiMessage } from './ai.service';
-import { SYSTEM_PROMPT } from './defaults';
+import { systemPrompt } from './defaults';
 import { plainText } from './job.service';
 import { Job } from './models';
 
@@ -8,7 +8,7 @@ export type TaskKey = 'analyze' | 'improve' | 'skills' | 'generate' | 'match' | 
 export interface TaskContext {
   resume?: string;
   job?: Job;
-  /** Extra instructions saved in Settings. */
+  // Extra instructions saved in Settings.
   instructions?: string;
   question?: string;
   answer?: string;
@@ -25,22 +25,22 @@ export interface JobTaskInfo extends TaskInfo {
   darkImage: string;
 }
 
-export const RESUME_TASKS: TaskInfo[] = [
+export const resumeTasks: TaskInfo[] = [
   { key: 'analyze', label: 'Analyze resume', icon: 'search-outline' },
   { key: 'improve', label: 'Improve wording', icon: 'create-outline' },
   { key: 'skills', label: 'Extract skills', icon: 'list-outline' },
   { key: 'generate', label: 'Design my resume (PDF / Word)', icon: 'document-outline' },
 ];
 
-export const JOB_TASKS: JobTaskInfo[] = [
-  { key: 'match', label: 'Match score', icon: 'speedometer-outline', image: 'assets/icon/mode-match.png', darkImage: 'assets/icon/dark-mode-match.png' },
-  { key: 'cover', label: 'Cover letter', icon: 'document-text-outline', image: 'assets/icon/mode-resume.png', darkImage: 'assets/icon/dark-mode-resume.png' },
-  { key: 'email', label: 'Email draft', icon: 'mail-outline', image: 'assets/icon/mode-apply.png', darkImage: 'assets/icon/dark-mode-apply.png' },
-  { key: 'gap', label: 'Skills gap', icon: 'trending-up-outline', image: 'assets/icon/mode-skills.png', darkImage: 'assets/icon/dark-mode-skills.png' },
-  { key: 'interview', label: 'Interview prep', icon: 'chatbubbles-outline', image: 'assets/icon/mode-interview.png', darkImage: 'assets/icon/dark-mode-interview.png' },
+export const jobTasks: JobTaskInfo[] = [
+  { key: 'match', label: 'Match score', icon: 'speedometer-outline', image: 'assets/icon/modeMatch.png', darkImage: 'assets/icon/darkModeMatch.png' },
+  { key: 'cover', label: 'Cover letter', icon: 'document-text-outline', image: 'assets/icon/modeResume.png', darkImage: 'assets/icon/darkModeResume.png' },
+  { key: 'email', label: 'Email draft', icon: 'mail-outline', image: 'assets/icon/modeApply.png', darkImage: 'assets/icon/darkModeApply.png' },
+  { key: 'gap', label: 'Skills gap', icon: 'trending-up-outline', image: 'assets/icon/modeSkills.png', darkImage: 'assets/icon/darkModeSkills.png' },
+  { key: 'interview', label: 'Interview prep', icon: 'chatbubbles-outline', image: 'assets/icon/modeInterview.png', darkImage: 'assets/icon/darkModeInterview.png' },
 ];
 
-const TASK_TITLES: Record<TaskKey, string> = {
+const taskTitles: Record<TaskKey, string> = {
   analyze: 'Resume analysis',
   improve: 'Improved resume',
   skills: 'Extracted skills',
@@ -54,7 +54,7 @@ const TASK_TITLES: Record<TaskKey, string> = {
 };
 
 export function taskTitle(key: TaskKey): string {
-  return TASK_TITLES[key];
+  return taskTitles[key];
 }
 
 function jobSummary(job: Job): string {
@@ -65,7 +65,7 @@ function jobSummary(job: Job): string {
   );
 }
 
-/** Prompt templates for each AI feature. Developers can edit them here. */
+// Prompt templates for each AI feature. Developers can edit them here.
 export function buildTask(key: TaskKey, ctx: TaskContext): ApiMessage[] {
   const resume = (ctx.resume ?? '').slice(0, 8000);
   const job = ctx.job ? jobSummary(ctx.job) : '';
@@ -148,12 +148,12 @@ export function buildTask(key: TaskKey, ctx: TaskContext): ApiMessage[] {
       break;
   }
   return [
-    { role: 'system', content: SYSTEM_PROMPT + extra },
+    { role: 'system', content: systemPrompt + extra },
     { role: 'user', content: task },
   ];
 }
 
-/** Reads "SCORE: 78" from the start of a match answer. Returns null when it is missing. */
+// Reads "SCORE: 78" from the start of a match answer. Returns null when it is missing.
 export function parseScore(text: string): number | null {
   const m = /SCORE:\s*(\d{1,3})/i.exec(text);
   return m ? Math.min(100, Number(m[1])) : null;

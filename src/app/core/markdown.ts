@@ -1,8 +1,6 @@
-/**
- * Tiny, safe markdown renderer for AI answers.
- * All text is HTML-escaped first; only a few formats are turned back into tags
- * (code blocks, `inline code`, **bold**, headings, bullet and numbered lists).
- */
+// Tiny, safe markdown renderer for AI answers.
+// All text is HTML escaped first; only a few formats are turned back into tags
+// (code blocks, `inline code`, **bold**, headings, bullet and numbered lists).
 export function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -11,7 +9,7 @@ function inline(text: string): string {
   return escapeHtml(text)
     .replace(/`([^`\n]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*\n]+)\*\*/g, '<strong>$1</strong>')
-    // *italic* and _italic_, but not the stars of a list or the underscores inside a word like snake_case
+    // *italic* and _italic_, but not the stars of a list or underscores inside a word
     .replace(/(^|[^*\w])\*([^*\s][^*\n]*?)\*(?![*\w])/g, '$1<em>$2</em>')
     .replace(/(^|[^_\w])_([^_\s][^_\n]*?)_(?![_\w])/g, '$1<em>$2</em>');
 }
@@ -22,6 +20,8 @@ export function renderMarkdown(source: string): string {
   let list: 'ul' | 'ol' | null = null;
   let code: string[] | null = null;
   let paragraph: string[] = [];
+  // A blank line was seen inside a list.
+  let gap = false;
 
   const closeList = () => {
     if (list) {
@@ -54,7 +54,15 @@ export function renderMarkdown(source: string): string {
     }
     const heading = /^(#{1,4})\s+(.*)$/.exec(line);
     const bullet = /^\s*[-*•]\s+(.*)$/.exec(line);
-    const numbered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+    const numbered = /^\s*(\d+)[.)]\s+(.*)$/.exec(line);
+    // a blank line between two items of the same list does not end the list ("1. a", "", "2. b" stays one list)
+    if (gap && line.trim()) {
+      const sameList = (bullet && list === 'ul') || (numbered && list === 'ol');
+      if (!sameList) {
+        closeList();
+      }
+      gap = false;
+    }
     if (heading) {
       flushParagraph();
       closeList();
@@ -64,13 +72,16 @@ export function renderMarkdown(source: string): string {
       const kind = bullet ? 'ul' : 'ol';
       if (list !== kind) {
         closeList();
-        out.push(`<${kind}>`);
+        const start = numbered ? Number(numbered[1]) : 1;
+        out.push(kind === 'ol' && start > 1 ? `<ol start="${start}">` : `<${kind}>`);
         list = kind;
       }
-      out.push(`<li>${inline((bullet ?? numbered)![1])}</li>`);
+      out.push(`<li>${inline(bullet ? bullet[1] : numbered![2])}</li>`);
     } else if (!line.trim()) {
       flushParagraph();
-      closeList();
+      if (list) {
+        gap = true; // decided by the next line
+      }
     } else {
       closeList();
       paragraph.push(line);

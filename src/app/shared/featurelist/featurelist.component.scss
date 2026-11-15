@@ -21,7 +21,7 @@
   min-height: 72px;
   padding: var(--sp-3) var(--sp-4);
   border: 1px solid var(--sc-border);
-  border-radius: var(--sc-radius);
+  border-radius: 0;
   background: var(--sc-panel);
   color: var(--sc-text);
   font: inherit;
@@ -37,22 +37,12 @@
     flex: 0 0 44px;
     width: 44px;
     height: 44px;
-    border-radius: var(--sc-radius-sm);
+    border-radius: 0;
     display: grid;
     place-items: center;
     background: color-mix(in srgb, var(--sc-primary) 12%, transparent);
-  }
-
-  .feature-icon {
-    display: block;
-    width: 26px;
-    height: 26px;
-    object-fit: contain;
-  }
-
-  .feature-icon-interview {
-    width: 27px;
-    height: 27px;
+    color: var(--sc-primary);
+    font-size: 24px;
   }
 
   .text {

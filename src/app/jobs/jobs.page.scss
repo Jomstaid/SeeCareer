@@ -4,10 +4,9 @@
 
   h1 {
     margin: 0 0 var(--sp-1);
-    font-family: var(--sc-font-pixel);
     font-size: 26px;
     line-height: 1.2;
-    font-weight: 700;
+    font-weight: 600;
   }
 
   .sub {
@@ -25,37 +24,16 @@
   padding-block: var(--sp-3);
 }
 
-.searchbar-wrap {
-  position: relative;
-
-  .search-mode-icon {
-    position: absolute;
-    z-index: 1;
-    top: 50%;
-    left: 12px;
-    width: 24px;
-    height: 24px;
-    object-fit: contain;
-    transform: translateY(-50%);
-    pointer-events: none;
-  }
-
-  .search-mode-icon.light-mode {
-    width: 20px;
-    height: 20px;
-  }
-}
-
 ion-searchbar {
   --background: var(--sc-panel);
-  --border-radius: var(--sc-radius-sm);
+  --border-radius: 0;
   --box-shadow: none;
   --color: var(--sc-text);
   --placeholder-color: var(--sc-muted);
-  --icon-color: transparent;
+  --icon-color: var(--sc-muted);
   padding: 0;
   border: 1px solid var(--sc-border);
-  border-radius: var(--sc-radius-sm);
+  border-radius: 0;
   min-height: 48px;
 }
 
@@ -67,7 +45,7 @@ ion-searchbar {
   .category {
     flex: 1;
     min-height: 48px;
-    --border-radius: var(--sc-radius-sm);
+    --border-radius: 0;
   }
 
   ion-toggle {
@@ -104,15 +82,14 @@ ion-searchbar {
   text-align: center;
   color: var(--sc-muted);
   background: var(--sc-panel);
-  border: 1px solid var(--sc-edge);
-  border-radius: 24px;
+  border: 1px solid var(--sc-border);
+  border-radius: 0;
   box-shadow: var(--sc-shadow);
-  backdrop-filter: blur(var(--sc-blur, 16px));
 
   > ion-icon {
     font-size: 40px;
     padding: 14px;
-    border-radius: 18px;
+    border-radius: 0;
     color: var(--sc-primary);
     background: color-mix(in srgb, var(--sc-primary) 14%, transparent);
   }
@@ -156,23 +133,20 @@ ion-searchbar {
   gap: var(--sp-3);
   margin-top: var(--sp-3);
   padding: var(--sp-3) var(--sp-4);
-  border-radius: var(--sc-radius);
+  border-radius: 0;
   text-decoration: none;
   color: var(--sc-text);
-  background: linear-gradient(120deg, color-mix(in srgb, var(--sc-primary) 22%, transparent), color-mix(in srgb, var(--sc-cta) 22%, transparent));
+  background: color-mix(in srgb, var(--sc-primary) 14%, var(--sc-panel));
   border: 1px solid var(--sc-border);
-  border-top-color: var(--sc-edge);
   transition: transform 150ms ease;
 
   &:hover {
     transform: translateY(-1px);
   }
 
-  .ai-cta-icon {
-    flex: none;
-    width: 26px;
-    height: 26px;
-    object-fit: contain;
+  > ion-icon:first-child {
+    font-size: 26px;
+    color: var(--sc-primary);
   }
 
   span {

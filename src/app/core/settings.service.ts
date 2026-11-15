@@ -1,15 +1,15 @@
 import { Injectable, signal } from '@angular/core';
 
-import { DEFAULT_SETTINGS } from './defaults';
+import { defaultSettings } from './defaults';
 import { AppSettings } from './models';
 import { readJson, writeJson } from './storage';
 
 const KEY = 'seecareer.settings';
 
-/** Stores the app settings (theme, reply length, history, text size) and applies the theme. */
+// Stores the app settings (theme, reply length, history, text size) and applies the theme.
 @Injectable({ providedIn: 'root' })
 export class SettingsService {
-  readonly settings = signal<AppSettings>({ ...DEFAULT_SETTINGS, ...readJson<Partial<AppSettings>>(KEY, {}) });
+  readonly settings = signal<AppSettings>({ ...defaultSettings, ...readJson<Partial<AppSettings>>(KEY, {}) });
   readonly darkMode = signal(false);
 
   constructor() {

@@ -6,15 +6,13 @@ import { Place, placeByCode, splitPlace } from './places';
 import { HimalayasJob, HimalayasResponse, Job, JobPage } from './models';
 import { readJson, writeJson } from './storage';
 
-/**
- * Himalayas public jobs API (no key, about 100,000+ remote jobs).
- * On the phone the app calls it with native HTTP, which has no CORS limit, so the full list works.
- * A browser page is blocked from calling it directly (Himalayas sends no CORS headers); the app then
- * falls back to a second source (see BACKUP_SOURCE), so the Jobs page still has jobs.
- */
+// Himalayas public jobs API (no key, about 100,000+ remote jobs).
+// On the phone the app calls it with native HTTP, which has no CORS limit, so the full list works.
+// A browser page is blocked from calling it directly (Himalayas sends no CORS headers); the app then
+// falls back to a second source (see backupSource), so the Jobs page still has jobs.
 const BASE = 'https://himalayas.app';
-export const JOBS_SOURCE = { name: 'Himalayas', url: 'https://himalayas.app', endpoint: 'https://himalayas.app/jobs/api' };
-export const BACKUP_SOURCE = { name: 'Remotive, Jobicy, RemoteOK & Arbeitnow', url: 'https://remotive.com', endpoint: 'https://remotive.com/api/remote-jobs' };
+export const jobsSource = { name: 'Himalayas', url: 'https://himalayas.app', endpoint: 'https://himalayas.app/jobs/api' };
+export const backupSource = { name: 'Remotive, Jobicy, RemoteOK & Arbeitnow', url: 'https://remotive.com', endpoint: 'https://remotive.com/api/remote-jobs' };
 
 interface RemoteOkItem {
   id?: string;
@@ -84,13 +82,13 @@ interface JobicyJob {
   salaryCurrency?: string;
 }
 
-export const PAGE_SIZE = 20;
-const SAVED_KEY = 'seecareer.savedJobs';
-const CACHE_KEY = 'seecareer.jobCache';
-const CACHE_MAX = 300;
+export const jobsPerPage = 20;
+const savedKey = 'seecareer.savedJobs';
+const cacheKey = 'seecareer.jobCache';
+const cacheMax = 300;
 
-/** Quick filters shown on the Jobs page (they become search keywords). */
-export const QUICK_FILTERS: { label: string; query: string }[] = [
+// Quick filters shown on the Jobs page (they become search keywords).
+export const quickFilters: { label: string; query: string }[] = [
   { label: 'All jobs', query: '' },
   { label: 'Software development', query: 'software engineer' },
   { label: 'Web / frontend', query: 'frontend developer' },
@@ -107,21 +105,19 @@ export const QUICK_FILTERS: { label: string; query: string }[] = [
   { label: 'Teaching', query: 'teacher' },
 ];
 
-/** Centralised data service: loads jobs with HttpClient GET and keeps a small cache on the phone. */
+// Centralised data service: loads jobs with HttpClient GET and keeps a small cache on the phone.
 @Injectable({ providedIn: 'root' })
 export class JobService {
   private http = inject(HttpClient);
 
-  private cache = new Map<number, Job>(readJson<Job[]>(CACHE_KEY, []).map((j) => [j.id, j]));
+  private cache = new Map<number, Job>(readJson<Job[]>(cacheKey, []).map((j) => [j.id, j]));
 
-  /** Ids of jobs the user bookmarked. */
-  readonly savedIds = signal<number[]>(readJson<number[]>(SAVED_KEY, []));
+  // Ids of jobs the user bookmarked.
+  readonly savedIds = signal<number[]>(readJson<number[]>(savedKey, []));
 
-  /**
-   * One page of jobs (20 per page).
-   * No keyword: GET /jobs/api?limit=20&offset=N (the whole feed, 100k+ jobs).
-   * Keyword:    GET /jobs/api/search?q=...&page=N
-   */
+  // One page of jobs (20 per page).
+  // No keyword: GET /jobs/api?limit=20&offset=N (the whole feed, 100k+ jobs).
+  // Keyword:    GET /jobs/api/search?q=...&page=N
   async getJobs(search = '', page = 0, country?: string): Promise<JobPage> {
     // "developer in Manila" becomes the keyword "developer" limited to the Philippines
     const split = country ? { query: search, place: null } : splitPlace(search);
@@ -146,13 +142,13 @@ export class JobService {
           result.loose = true;
         }
         this.active = 'himalayas';
-        this.source.set(JOBS_SOURCE);
+        this.source.set(jobsSource);
       } catch (first) {
         // Himalayas unreachable (no internet, or blocked in a browser): use the backup source.
         try {
           result = await this.fromBackup(keyword, 0, where);
           this.active = 'backup';
-          this.source.set(BACKUP_SOURCE);
+          this.source.set(backupSource);
         } catch {
           throw first;
         }
@@ -164,11 +160,11 @@ export class JobService {
     return result;
   }
 
-  /** Searches that had to include "open to anyone" jobs because the country alone gave nothing. */
+  // Searches that had to include "open to anyone" jobs because the country alone gave nothing.
   private loose = new Set<string>();
 
-  /** Which source answered last (shown in the credit line). */
-  readonly source = signal(JOBS_SOURCE);
+  // Which source answered last (shown in the credit line).
+  readonly source = signal(jobsSource);
   private active: 'himalayas' | 'backup' = 'himalayas';
 
   private async fromHimalayas(search: string, page: number, country?: string, onlyCountry = false): Promise<JobPage> {
@@ -184,7 +180,7 @@ export class JobService {
       }
       res = await firstValueFrom(this.http.get<HimalayasResponse>(`${BASE}/jobs/api/search`, { params }));
     } else {
-      const params = new HttpParams().set('limit', PAGE_SIZE).set('offset', page * PAGE_SIZE);
+      const params = new HttpParams().set('limit', jobsPerPage).set('offset', page * jobsPerPage);
       res = await firstValueFrom(this.http.get<HimalayasResponse>(`${BASE}/jobs/api`, { params }));
     }
     if (!res || !Array.isArray(res.jobs)) {
@@ -192,13 +188,11 @@ export class JobService {
     }
     const jobs = res.jobs.map(toJob);
     const total = res.totalCount ?? jobs.length;
-    return { jobs, total, hasMore: jobs.length > 0 && (page + 1) * PAGE_SIZE < total };
+    return { jobs, total, hasMore: jobs.length > 0 && (page + 1) * jobsPerPage < total };
   }
 
-  /**
-   * Backup source: Arbeitnow + RemoteOK (both free and allow browser requests). They have no real search,
-   * so they are loaded ONCE into a shared pool and the keyword ranks the jobs in memory.
-   */
+  // Backup source: Arbeitnow + RemoteOK (both free and allow browser requests). They have no real search,
+  // so they are loaded ONCE into a shared pool and the keyword ranks the jobs in memory.
   private async fromBackup(search: string, page: number, place?: Place): Promise<JobPage> {
     const pool = await this.backupJobs(search, place);
     const words = search
@@ -208,7 +202,7 @@ export class JobService {
     // a place was named: keep jobs for that place and jobs open to anyone, never jobs tied to another country
     const here = (j: Job) => !!place && locationMentions(j.candidate_required_location, place);
     let list = place ? pool.filter((j) => here(j) || isWorldwide(j.candidate_required_location)) : pool;
-    // no place named: jobs open to anyone come first, region-bound ones stay in the list below them
+    // no place named: jobs open to anyone come first, region bound ones stay in the list below them
     const localFirst = (j: Job) => (here(j) ? 4 : 0) + (!place && isWorldwide(j.candidate_required_location) ? 2 : 0);
     if (words.length) {
       const scored = list
@@ -218,23 +212,24 @@ export class JobService {
           const hits = words.filter((w) => text.includes(w)).length;
           const inTitle = words.filter((w) => title.includes(w)).length;
           const phrase = words.length > 1 && title.includes(words.join(' ')) ? 5 : 0;
-          return { job, all: hits === words.length, score: hits + inTitle * 2 + phrase + localFirst(job) };
+          return { job, hits, all: hits === words.length, score: hits + inTitle * 2 + phrase + localFirst(job) };
         })
-        .filter((x) => x.score > 0);
+        // a job must contain at least one of the words: being open worldwide is not a match by itself
+        .filter((x) => x.hits > 0);
       // every search word must appear somewhere ("graphic designer" is not "task designer"); loosen only when nothing does
       const strict = scored.filter((x) => x.all);
       list = (strict.length ? strict : scored).sort((a, b) => b.score - a.score).map((x) => x.job);
     } else {
       list = [...list].sort((a, b) => localFirst(b) - localFirst(a));
     }
-    const jobs = list.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const jobs = list.slice(page * jobsPerPage, (page + 1) * jobsPerPage);
     // none of them is only for the named place: they are remote jobs open to anyone
-    return { jobs, total: list.length, hasMore: (page + 1) * PAGE_SIZE < list.length, ...(place && !list.some(here) ? { loose: true } : {}) };
+    return { jobs, total: list.length, hasMore: (page + 1) * jobsPerPage < list.length, ...(place && !list.some(here) ? { loose: true } : {}) };
   }
 
   private backupCache = new Map<string, { at: number; jobs: Job[] }>();
 
-  /** Jobs from every backup source for this search, merged and without repeats (kept for a minute so paging is instant). */
+  // Jobs from every backup source for this search, merged and without repeats (kept for a minute so paging is instant).
   private async backupJobs(search: string, place?: Place): Promise<Job[]> {
     const key = `${search.toLowerCase().trim()}|${place?.code ?? ''}`;
     const hit = this.backupCache.get(key);
@@ -262,7 +257,7 @@ export class JobService {
     return jobs;
   }
 
-  /** Remotive: real keyword search over remote jobs in every field, with company logos. */
+  // Remotive: real keyword search over remote jobs in every field, with company logos.
   private async fromRemotive(search: string): Promise<Job[]> {
     let params = new HttpParams().set('limit', 100);
     if (search.trim()) {
@@ -272,7 +267,7 @@ export class JobService {
     return (res?.jobs ?? []).map(toJobFromRemotive);
   }
 
-  /** Jobicy: remote jobs with a country filter and company logos. */
+  // Jobicy: remote jobs with a country filter and company logos.
   private async fromJobicy(search: string, place?: Place): Promise<Job[]> {
     let params = new HttpParams().set('count', 50);
     if (search.trim()) {
@@ -320,7 +315,7 @@ export class JobService {
   }
 
 
-  /** Finds a job that was already loaded (it stays cached on the phone). */
+  // Finds a job that was already loaded (it stays cached on the phone).
   async getJob(id: number): Promise<Job | undefined> {
     return this.cache.get(id);
   }
@@ -329,7 +324,7 @@ export class JobService {
     return this.cache.get(id);
   }
 
-  /** Puts a job (for example one restored from saved chats) back in the cache. */
+  // Puts a job (for example one restored from saved chats) back in the cache.
   remember(job: Job): void {
     if (!this.cache.has(job.id)) {
       this.cache.set(job.id, job);
@@ -350,24 +345,24 @@ export class JobService {
   toggleSaved(id: number): void {
     const ids = this.isSaved(id) ? this.savedIds().filter((x) => x !== id) : [...this.savedIds(), id];
     this.savedIds.set(ids);
-    writeJson(SAVED_KEY, ids);
+    writeJson(savedKey, ids);
     this.persist();
   }
 
-  /** Keeps saved jobs plus the most recent ones, with shorter descriptions, so storage stays small. */
+  // Keeps saved jobs plus the most recent ones, with shorter descriptions, so storage stays small.
   private persist(): void {
     const saved = new Set(this.savedIds());
     const all = [...this.cache.values()];
-    const keep = [...all.filter((j) => saved.has(j.id)), ...all.filter((j) => !saved.has(j.id)).slice(-CACHE_MAX)];
+    const keep = [...all.filter((j) => saved.has(j.id)), ...all.filter((j) => !saved.has(j.id)).slice(-cacheMax)];
     writeJson(
-      CACHE_KEY,
+      cacheKey,
       keep.map((j) => ({ ...j, description: (j.description ?? '').slice(0, 6000) })),
     );
   }
 }
 
 // ---------- helpers ----------
-/** Stable number id from the job's URL (Himalayas has no numeric id). */
+// Stable number id from the job's URL (Himalayas has no numeric id).
 export function hashId(text: string): number {
   let h1 = 0x811c9dc5;
   let h2 = 0;
@@ -390,7 +385,7 @@ function money(n: number | null | undefined, currency?: string | null): string {
 
 const list = (v: string[] | string | undefined): string[] => (Array.isArray(v) ? v : v ? [v] : []).map(String).filter(Boolean);
 
-/** Converts a Remotive job into the app's Job interface. */
+// Converts a Remotive job into the app's Job interface.
 export function toJobFromRemotive(r: RemotiveJob): Job {
   return {
     id: hashId('remotive:' + r.id),
@@ -408,9 +403,9 @@ export function toJobFromRemotive(r: RemotiveJob): Job {
   };
 }
 
-/** Converts a Jobicy job into the app's Job interface. */
+// Converts a Jobicy job into the app's Job interface.
 export function toJobFromJobicy(j: JobicyJob): Job {
-  const money = j.salaryMin && j.salaryMax ? `${j.salaryCurrency ?? 'USD'} ${Math.round(j.salaryMin).toLocaleString()} – ${Math.round(j.salaryMax).toLocaleString()}` : '';
+  const money = j.salaryMin && j.salaryMax ? `${j.salaryCurrency ?? 'USD'} ${Math.round(j.salaryMin).toLocaleString()} to ${Math.round(j.salaryMax).toLocaleString()}` : '';
   return {
     id: hashId('jobicy:' + j.id),
     url: j.url,
@@ -427,10 +422,10 @@ export function toJobFromJobicy(j: JobicyJob): Job {
   };
 }
 
-/** Converts a RemoteOK job into the app's Job interface. */
+// Converts a RemoteOK job into the app's Job interface.
 export function toJobFromRemoteOk(r: RemoteOkItem): Job {
   const tags = (r.tags ?? []).filter(Boolean);
-  const salary = r.salary_min && r.salary_max ? `USD ${r.salary_min.toLocaleString()} – ${r.salary_max.toLocaleString()} / year` : '';
+  const salary = r.salary_min && r.salary_max ? `USD ${r.salary_min.toLocaleString()} to ${r.salary_max.toLocaleString()} / year` : '';
   return {
     id: hashId('remoteok:' + (r.id ?? r.slug ?? r.position)),
     url: r.apply_url || r.url || 'https://remoteok.com',
@@ -447,7 +442,7 @@ export function toJobFromRemoteOk(r: RemoteOkItem): Job {
   };
 }
 
-/** Converts a backup-source (Arbeitnow) job into the app's Job interface. */
+// Converts a backup source (Arbeitnow) job into the app's Job interface.
 export function toJobFromArbeitnow(a: ArbeitnowJob): Job {
   const tags = a.tags ?? [];
   const where = [a.remote ? 'Remote' : '', a.location ?? ''].filter(Boolean).join(' · ');
@@ -467,7 +462,7 @@ export function toJobFromArbeitnow(a: ArbeitnowJob): Job {
   };
 }
 
-/** Converts the API's job shape into the app's Job interface. */
+// Converts the API's job shape into the app's Job interface.
 export function toJob(h: HimalayasJob): Job {
   const locations = h.locationRestrictions ?? [];
   const location = locations.length
@@ -487,12 +482,12 @@ export function toJob(h: HimalayasJob): Job {
     job_type: h.employmentType ?? '',
     publication_date: h.pubDate ? new Date(Number(h.pubDate) * 1000).toISOString() : '',
     candidate_required_location: location,
-    salary: min && max ? `${min} – ${max} / ${h.salaryPeriod ?? 'year'}` : min || max,
+    salary: min && max ? `${min} to ${max} / ${h.salaryPeriod ?? 'year'}` : min || max,
     description: fixEncoding(h.description || h.excerpt || ''),
   };
 }
 
-/** Turns a failed request into a message the user can understand. */
+// Turns a failed request into a message the user can understand.
 export function describeHttpError(error: unknown): string {
   const e = error as { status?: number };
   if (e?.status === 0) {
@@ -513,7 +508,7 @@ const CP1252: Record<number, number> = {
   0x2013: 0x96, 0x2014: 0x97, 0x02dc: 0x98, 0x2122: 0x99, 0x0161: 0x9a, 0x203a: 0x9b, 0x0153: 0x9c, 0x017e: 0x9e, 0x0178: 0x9f,
 };
 
-/** Repairs text that was decoded twice ("Youâ€™ll" becomes "You’ll", "â" + two control characters becomes a dash). Tags and entities stay as they are. */
+// Repairs text that was decoded twice ("Youâ€™ll" becomes "You’ll", "â" + two control characters becomes a dash). Tags and entities stay as they are.
 export function fixEncoding(input: string): string {
   const t = input ?? '';
   if (!/[ÂÃâð][\u0080-¿€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ]/.test(t)) {
@@ -538,7 +533,7 @@ export function fixEncoding(input: string): string {
   }
 }
 
-/** Plain title or name: repaired and with HTML entities turned into characters. */
+// Plain title or name: repaired and with HTML entities turned into characters.
 export function fixText(input: string): string {
   return fixEncoding(input ?? '')
     .replace(/&amp;/g, '&')
@@ -549,7 +544,7 @@ export function fixText(input: string): string {
     .replace(/&nbsp;/g, ' ');
 }
 
-/** Plain-text preview of a job description (the API returns HTML). */
+// Plain text preview of a job description (the API returns HTML).
 export function plainText(html: string, max = 160): string {
   const text = fixText(html ?? '')
     .replace(/<[^>]*>/g, ' ')
@@ -562,13 +557,13 @@ export function plainText(html: string, max = 160): string {
 }
 
 
-/** The job's location text names this place (its country or the city the user gave). */
+// The job's location text names this place (its country or the city the user gave).
 export function locationMentions(location: string, place: Place): boolean {
   const t = (location ?? '').toLowerCase();
   return t.includes(place.label.toLowerCase()) || (!!place.city && t.includes(place.city.toLowerCase()));
 }
 
-/** The location says anyone can apply from anywhere. */
+// The location says anyone can apply from anywhere.
 export function isWorldwide(location: string): boolean {
   const t = (location ?? '').toLowerCase().trim();
   return !t || /worldwide|anywhere|global|everywhere|any location|work from anywhere/.test(t) || t === 'remote';

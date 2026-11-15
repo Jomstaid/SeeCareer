@@ -2,14 +2,14 @@
   <!-- Laptop / desktop (1024px and wider): side navigation -->
   <nav class="rail" slot="top" aria-label="Main navigation">
     <div class="brand">
-      <img class="mark" src="assets/icon/logo.svg" alt="" width="38" height="38" />
+      <img class="mark" [src]="settings.darkMode() ? 'assets/icon/logoDark.svg' : 'assets/icon/logoLight.svg'" alt="" width="38" height="38" />
       <span class="name">SeeCareer</span>
     </div>
 
     <p class="group">Find work</p>
     @for (item of work; track item.path) {
       <a class="rail-link" [routerLink]="item.path" routerLinkActive="active">
-        <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+        <span class="ico" aria-hidden="true"><img [src]="settings.darkMode() ? item.darkImage : item.image" alt="" /></span>
         <span class="txt"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
       </a>
     }
@@ -17,7 +17,7 @@
     <p class="group">App</p>
     @for (item of app; track item.path) {
       <a class="rail-link" [routerLink]="item.path" routerLinkActive="active">
-        <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
+        <span class="ico" aria-hidden="true"><img [src]="settings.darkMode() ? item.darkImage : item.image" alt="" /></span>
         <span class="txt"><strong>{{ item.label }}</strong><small>{{ item.hint }}</small></span>
       </a>
     }
@@ -48,16 +48,10 @@
   <ion-tab-bar slot="bottom">
     @for (item of items; track item.path) {
       <ion-tab-button [tab]="item.tab" [routerLink]="item.path" [attr.aria-label]="item.short || item.label">
-        <ion-icon [name]="item.icon" aria-hidden="true"></ion-icon>
-        <span
-          class="nav-icon-wrap"
-          [class.nav-icon-wrap-about]="item.tab === 'about'"
-          [class.nav-icon-wrap-home]="item.tab === 'home'"
-          [class.nav-icon-wrap-chat]="item.tab === 'chat'"
-          [class.nav-icon-wrap-jobs]="item.tab === 'jobs'"
-        >
-          <img class="nav-icon" [src]="settings.darkMode() ? item.darkImage : item.image" alt="" aria-hidden="true" />
+        <span class="nav-icon-wrap" aria-hidden="true">
+          <img class="nav-icon" [src]="settings.darkMode() ? item.darkImage : item.image" alt="" />
         </span>
+        <ion-label>{{ item.short || item.label }}</ion-label>
       </ion-tab-button>
     }
   </ion-tab-bar>

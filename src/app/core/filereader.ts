@@ -1,20 +1,20 @@
 import { Attachment, AttachmentKind } from './models';
 import { newId } from './storage';
 
-/** Biggest file the app will read. */
-export const MAX_FILE_BYTES = 15 * 1024 * 1024;
-/** Most text kept from one file (the AI cannot read endless text). */
-export const MAX_FILE_TEXT = 15000;
-const MAX_PDF_PAGES = 40;
-const SCANNED_PAGES = 3;
-const IMAGE_MAX_SIDE = 1600;
+// Biggest file the app will read.
+export const maxFileBytes = 15 * 1024 * 1024;
+// Most text kept from one file (the AI cannot read endless text).
+export const maxFileText = 15000;
+const maxPdfPages = 40;
+const scannedPages = 3;
+const imageMaxSide = 1600;
 
-/** The picker lets people choose any file. */
-export const ACCEPTED_FILES = '*/*';
+// The picker lets people choose any file.
+export const acceptedFiles = '*/*';
 
-const TEXT_EXT = /\.(txt|md|csv|json|html?|xml|rtf|log|ya?ml|js|ts|py|java|c|cpp|cs|php|sql)$/i;
-const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp)$/i;
-const OFFICE_EXT = /\.(xlsx|pptx|odt|ods|odp)$/i;
+const textExt = /\.(txt|md|csv|json|html?|xml|rtf|log|ya?ml|js|ts|py|java|c|cpp|cs|php|sql)$/i;
+const imageExt = /\.(png|jpe?g|webp|gif|bmp)$/i;
+const officeExt = /\.(xlsx|pptx|odt|ods|odp)$/i;
 
 export class FileReadError extends Error {}
 
@@ -23,13 +23,13 @@ export function kindOf(file: File): AttachmentKind | null {
   if (name.endsWith('.pdf') || file.type === 'application/pdf') {
     return 'pdf';
   }
-  if (name.endsWith('.docx') || OFFICE_EXT.test(name)) {
+  if (name.endsWith('.docx') || officeExt.test(name)) {
     return 'docx';
   }
-  if (file.type.startsWith('image/') || IMAGE_EXT.test(name)) {
+  if (file.type.startsWith('image/') || imageExt.test(name)) {
     return 'image';
   }
-  if (file.type.startsWith('text/') || TEXT_EXT.test(name)) {
+  if (file.type.startsWith('text/') || textExt.test(name)) {
     return 'text';
   }
   return null;
@@ -42,12 +42,10 @@ export function formatBytes(bytes: number): string {
   return bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(0)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-/**
- * Reads ANY file. PDF, Word, Excel, PowerPoint, OpenDocument, images and text are read fully; scanned PDFs and
- * Photoshop files become pictures; old Office files give up the text found inside them. A file whose content
- * cannot be shown (or is too large, damaged or locked) is still attached, with just its name, type and size.
- * Only an empty file is refused.
- */
+// Reads ANY file. PDF, Word, Excel, PowerPoint, OpenDocument, images and text are read fully; scanned PDFs and
+// Photoshop files become pictures; old Office files give up the text found inside them. A file whose content
+// cannot be shown (or is too large, damaged or locked) is still attached, with just its name, type and size.
+// Only an empty file is refused.
 export async function readAttachment(file: File): Promise<Attachment> {
   if (file.size === 0) {
     throw new FileReadError(`"${file.name}" is empty.`);
@@ -57,7 +55,7 @@ export async function readAttachment(file: File): Promise<Attachment> {
   const describe = `${file.name} (${typeLabel(file)}, ${formatBytes(file.size)})`;
   const infoOnly = (why: string): Attachment => ({ ...base, note: `${describe}. ${why}` });
 
-  if (file.size > MAX_FILE_BYTES) {
+  if (file.size > maxFileBytes) {
     return infoOnly('It is a large file, so only its name and type are known.');
   }
   try {
@@ -80,7 +78,7 @@ export async function readAttachment(file: File): Promise<Attachment> {
         return { ...base, kind, text: clip(await file.text()) };
     }
   } catch {
-    // damaged, password-protected, or a format the reader cannot open: attach it anyway
+    // damaged, password protected, or a format the reader cannot open: attach it anyway
     return infoOnly('Its content could not be opened, so only its name and type are known.');
   }
 }
@@ -92,7 +90,7 @@ function typeLabel(file: File): string {
   return ext ? `${ext.toUpperCase()} file` : file.type || 'file';
 }
 
-/** Files with no ready-made reader: a Photoshop preview picture, or the readable text inside an old binary file. */
+// Files with no ready made reader: a Photoshop preview picture, or the readable text inside an old binary file.
 async function readOther(file: File, base: Attachment, describe: string): Promise<Attachment> {
   const buffer = await file.arrayBuffer();
   const ext = extOf(file.name);
@@ -109,7 +107,7 @@ async function readOther(file: File, base: Attachment, describe: string): Promis
   return { ...base, note: `${describe}. Its content is not text.` };
 }
 
-/** The small preview image that Photoshop (.psd) files carry inside, as a data URL. Null if there is none. */
+// The small preview image that Photoshop (.psd) files carry inside, as a data URL. Null if there is none.
 export function psdPreview(buf: ArrayBuffer): string | null {
   try {
     const v = new DataView(buf);
@@ -144,12 +142,12 @@ export function psdPreview(buf: ArrayBuffer): string | null {
       p += size + (size % 2);
     }
   } catch {
-    /* not a readable Photoshop file */
+    // not a readable Photoshop file
   }
   return null;
 }
 
-/** Readable text inside a binary file (old .doc, .xls, .ppt and similar): runs of normal characters. */
+// Readable text inside a binary file (old .doc, .xls, .ppt and similar): runs of normal characters.
 export function extractStrings(bytes: Uint8Array): string {
   const latin = new TextDecoder('latin1').decode(bytes);
   const runs: string[] = latin.match(/[\x20-\x7e\t]{5,}/g) ?? [];
@@ -170,7 +168,7 @@ export function extractStrings(bytes: Uint8Array): string {
   return out.join('\n');
 }
 
-/** Turns a reader failure into an honest message (wrong password, damaged file, or reader not loaded). */
+// Turns a reader failure into an honest message (wrong password, damaged file, or reader not loaded).
 export function explain(error: unknown, fileName: string): string {
   const e = error as { name?: string; message?: string };
   const text = `${e?.name ?? ''} ${e?.message ?? ''}`;
@@ -191,7 +189,7 @@ function clip(text: string): string {
   if (!clean) {
     throw new FileReadError('No readable text was found in this file.');
   }
-  return clean.length > MAX_FILE_TEXT ? clean.slice(0, MAX_FILE_TEXT) + '\n…(file shortened)' : clean;
+  return clean.length > maxFileText ? clean.slice(0, maxFileText) + '\n…(file shortened)' : clean;
 }
 
 // ---------- PDF (pdf.js) ----------
@@ -201,7 +199,7 @@ async function readPdf(file: File): Promise<Pick<Attachment, 'text' | 'images' |
   const doc = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
   const pages = doc.numPages;
 
-  /** A picture of one page (used for scanned PDFs, and to find a profile photo on page 1). */
+  // A picture of one page (used for scanned PDFs, and to find a profile photo on page 1).
   const render = async (n: number, scale: number, quality: number): Promise<string> => {
     const page = await doc.getPage(n);
     const viewport = page.getViewport({ scale });
@@ -213,7 +211,7 @@ async function readPdf(file: File): Promise<Pick<Attachment, 'text' | 'images' |
   };
 
   const parts: string[] = [];
-  for (let n = 1; n <= Math.min(pages, MAX_PDF_PAGES); n++) {
+  for (let n = 1; n <= Math.min(pages, maxPdfPages); n++) {
     const page = await doc.getPage(n);
     const content = await page.getTextContent();
     let line = '';
@@ -235,7 +233,7 @@ async function readPdf(file: File): Promise<Pick<Attachment, 'text' | 'images' |
   }
   // No text layer: it is a scanned PDF. Send pictures of the first pages so the AI can read them.
   const images: string[] = [];
-  for (let n = 1; n <= Math.min(pages, SCANNED_PAGES); n++) {
+  for (let n = 1; n <= Math.min(pages, scannedPages); n++) {
     images.push(await render(n, 1.6, 0.85));
   }
   return { images, pages };
@@ -258,7 +256,7 @@ async function readDocx(file: File): Promise<string> {
 }
 
 // ---------- images ----------
-/** Shrinks big photos so the request stays small, and returns a JPEG/PNG data URL. */
+// Shrinks big photos so the request stays small, and returns a JPEG/PNG data URL.
 async function imageToDataUrl(file: File): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
@@ -268,7 +266,7 @@ async function imageToDataUrl(file: File): Promise<string> {
       el.onerror = () => reject(new FileReadError(`"${file.name}" is not a valid image.`));
       el.src = url;
     });
-    const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(img.width, img.height));
+    const scale = Math.min(1, imageMaxSide / Math.max(img.width, img.height));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(img.width * scale);
     canvas.height = Math.round(img.height * scale);
@@ -281,7 +279,7 @@ async function imageToDataUrl(file: File): Promise<string> {
   }
 }
 
-/** True when the first bytes look like text (no NUL bytes, mostly printable). */
+// True when the first bytes look like text (no NUL bytes, mostly printable).
 async function looksTextual(file: File): Promise<boolean> {
   const bytes = new Uint8Array(await file.slice(0, 8192).arrayBuffer());
   if (!bytes.length) {

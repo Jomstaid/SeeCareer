@@ -4,35 +4,36 @@ import { ActionSheetController, AlertController, IonContent, IonTextarea, ToastC
 
 import { AiService, ApiMessage, ContentPart } from '../core/ai.service';
 import { AiTaskService } from '../core/aitask.service';
-import { JOB_TASKS, RESUME_TASKS, TaskKey } from '../core/aitasks';
+import { jobTasks, resumeTasks, TaskKey } from '../core/aitasks';
 import { isLetterRequest, letterize, nameFromRequest, stripChatter, titleOf } from '../core/docclean';
 import { deliverBlob, exportFile, safeFileName } from '../core/fileexport';
+import { appName, asksWhoYouAre, identityAnswer } from '../core/identity';
 import { Intent, detectDesign, detectIntent, isQuestion, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
-import { ACCEPTED_FILES, FileReadError, formatBytes, readAttachment } from '../core/filereader';
+import { acceptedFiles, FileReadError, formatBytes, readAttachment } from '../core/filereader';
 import { ChatStore } from '../core/chatstore.service';
-import { DOC_LABELS, DocVerdict, jobFromText, looksLikeResume } from '../core/doccheck';
+import { docLabels, DocVerdict, jobFromText, looksLikeResume } from '../core/doccheck';
 import { RecommendService } from '../core/recommend.service';
 import { ACCENTS, ResumeData, ResumeTemplate, TEMPLATES, resumeToText } from '../core/resumedata';
 import { buildResumeFile } from '../core/resumerender';
 import { ResumeDesignService } from '../core/resumedesign.service';
-import { SYSTEM_PROMPT } from '../core/defaults';
+import { systemPrompt } from '../core/defaults';
 import { JobService, describeHttpError, plainText } from '../core/job.service';
 import { renderMarkdown } from '../core/markdown';
-import { GENERAL_MODE, MOCK_INTERVIEW_SYSTEM, MODES, ModeInfo, modeInfo } from '../core/modes';
+import { generalModeInfo, mockInterviewSystem, MODES, ModeInfo, modeInfo } from '../core/modes';
 import { AiError, Attachment, ChatAction, ChatMessage, ChatMode, Conversation, ExportFormat, Job, Recommendation } from '../core/models';
 import { PhotoService } from '../core/photo';
 import { findWebPhoto, isSearchableName } from '../core/webphoto';
 import { needsWeb, personFacts, searchQuery, webContext, webLookup } from '../core/websearch';
-import { OFF_TOPIC_REPLY, SCOPE_QUESTION, obviouslyCareer } from '../core/scope';
+import { offTopicReply, scopeQuestion, obviouslyCareer } from '../core/scope';
 import { Place, splitPlace } from '../core/places';
 import { ProviderService } from '../core/provider.service';
 import { ResumeService } from '../core/resume.service';
 import { SettingsService } from '../core/settings.service';
 import { newId } from '../core/storage';
-import { MAX_MESSAGE_LENGTH, validateMessage, validateResume } from '../core/validators';
+import { maxMessageLength, validateMessage, validateResume } from '../core/validators';
 
-/** Which mode each AI task belongs to. */
-const TASK_MODE: Record<TaskKey, ChatMode> = {
+// Which mode each AI task belongs to.
+const taskMode: Record<TaskKey, ChatMode> = {
   analyze: 'resume',
   improve: 'resume',
   skills: 'resume',
@@ -45,11 +46,11 @@ const TASK_MODE: Record<TaskKey, ChatMode> = {
   evaluate: 'interview',
 };
 
-const TASK_NEEDS_JOB: TaskKey[] = ['match', 'cover', 'email', 'gap', 'interview'];
-const MAX_ATTACHMENTS = 5;
+const taskNeedsJob: TaskKey[] = ['match', 'cover', 'email', 'gap', 'interview'];
+const maxAttachments = 5;
 
-/** Used when the user asks for a new document: the answer becomes the file, so it must contain nothing else. */
-const DOCUMENT_SYSTEM =
+// Used when the user asks for a new document: the answer becomes the file, so it must contain nothing else.
+const documentSystem =
   'You write finished documents. Output ONLY the document in clean markdown. Do NOT add a greeting, an explanation, notes to the user, ' +
   'follow-up questions or closing remarks. Do NOT use emojis. Use only facts the user gave; for anything missing write a short [placeholder]. ' +
   'Write in the language of the request. Make it complete, professional and ready to use.\n' +
@@ -60,15 +61,13 @@ const DOCUMENT_SYSTEM =
   '- A REPORT, PLAN, SCHEDULE, CHECKLIST, STUDY GUIDE or similar: use one # title, then ## section headings, short paragraphs and - bullets; ' +
   'use a table only when it really helps.';
 
-/** Messages that ask the AI to find / recommend jobs from the resume. */
-const JOB_INTENT =
+// Messages that ask the AI to find / recommend jobs from the resume.
+const jobRequest =
   /\b(recommend|suggest|find (me )?(a |an |some |the |any )?(job|work|position|role|opening|vacanc)|find (me )?[\w\s/&-]{0,40}?\b(jobs?|work|positions?|roles?|openings?|vacanc\w+)\b|(search|look)( for)? [\w\s/&-]{0,40}?\bjobs?\b|get me (a |an )?(job|work)|jobs? (for|that|i|fit|suit|in|near|at|around)|(work|hiring|openings?|vacancies) (for|that|i|in|near|around) |i (want|need) (a |an )?(new )?(job|work)|looking for (a |an )?([\w-]+ ){0,3}(job|work)|accept(ed)?|hire[d]?|my chances?|fit(s)? me|suit(s)? me|match me|which jobs?|what jobs?|where (can|should) i apply|apply (for|to))\b/i;
-const RESUME_MODES: ChatMode[] = ['resume', 'finder', 'match', 'apply', 'gap', 'interview'];
+const resumeModes: ChatMode[] = ['resume', 'finder', 'match', 'apply', 'gap', 'interview'];
 
-/**
- * Main page: one AI chat with six modes
- * (Resume Assistant, Job Finder, Job Matching, Application Assistant, Skills Gap, Interview Prep).
- */
+// Main page: one AI chat with six modes
+// (Resume Assistant, Job Finder, Job Matching, Application Assistant, Skills Gap, Interview Prep).
 @Component({
   selector: 'app-chat',
   templateUrl: './chat.page.html',
@@ -96,22 +95,22 @@ export class ChatPage implements OnDestroy {
   @ViewChild('filePicker') filePicker?: ElementRef<HTMLInputElement>;
   @ViewChild('msgBox') textarea?: IonTextarea;
 
-  readonly accepted = ACCEPTED_FILES;
+  readonly accepted = acceptedFiles;
   readonly formatBytes = formatBytes;
-  /** Files waiting to be sent with the next message. */
+  // Files waiting to be sent with the next message.
   pending = signal<Attachment[]>([]);
   reading = signal(false);
-  /** True while the user drags a file over the chat. */
+  // True while the user drags a file over the chat.
   dragging = signal(false);
-  /** What the AI is doing right now (shown instead of "Thinking"). */
+  // What the AI is doing right now (shown instead of "Thinking").
   stepText = signal('');
   private dragDepth = 0;
-  /** Pictures are kept in memory only (too big to save in history). */
+  // Pictures are kept in memory only (too big to save in history).
   private images = new Map<string, string[]>();
 
   readonly modes = MODES;
-  readonly generalMode = GENERAL_MODE;
-  readonly maxLength = MAX_MESSAGE_LENGTH;
+  readonly generalMode = generalModeInfo;
+  readonly maxLength = maxMessageLength;
 
   chat = signal<Conversation>({ id: newId(), title: 'New chat', updated: Date.now(), messages: [] });
   mode = signal<ChatMode>('general');
@@ -120,17 +119,17 @@ export class ChatPage implements OnDestroy {
   sending = signal(false);
   elapsed = signal(0);
   historyOpen = signal(false);
-  /** The resume designer (layout, colour, preview, download). */
+  // The resume designer (layout, colour, preview, download).
   designerOpen = signal(false);
   designerData = signal<ResumeData | null>(null);
   designerDesign = signal<{ template: ResumeTemplate; accent: string } | null>(null);
   private designerMsgId = '';
   inputText = '';
-  /** Messages written while the AI was busy; they are sent one after another when it finishes. */
+  // Messages written while the AI was busy; they are sent one after another when it finishes.
   queue = signal<{ text: string; files: Attachment[]; quote?: string }[]>([]);
-  /** The earlier message the next message replies to. */
+  // The earlier message the next message replies to.
   replyQuote = signal<{ id: string; text: string } | null>(null);
-  /** The message being edited: sending it again replaces it and everything after it. */
+  // The message being edited: sending it again replaces it and everything after it.
   editingId = signal<string | null>(null);
   private quoteNext?: string;
   private autoNext = false;
@@ -139,7 +138,7 @@ export class ChatPage implements OnDestroy {
   info = computed<ModeInfo>(() => modeInfo(this.mode()));
   hasResume = computed(() => this.resume.resume().length > 0);
 
-  /** Small status text under the header. */
+  // Small status text under the header.
   status = computed(() => {
     const ready = this.providers.workingModels().length;
     if (!this.providers.enabled().length) {
@@ -225,7 +224,7 @@ export class ChatPage implements OnDestroy {
   }
 
   actionLabel(task: TaskKey): string {
-    return [...RESUME_TASKS, ...JOB_TASKS].find((t) => t.key === task)?.label ?? task;
+    return [...resumeTasks, ...jobTasks].find((t) => t.key === task)?.label ?? task;
   }
 
   // ---------- conversation handling ----------
@@ -283,7 +282,7 @@ export class ChatPage implements OnDestroy {
     await alert.present();
   }
 
-  /** Opened from Job Details ("Match with my resume", "Cover letter"...). */
+  // Opened from Job Details ("Match with my resume", "Cover letter"...).
   private async startFromJob(id: number, task: TaskKey | null): Promise<void> {
     const job = this.jobs.peek(id) ?? (await this.jobs.getJob(id).catch(() => undefined));
     if (!job) {
@@ -292,7 +291,7 @@ export class ChatPage implements OnDestroy {
     this.chat.set({ id: newId(), title: 'New chat', updated: Date.now(), messages: [] });
     this.job.set(job);
     this.mock.set(false);
-    this.mode.set(task ? TASK_MODE[task] : 'match');
+    this.mode.set(task ? taskMode[task] : 'match');
     this.push({
       role: 'assistant',
       content: `You picked **${job.title}** at ${job.company_name}.`,
@@ -304,7 +303,7 @@ export class ChatPage implements OnDestroy {
     }
   }
 
-  /** The feature switcher (Ionic segment) changed. */
+  // The feature switcher (Ionic segment) changed.
   onMode(value: string | number | null | undefined): void {
     const key = String(value ?? 'general') as ChatMode;
     if (key !== this.mode()) {
@@ -422,7 +421,7 @@ export class ChatPage implements OnDestroy {
     }
   }
 
-  /** The jobs shown in this chat recently (search results and recommendations), newest first, without repeats. */
+  // The jobs shown in this chat recently (search results and recommendations), newest first, without repeats.
   private recentJobs(max = 10): Job[] {
     const seen = new Set<number>();
     const out: Job[] = [];
@@ -441,7 +440,7 @@ export class ChatPage implements OnDestroy {
     return out.slice(0, max);
   }
 
-  /** The recent jobs as text for the AI, with their links, so it can answer questions about them. */
+  // The recent jobs as text for the AI, with their links, so it can answer questions about them.
   private recentJobsContext(): string {
     const jobs = this.recentJobs();
     if (!jobs.length) {
@@ -455,7 +454,7 @@ export class ChatPage implements OnDestroy {
     return `RECENT JOB RESULTS (the jobs this user is looking at, newest search first):\n${lines.join('\n')}`;
   }
 
-  /** Checks the resume / job that a feature needs; tells the user what is missing. */
+  // Checks the resume / job that a feature needs; tells the user what is missing.
   private ready(needsResume: boolean, needsJob: boolean): boolean {
     if (needsResume && !this.hasResume()) {
       this.push({
@@ -486,8 +485,8 @@ export class ChatPage implements OnDestroy {
   }
 
   async runTask(task: TaskKey): Promise<void> {
-    this.mode.set(TASK_MODE[task]);
-    if (!this.ready(true, TASK_NEEDS_JOB.includes(task))) {
+    this.mode.set(taskMode[task]);
+    if (!this.ready(true, taskNeedsJob.includes(task))) {
       return;
     }
     this.push({ role: 'user', content: this.actionLabel(task) });
@@ -508,10 +507,8 @@ export class ChatPage implements OnDestroy {
   }
 
   // ---------- make a file straight from a request ----------
-  /**
-   * The user asked for a file ("create me a resume", "write a cover letter as Word", "make this a pdf").
-   * The app writes it, builds the real PDF or Word file and downloads it right away, without asking questions.
-   */
+  // The user asked for a file ("create me a resume", "write a cover letter as Word", "make this a pdf").
+  // The app writes it, builds the real PDF or Word file and downloads it right away, without asking questions.
   private async handleCreate(text: string, files: Attachment[], intent: Intent): Promise<void> {
     this.pending.set([]);
     const id = newId();
@@ -546,7 +543,7 @@ export class ChatPage implements OnDestroy {
     return all.filter((f) => f.format !== current).map((f) => ({ label: f.label, icon: f.icon, command: 'download', format: f.format, data: id }));
   }
 
-  /** "make this a pdf": the last answer becomes a file, no AI needed. */
+  // "make this a pdf": the last answer becomes a file, no AI needed.
   private async convertLast(intent: Intent): Promise<void> {
     const source = [...this.chat().messages].reverse().find((m) => m.role === 'assistant' && !m.error && m.content.length > 40);
     if (!source) {
@@ -561,7 +558,7 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** A new document (cover letter, report, schedule...): written clean, then built and downloaded. */
+  // A new document (cover letter, report, schedule...): written clean, then built and downloaded.
   private async createDocument(text: string, files: Attachment[], pictures: string[], intent: Intent): Promise<void> {
     await this.busy(async () => {
       this.stepText.set('Writing your document…');
@@ -578,7 +575,7 @@ export class ChatPage implements OnDestroy {
         extra += `\n\nThe user's resume:\n${this.resume.resume().slice(0, 5000)}`;
       }
       const instructions = this.settings.settings().customInstructions.trim();
-      const system = DOCUMENT_SYSTEM + (instructions ? `\nExtra instructions from the user: ${instructions}` : '');
+      const system = documentSystem + (instructions ? `\nExtra instructions from the user: ${instructions}` : '');
       const body = text + (fileText ? `\n\nFILES:\n${fileText}` : '') + extra;
       const content: string | ContentPart[] = pictures.length
         ? [{ type: 'text', text: body }, ...pictures.slice(0, 3).map((url): ContentPart => ({ type: 'image_url', image_url: { url } }))]
@@ -598,7 +595,7 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** A designed resume from the request, a file the user attached, a photo of a resume, or the saved resume. */
+  // A designed resume from the request, a file the user attached, a photo of a resume, or the saved resume.
   private async createResume(text: string, files: Attachment[], pictures: string[], intent: Intent): Promise<void> {
     await this.busy(async () => {
       const fileText = files
@@ -613,7 +610,7 @@ export class ChatPage implements OnDestroy {
         info = this.resume.resume();
         source = 'your saved resume';
       }
-      // for a well-known person the app looks them up, so the resume holds real facts instead of placeholders
+      // for a well known person the app looks them up, so the resume holds real facts instead of placeholders
       let publicFacts = false;
       if (!info && !pictures.length && person) {
         this.stepText.set(`Looking up ${person} online…`);
@@ -707,7 +704,7 @@ export class ChatPage implements OnDestroy {
     await t.present();
   }
 
-  /** The designer's layout or colour changed: remember it on the message. */
+  // The designer's layout or colour changed: remember it on the message.
   onDesignChanged(design: { template: ResumeTemplate; accent: string }): void {
     this.designerDesign.set(design);
     this.chat.set({
@@ -718,7 +715,7 @@ export class ChatPage implements OnDestroy {
   }
 
   // ---------- resume designer ----------
-  /** Turns the saved resume into a designed one: the AI returns structured data, the app lays it out. */
+  // Turns the saved resume into a designed one: the AI returns structured data, the app lays it out.
   private async designResume(): Promise<void> {
     await this.busy(async () => {
       if (!(await this.tasks.ensureConsent())) {
@@ -753,7 +750,7 @@ export class ChatPage implements OnDestroy {
     this.designerOpen.set(true);
   }
 
-  /** The AI changed the resume inside the designer: keep the chat message in sync. */
+  // The AI changed the resume inside the designer: keep the chat message in sync.
   onDesignerChanged(d: ResumeData): void {
     this.designerData.set(d);
     this.chat.set({
@@ -767,11 +764,11 @@ export class ChatPage implements OnDestroy {
     this.saveAsResume(text);
   }
 
-  /** What to offer after an answer: the next useful steps, never a dead end. */
+  // What to offer after an answer: the next useful steps, never a dead end.
   private followUps(task: TaskKey, text = ''): ChatAction[] {
     const resumeTool = (key: TaskKey, label: string, icon: string): ChatAction => ({ label, icon, task: key });
     const jobTools = (skip: TaskKey[]): ChatAction[] =>
-      JOB_TASKS.filter((t) => !skip.includes(t.key)).map((t) => ({ label: t.label, icon: t.icon.replace('-outline', ''), task: t.key }));
+      jobTasks.filter((t) => !skip.includes(t.key)).map((t) => ({ label: t.label, icon: t.icon.replace('-outline', ''), task: t.key }));
     const findJobs: ChatAction = { label: 'Find jobs I can get', icon: 'rocket', command: 'recommend' };
     switch (task) {
       case 'analyze':
@@ -833,7 +830,7 @@ export class ChatPage implements OnDestroy {
               ? `I found **${result.total.toLocaleString()}** openings for “${query}”${
                   result.place ? (result.loose ? `. None are only for ${result.place}, so these are remote jobs that also accept people there` : ` hiring in ${result.place}`) : ''
                 }. Here are the first ${top.length}. Tap **Select** to match, apply or practice for one.`
-              : `More openings for “${query}” (results ${from}–${from + top.length - 1}):`,
+              : `More openings for “${query}” (results ${from} to ${from + top.length - 1}):`,
           jobs: top,
           actions: [
             ...(result.hasMore ? [{ label: 'Show more jobs', icon: 'add', command: 'more', data: JSON.stringify({ q: query, page: page + 1 }) } as ChatAction] : []),
@@ -874,11 +871,11 @@ export class ChatPage implements OnDestroy {
     await sheet.present();
   }
 
-  /** True when the file picker was opened for "upload my resume": the file is sent as soon as it is read. */
+  // True when the file picker was opened for "upload my resume": the file is sent as soon as it is read.
   private resumePick = false;
   private photoPick = false;
 
-  /** Opens the file picker straight away. The chosen file is read, checked and remembered as the user's resume. */
+  // Opens the file picker straight away. The chosen file is read, checked and remembered as the user's resume.
   pickResume(): void {
     this.resumePick = true;
     this.filePicker?.nativeElement.click();
@@ -956,7 +953,7 @@ export class ChatPage implements OnDestroy {
     await this.addFiles(Array.from(e.dataTransfer?.files ?? []));
   }
 
-  /** Pasting a screenshot or file into the message box attaches it. */
+  // Pasting a screenshot or file into the message box attaches it.
   async onPaste(e: ClipboardEvent): Promise<void> {
     const files = Array.from(e.clipboardData?.files ?? []);
     if (files.length) {
@@ -965,14 +962,14 @@ export class ChatPage implements OnDestroy {
     }
   }
 
-  /** Reads files (from the picker, drag & drop or paste) and queues them for the next message. */
+  // Reads files (from the picker, drag & drop or paste) and queues them for the next message.
   private async addFiles(files: File[]): Promise<void> {
     if (!files.length || this.sending()) {
       return;
     }
-    const room = MAX_ATTACHMENTS - this.pending().length;
+    const room = maxAttachments - this.pending().length;
     if (room <= 0) {
-      this.inputError = `You can attach up to ${MAX_ATTACHMENTS} files at once.`;
+      this.inputError = `You can attach up to ${maxAttachments} files at once.`;
       return;
     }
     this.reading.set(true);
@@ -987,7 +984,7 @@ export class ChatPage implements OnDestroy {
       }
     }
     if (files.length > room) {
-      problems.push(`Only ${MAX_ATTACHMENTS} files can be attached at once.`);
+      problems.push(`Only ${maxAttachments} files can be attached at once.`);
     }
     this.reading.set(false);
     this.inputError = problems.join(' ');
@@ -1035,7 +1032,7 @@ export class ChatPage implements OnDestroy {
 
 
   // ---------- changing the resume that was just made ----------
-  /** The resume made in the last few messages, so "add picture" or "make it red" know what to change. */
+  // The resume made in the last few messages, so "add picture" or "make it red" know what to change.
   private recentResume(): ChatMessage | undefined {
     return this.chat()
       .messages.slice(-3)
@@ -1053,7 +1050,7 @@ export class ChatPage implements OnDestroy {
     return m.resumeFormat ?? (/\.docx\b/i.test(m.fileNote ?? '') ? 'docx' : 'pdf');
   }
 
-  /** The buttons under a made resume: download it in the format asked for first, the other format second, and the designer. */
+  // The buttons under a made resume: download it in the format asked for first, the other format second, and the designer.
   private resumeActions(format: 'pdf' | 'docx'): ChatAction[] {
     const other = format === 'pdf' ? 'docx' : 'pdf';
     const name = (f: string) => (f === 'pdf' ? 'PDF' : 'Word');
@@ -1064,7 +1061,7 @@ export class ChatPage implements OnDestroy {
     ];
   }
 
-  /** Shows the changed resume in the chat. Nothing is downloaded until the user taps a download button. */
+  // Shows the changed resume in the chat. Nothing is downloaded until the user taps a download button.
   private async deliverResume(d: ResumeData, template: ResumeTemplate, accent: string, format: 'pdf' | 'docx', model: string | undefined, content: string): Promise<void> {
     const withDesign = { ...d, design: { ...d.design, template, accent } };
     this.push({
@@ -1172,7 +1169,7 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** The "Choose photo" button: pick a picture and put it on the resume that was just made. */
+  // The "Choose photo" button: pick a picture and put it on the resume that was just made.
   pickPhoto(): void {
     this.photoPick = true;
     this.filePicker?.nativeElement.click();
@@ -1196,7 +1193,7 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** The "Get Word / Get PDF" buttons under a made file. */
+  // The "Get Word / Get PDF" buttons under a made file.
   private async download(m: ChatMessage, format: ExportFormat): Promise<void> {
     const raw = stripChatter(m.content);
     const body = /^\s*dear\b/im.test(raw) ? letterize(raw) : raw; // a letter has no title and no headings
@@ -1213,22 +1210,6 @@ export class ChatPage implements OnDestroy {
   }
 
   // ---------- sending free text ----------
-  async onMessageInput(): Promise<void> {
-    this.inputError = '';
-    const component = this.textarea;
-    if (!component) {
-      return;
-    }
-
-    const textarea = await component.getInputElement();
-    textarea.style.maxHeight = '90px';
-    textarea.style.overflowY = 'auto';
-    textarea.style.paddingBottom =
-      textarea.scrollHeight > 90
-        ? 'var(--padding-top)'
-        : '0px';
-  }
-
   onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
@@ -1248,7 +1229,7 @@ export class ChatPage implements OnDestroy {
     }
   }
 
-  /** Stops the answer that is being written. Messages waiting in the queue are still sent afterwards. */
+  // Stops the answer that is being written. Messages waiting in the queue are still sent afterwards.
   stop(): void {
     if (this.sending()) {
       this.ai.cancelAll();
@@ -1260,7 +1241,7 @@ export class ChatPage implements OnDestroy {
     this.queue.update((q) => q.filter((_, i) => i !== index));
   }
 
-  /** The next message answers this one. */
+  // The next message answers this one.
   startReply(m: ChatMessage): void {
     const text = m.content.replace(/[*_`#>|]/g, '').replace(/\s+/g, ' ').trim().slice(0, 600);
     if (!text) {
@@ -1271,7 +1252,7 @@ export class ChatPage implements OnDestroy {
     this.focusInput();
   }
 
-  /** Puts a sent message back in the box. Sending it again replaces it and everything after it. */
+  // Puts a sent message back in the box. Sending it again replaces it and everything after it.
   startEdit(m: ChatMessage): void {
     if (this.sending() || m.role !== 'user') {
       return;
@@ -1304,7 +1285,7 @@ export class ChatPage implements OnDestroy {
     this.replyQuote.set(null);
   }
 
-  /** When a sent message is being edited: drop it and everything after it before it is sent again. */
+  // When a sent message is being edited: drop it and everything after it before it is sent again.
   private applyEdit(): void {
     const id = this.editingId();
     if (!id) {
@@ -1323,7 +1304,7 @@ export class ChatPage implements OnDestroy {
     setTimeout(() => this.textarea?.setFocus?.(), 50);
   }
 
-  /** Sends the next queued message once the AI is free. */
+  // Sends the next queued message once the AI is free.
   private drainQueue(): void {
     setTimeout(() => {
       const next = this.queue()[0];
@@ -1380,8 +1361,15 @@ export class ChatPage implements OnDestroy {
     await this.dispatch(text, files);
   }
 
-  /** Sends one message (typed now, or taken from the queue) and gets the answer. */
+  // Sends one message (typed now, or taken from the queue) and gets the answer.
   private async dispatch(text: string, files: Attachment[]): Promise<void> {
+    // "who are you": we answer this ourselves so the free model behind the app never says its own name
+    if (!files.length && asksWhoYouAre(text)) {
+      this.push({ role: 'user', content: text });
+      this.push({ role: 'assistant', content: identityAnswer, model: appName });
+      this.persist();
+      return;
+    }
     // "create me a resume", "write a cover letter as Word", "make this a pdf": make the file and download it
     const hasPrior = this.chat().messages.some((x) => x.role === 'assistant' && !x.error && x.content.length > 40);
     const intent = detectIntent(text, hasPrior);
@@ -1410,7 +1398,7 @@ export class ChatPage implements OnDestroy {
       await this.answerFromChat(text);
       return;
     }
-    if ((JOB_INTENT.test(text) && text.length > 12) || (looksLikeJobSearch(text) && !this.job())) {
+    if ((jobRequest.test(text) && text.length > 12) || (looksLikeJobSearch(text) && !this.job())) {
       this.push({ role: 'user', content: text });
       // every chat has its own focus: the saved resume is used only when the user asks for it
       const aboutResume = /\b(resume|cv|curriculum vitae)\b/i.test(text);
@@ -1453,11 +1441,11 @@ export class ChatPage implements OnDestroy {
     const info = this.info();
     this.push({ role: 'user', content: text });
     await this.busy(async () => {
-      // a lookup-style question that is not about work (who is..., latest news...) is declined before anything is searched
+      // a lookup style question that is not about work (who is..., latest news...) is declined before anything is searched
       if (needsWeb(text) && !obviouslyCareer(text) && !(await this.onTopic(text))) {
         this.push({
           role: 'assistant',
-          content: OFF_TOPIC_REPLY,
+          content: offTopicReply,
           actions: [
             { label: 'Find jobs', icon: 'search', mode: 'finder' },
             { label: 'Resume Assistant', icon: 'document-text', mode: 'resume' },
@@ -1479,12 +1467,12 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** Answers a question in the chat, knowing the jobs that were just shown (so it can talk about them and give their links). */
+  // Answers a question in the chat, knowing the jobs that were just shown (so it can talk about them and give their links).
   private async answerFromChat(text: string): Promise<void> {
     this.push({ role: 'user', content: text });
     await this.busy(async () => {
       if (needsWeb(text) && !obviouslyCareer(text) && !(await this.onTopic(text))) {
-        this.push({ role: 'assistant', content: OFF_TOPIC_REPLY });
+        this.push({ role: 'assistant', content: offTopicReply });
         return;
       }
       const result = await this.ai.chat(await this.contextMessages(), Math.max(this.settings.settings().maxTokens, 900));
@@ -1492,23 +1480,23 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** The quick check: is this message about work or careers? When the check itself fails the message is let through. */
+  // The quick check: is this message about work or careers? When the check itself fails the message is let through.
   private async onTopic(text: string): Promise<boolean> {
     try {
       this.stepText.set('Checking your question…');
-      const r = await this.ai.chat([{ role: 'system', content: SCOPE_QUESTION }, { role: 'user', content: text.slice(0, 400) }], 700, { fast: true, temperature: 0 });
+      const r = await this.ai.chat([{ role: 'system', content: scopeQuestion }, { role: 'user', content: text.slice(0, 400) }], 700, { fast: true, temperature: 0 });
       return !/^\W*no\b/i.test(r.content.trim());
     } catch {
       return true;
     }
   }
 
-  /** True when the user wants resume/job help (so a non-resume file should be refused). */
+  // True when the user wants resume/job help (so a nonresume file should be refused).
   private jobIntent(text: string): boolean {
-    return RESUME_MODES.includes(this.mode()) || JOB_INTENT.test(text);
+    return resumeModes.includes(this.mode()) || jobRequest.test(text);
   }
 
-  /** Sends a message with attached files: checks what the files are, then answers. */
+  // Sends a message with attached files: checks what the files are, then answers.
   private async sendWithFiles(text: string, files: Attachment[]): Promise<void> {
     this.pending.set([]);
     const id = newId();
@@ -1532,19 +1520,19 @@ export class ChatPage implements OnDestroy {
     await this.busy(async () => {
       if (!docText && !pictures.length) {
         // nothing to read in it: skip the resume check and just reply, briefly
-        await this.replyAboutFiles({ type: 'job_related', confidence: 0, reason: '', source: 'rules' }, undefined, '', []);
+        await this.replyAboutFiles({ type: 'jobRelated', confidence: 0, reason: '', source: 'rules' }, undefined, '', []);
         return;
       }
       this.stepText.set('Checking your file…');
       const verdict = await this.rec.classify(docText, pictures, names);
-      const info = { type: verdict.type, label: DOC_LABELS[verdict.type], confidence: verdict.confidence, reason: verdict.reason };
-      const wantsJobs = JOB_INTENT.test(text);
+      const info = { type: verdict.type, label: docLabels[verdict.type], confidence: verdict.confidence, reason: verdict.reason };
+      const wantsJobs = jobRequest.test(text);
       let remembered = false;
       if (verdict.type === 'resume') {
         remembered = await this.remember(docText, pictures);
       }
 
-      if (verdict.type === 'not_job_related' && this.jobIntent(text)) {
+      if (verdict.type === 'notJobRelated' && this.jobIntent(text)) {
         this.push({
           role: 'assistant',
           verdict: info,
@@ -1559,7 +1547,7 @@ export class ChatPage implements OnDestroy {
         });
         return;
       }
-      if (verdict.type === 'job_posting') {
+      if (verdict.type === 'jobPosting') {
         this.push({
           role: 'assistant',
           verdict: info,
@@ -1579,7 +1567,7 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** Normal AI answer about the attached files, with resume buttons when it is a resume. */
+  // Normal AI answer about the attached files, with resume buttons when it is a resume.
   private async replyAboutFiles(
     verdict: DocVerdict,
     info: ChatMessage['verdict'],
@@ -1591,7 +1579,7 @@ export class ChatPage implements OnDestroy {
     const hint =
       verdict.type === 'resume'
         ? ''
-        : `The attached file is a ${DOC_LABELS[verdict.type].toLowerCase()}. Respond to it on its own terms: say briefly what it is and what you can do with it (review it, improve it, rewrite it, summarize it, turn it into a PDF or Word file). ` +
+        : `The attached file is a ${docLabels[verdict.type].toLowerCase()}. Respond to it on its own terms: say briefly what it is and what you can do with it (review it, improve it, rewrite it, summarize it, turn it into a PDF or Word file). ` +
           'Do not compare it to a resume and do not say it is the wrong kind of file.';
     const result = await this.ai.chat(await this.contextMessages(hint), Math.max(this.settings.settings().maxTokens, 1000));
     const actions: ChatAction[] = [];
@@ -1605,10 +1593,8 @@ export class ChatPage implements OnDestroy {
     this.push({ role: 'assistant', content: result.content + note, model: result.model, actions, verdict: info });
   }
 
-  /**
-   * Saves a resume the user sent so the assistant remembers it from now on.
-   * A photo of a resume is first written out as text. Returns false when nothing could be saved.
-   */
+  // Saves a resume the user sent so the assistant remembers it from now on.
+  // A photo of a resume is first written out as text. Returns false when nothing could be saved.
   private async remember(docText: string, pictures: string[]): Promise<boolean> {
     try {
       let text = docText;
@@ -1627,10 +1613,16 @@ export class ChatPage implements OnDestroy {
     }
   }
 
-  /** The user's wishes for the job search: this message plus the last few they wrote ("I want to work in Cebu"). */
+  // The user's wishes for the job search: this message plus the last few they wrote ("I want to work in Cebu").
   private requestText(text: string): string {
+    // a complete new search ("nursing jobs in cebu") replaces earlier searches: only earlier facts about the person
+    // ("I live in Cebu", "I'm a fresh graduate") are kept, never the job they searched for before
+    const newSearch = looksLikeJobSearch(text);
     const earlier = this.chat()
       .messages.filter((m) => m.role === 'user' && m.content && m.content !== text)
+      .filter((m) => !newSearch || !(looksLikeJobSearch(m.content) || jobRequest.test(m.content)))
+      // a question ("what is the capital of france") is not a fact about the person, so it never sets the place
+      .filter((m) => !isQuestion(m.content))
       .slice(-3)
       .map((m) => m.content.slice(0, 300));
     return [...earlier, text].join('\n');
@@ -1644,7 +1636,7 @@ export class ChatPage implements OnDestroy {
   }
 
   // ---------- job recommendations ----------
-  /** Uses the saved resume (asks for one if missing). */
+  // Uses the saved resume (asks for one if missing).
   async recommendFromSaved(): Promise<void> {
     this.mode.set('finder');
     if (!this.ready(true, false)) {
@@ -1716,10 +1708,8 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /**
-   * The job feed has remote jobs only. For on-site work near a place the user named, these buttons open the
-   * big job sites already searching for that role and place.
-   */
+  // The job feed has remote jobs only. For on site work near a place the user named, these buttons open the
+  // big job sites already searching for that role and place.
   private localSearches(role: string, place: Place | null | undefined): ChatAction[] {
     if (!place) {
       return [];
@@ -1756,11 +1746,11 @@ export class ChatPage implements OnDestroy {
     });
   }
 
-  /** Builds what is sent to the AI: instructions, resume/job context for this mode, and recent messages. */
+  // Builds what is sent to the AI: instructions, resume/job context for this mode, and recent messages.
   private async contextMessages(extraSystem = ''): Promise<ApiMessage[]> {
     const info = this.info();
     const job = this.job();
-    let system = SYSTEM_PROMPT + '\n\nReply in the language the user writes in (English unless they write in another language), not in the language of an attached file.';
+    let system = systemPrompt + '\n\nReply in the language the user writes in (English unless they write in another language), not in the language of an attached file.';
     if (extraSystem) {
       system += `\n\n${extraSystem}`;
     }
@@ -1769,7 +1759,7 @@ export class ChatPage implements OnDestroy {
       system += `\n\nExtra instructions from the user: ${extra}`;
     }
     if (this.mock()) {
-      system += `\n\n${MOCK_INTERVIEW_SYSTEM}`;
+      system += `\n\n${mockInterviewSystem}`;
     } else if (info.system) {
       system += `\n\n${info.system}`;
     }
@@ -1855,7 +1845,7 @@ export class ChatPage implements OnDestroy {
     this.store.upsert({ ...this.chat(), mode: this.mode(), job: this.job() });
   }
 
-  /** Runs an AI call with the "thinking" indicator and turns failures into a retryable error message. */
+  // Runs an AI call with the "thinking" indicator and turns failures into a retryable error message.
   private async busy(work: () => Promise<void>): Promise<void> {
     this.sending.set(true);
     this.elapsed.set(0);

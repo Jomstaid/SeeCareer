@@ -1,16 +1,16 @@
 import { ChatAction, ChatMode } from './models';
 
-/** The six AI features from the project plan, as chat modes. */
+// The six AI features from the project plan, as chat modes.
 export interface ModeInfo {
   key: ChatMode;
   label: string;
-  /** One line shown in the feature list. */
+  // One line shown in the feature list.
   blurb: string;
   short: string;
   icon: string;
   image: string;
   darkImage: string;
-  /** Tile / chip colour (CSS colour). */
+  // Tile / chip colour (CSS colour).
   color: string;
   intro: string;
   placeholder: string;
@@ -18,7 +18,7 @@ export interface ModeInfo {
   needsJob: boolean;
   starters: string[];
   actions: ChatAction[];
-  /** Extra instruction added to the AI for this mode. */
+  // Extra instruction added to the AI for this mode.
   system: string;
 }
 
@@ -29,8 +29,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'Analyze, improve and generate your resume as PDF or Word.',
     short: 'Resume',
     icon: 'document-text',
-    image: 'assets/icon/mode-resume.png',
-    darkImage: 'assets/icon/dark-mode-resume.png',
+    image: 'assets/icon/modeResume.png',
+    darkImage: 'assets/icon/darkModeResume.png',
     color: '#6366f1',
     intro:
       'I can **analyze** your resume, **improve** it, **extract your skills**, and **generate a new resume as PDF or Word**. Add your resume (or upload a PDF, Word file or photo of it with the paperclip button), then pick an action.',
@@ -52,10 +52,10 @@ export const MODES: ModeInfo[] = [
     key: 'finder',
     label: 'Job Finder',
     blurb: 'Search real jobs, or get picks that fit your resume.',
-    short: 'Jobs',
+    short: 'Find jobs',
     icon: 'search',
-    image: 'assets/icon/mode-jobs.png',
-    darkImage: 'assets/icon/dark-mode-jobs.png',
+    image: 'assets/icon/modeJobs.png',
+    darkImage: 'assets/icon/darkModeJobs.png',
     color: '#06b6d4',
     intro:
       'Tell me what job you want, for example **“python developer”** or **“customer support”**. Or upload your resume and say **“find me a job I will get accepted for”**: I will pick the jobs you fit best and show your fit %.',
@@ -72,8 +72,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'See how well you fit a job, with a score.',
     short: 'Match',
     icon: 'speedometer',
-    image: 'assets/icon/mode-match.png',
-    darkImage: 'assets/icon/dark-mode-match.png',
+    image: 'assets/icon/modeMatch.png',
+    darkImage: 'assets/icon/darkModeMatch.png',
     color: '#10b981',
     intro:
       'I compare your resume with a job and give a **compatibility score**, why it fits, and what does not. Choose a job first (use Job Finder), then tap Match.',
@@ -93,8 +93,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'Cover letters, emails and application answers.',
     short: 'Apply',
     icon: 'mail',
-    image: 'assets/icon/mode-apply.png',
-    darkImage: 'assets/icon/dark-mode-apply.png',
+    image: 'assets/icon/modeApply.png',
+    darkImage: 'assets/icon/darkModeApply.png',
     color: '#f59e0b',
     intro:
       'I write a **cover letter** or **application email** for the selected job using only facts from your resume. Paste an application question and I will answer it too.',
@@ -113,10 +113,10 @@ export const MODES: ModeInfo[] = [
     key: 'gap',
     label: 'Skills Gap Analyzer',
     blurb: 'Find missing skills and get a learning plan.',
-    short: 'Skills',
+    short: 'Skills gap',
     icon: 'trending-up',
-    image: 'assets/icon/mode-skills.png',
-    darkImage: 'assets/icon/dark-mode-skills.png',
+    image: 'assets/icon/modeSkills.png',
+    darkImage: 'assets/icon/darkModeSkills.png',
     color: '#ec4899',
     intro:
       'I find the skills you are **missing** for the selected job and build an **8-week learning roadmap**. Pick a job first.',
@@ -136,8 +136,8 @@ export const MODES: ModeInfo[] = [
     blurb: 'Likely questions, plus a mock interview with scores.',
     short: 'Interview',
     icon: 'chatbubbles',
-    image: 'assets/icon/mode-interview.png',
-    darkImage: 'assets/icon/dark-mode-interview.png',
+    image: 'assets/icon/modeInterview.png',
+    darkImage: 'assets/icon/darkModeInterview.png',
     color: '#8b5cf6',
     intro:
       'Get a **list of likely questions** with suggested answers, or start a **mock interview**: I ask one question at a time and score each answer.',
@@ -153,14 +153,14 @@ export const MODES: ModeInfo[] = [
   },
 ];
 
-export const GENERAL_MODE: ModeInfo = {
+export const generalModeInfo: ModeInfo = {
   key: 'general',
   label: 'SeeCareer AI',
     blurb: '',
   short: 'Chat',
   icon: 'sparkles',
-  image: 'assets/icon/mode-chat.png',
-  darkImage: 'assets/icon/dark-mode-chat.png',
+  image: 'assets/icon/modeChat.png',
+  darkImage: 'assets/icon/darkModeChat.png',
   color: '#6366f1',
   intro: '',
   placeholder: 'Ask anything, or ask about your career…',
@@ -172,11 +172,11 @@ export const GENERAL_MODE: ModeInfo = {
 };
 
 export function modeInfo(key: ChatMode): ModeInfo {
-  return MODES.find((m) => m.key === key) ?? GENERAL_MODE;
+  return MODES.find((m) => m.key === key) ?? generalModeInfo;
 }
 
-/** Instruction used when the user starts a mock interview. */
-export const MOCK_INTERVIEW_SYSTEM =
+// Instruction used when the user starts a mock interview.
+export const mockInterviewSystem =
   'You are a friendly but realistic interviewer for the selected job. Ask ONE interview question at a time. ' +
   'After the user answers, reply with: "Score: X/10", one line of what was good, one line to improve, then ask the next question. ' +
   'Start now with the first question only.';

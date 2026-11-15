@@ -69,7 +69,7 @@ describe('more file types', () => {
   });
 });
 
-/** Builds a tiny Photoshop file that carries a preview picture, the way real .psd files do. */
+// Builds a tiny Photoshop file that carries a preview picture, the way real .psd files do.
 function fakePsd(jpeg: number[]): Uint8Array<ArrayBuffer> {
   const out: number[] = [];
   const u32 = (n: number) => out.push((n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255);

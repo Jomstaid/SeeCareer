@@ -3,7 +3,7 @@ import { Component, Input } from '@angular/core';
 import { faviconUrl, logoCandidates } from '../../core/logo';
 import { Job } from '../../core/models';
 
-/** A company's logo (the job's own, or its website icon), or a coloured initial when none can be found. */
+// A company's logo (the job's own, or its website icon), or a coloured initial when none can be found.
 @Component({
   selector: 'app-company-logo',
   templateUrl: './companylogo.component.html',
@@ -12,11 +12,11 @@ import { Job } from '../../core/models';
 })
 export class CompanyLogoComponent {
   @Input({ required: true }) job!: Job;
-  /** Side of the square, in pixels. */
+  // Side of the square, in pixels.
   @Input() size = 48;
 
   private failed = false;
-  /** How many guessed web addresses were tried without a usable logo. */
+  // How many guessed web addresses were tried without a usable logo.
   private guess = 0;
 
   get url(): string | null {
@@ -50,12 +50,12 @@ export class CompanyLogoComponent {
     return (this.job.company_name || '?').charAt(0).toUpperCase();
   }
 
-  /** A colour that is always the same for the same company. */
+  // A colour that is always the same for the same company.
   get avatar(): string {
     let h = 0;
     for (const c of this.job.company_name || this.job.title) {
       h = (h * 31 + c.charCodeAt(0)) % 360;
     }
-    return `linear-gradient(135deg, hsl(${h} 62% 38%), hsl(${(h + 40) % 360} 62% 30%))`;
+    return `hsl(${h} 58% 42%)`;
   }
 }

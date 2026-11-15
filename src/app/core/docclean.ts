@@ -1,17 +1,15 @@
-/** Emoji and pictographs: they do not belong in a professional document and most fonts cannot draw them. */
+// Emoji and pictographs: they do not belong in a professional document and most fonts cannot draw them.
 const PICTOGRAPHS = /[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}\u{200D}]/gu;
 
-/** Openers such as "Sure! Here is your letter:" that the AI puts before a document. */
+// Openers such as "Sure! Here is your letter:" that the AI puts before a document.
 const LEAD = /^(sure|certainly|of course|absolutely|okay|ok|great|happy to|here('s| is| are)|below is|i('ll| will| can| have)|let me)\b/i;
 
-/** Closers such as "Want me to customize this?" that the AI puts after a document. */
+// Closers such as "Want me to customize this?" that the AI puts after a document.
 const TAIL =
   /^(let me know|would you like|want me to|do you want|feel free|if you('d| would) like|i hope|hope this|need any|just share|share (your|these)|you can also|note:|tip:|p\.s\.|honest note|assumption|heads up|disclaimer)/i;
 
-/**
- * Removes the chat around a document the AI wrote: greetings before it, offers and questions after it,
- * a wrapping code fence, and emoji. What is left is only the document itself.
- */
+// Removes the chat around a document the AI wrote: greetings before it, offers and questions after it,
+// a wrapping code fence, and emoji. What is left is only the document itself.
 export function stripChatter(text: string): string {
   let t = (text ?? '').replace(/\r\n/g, '\n').replace(PICTOGRAPHS, '').trim();
   t = t.replace(/^```(?:markdown|md|text)?[ \t]*\n/i, '').replace(/\n```[ \t]*$/, '').trim();
@@ -28,7 +26,7 @@ export function stripChatter(text: string): string {
     }
   }
 
-  // a one-line opener such as "Here is the cover letter:" (and the divider after it) when the text has no heading
+  // a one line opener such as "Here is the cover letter:" (and the divider after it) when the text has no heading
   const blank = (l?: string) => !l || !l.trim() || /^[-*_]{3,}$/.test(l.trim());
   while (lines.length && blank(lines[0])) {
     lines.shift();
@@ -68,12 +66,12 @@ export function stripChatter(text: string): string {
   return lines.join('\n').trim();
 }
 
-/** The document's own title: its first heading. */
+// The document's own title: its first heading.
 export function titleOf(markdown: string): string | undefined {
   return /^#{1,2}\s+(.+)$/m.exec(markdown)?.[1]?.replace(/[*_`]/g, '').trim();
 }
 
-/** A short readable title from the request, for example "write me a cover letter for a nurse job as pdf" -> "Cover letter for a nurse job". */
+// A short readable title from the request, for example "write me a cover letter for a nurse job as pdf" -> "Cover letter for a nurse job".
 export function nameFromRequest(request: string): string {
   const words = (request ?? '')
     .replace(/\b(as|in|to|into)\s+(a\s+)?(pdf|word|docx?|ms word|txt|text file|markdown)\b/gi, '')
@@ -92,15 +90,13 @@ export function nameFromRequest(request: string): string {
   return title.charAt(0).toUpperCase() + title.slice(1);
 }
 
-/** A request for a letter or an email (these have no title and no section headings). */
+// A request for a letter or an email (these have no title and no section headings).
 export function isLetterRequest(request: string): boolean {
   return /\b(letter|e-?mail)\b/i.test(request ?? '');
 }
 
-/**
- * Turns an AI answer into a real letter: no title, no section headings, no divider lines.
- * The sender block, date, recipient, greeting, paragraphs and closing stay as they are.
- */
+// Turns an AI answer into a real letter: no title, no section headings, no divider lines.
+// The sender block, date, recipient, greeting, paragraphs and closing stay as they are.
 export function letterize(markdown: string): string {
   return (markdown ?? '')
     .split('\n')

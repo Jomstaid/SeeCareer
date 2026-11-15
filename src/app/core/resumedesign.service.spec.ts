@@ -28,7 +28,7 @@ describe('ResumeDesignService', () => {
     expect(calls.length).toBe(1);
     const prompt = JSON.stringify(calls[0]);
     expect(prompt).toContain('Keep it short'); // the user's own instructions reach the AI
-    expect(prompt).toContain('Never invent'); // and the no-invention rule
+    expect(prompt).toContain('Never invent'); // and the no invention rule
   });
 
   it('asks again when the first answer is not valid resume JSON', async () => {

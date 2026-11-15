@@ -18,7 +18,7 @@ export class AppComponent implements AfterViewInit {
     this.ai.startAutoCheck(); // keeps the list of working models up to date by itself
   }
 
-  /** Fades the front page away once the app is ready. It always shows for a moment, so the animation is seen. */
+  // Fades the front page away once the app is ready. It always shows for a moment, so the animation is seen.
   ngAfterViewInit(): void {
     const splash = document.getElementById('splash');
     if (!splash) {
@@ -31,10 +31,8 @@ export class AppComponent implements AfterViewInit {
     }, Math.max(0, 2300 - shown));
   }
 
-  /**
-   * A file dropped anywhere that is not the chat would make the browser open it and leave the app.
-   * The chat page handles its own drops; everywhere else we simply ignore them.
-   */
+  // A file dropped anywhere that is not the chat would make the browser open it and leave the app.
+  // The chat page handles its own drops; everywhere else we simply ignore them.
   @HostListener('window:dragover', ['$event'])
   @HostListener('window:drop', ['$event'])
   blockFileNavigation(e: DragEvent): void {

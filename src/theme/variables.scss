@@ -1,13 +1,16 @@
-// SeeCareer design tokens.
-// Pixel typography with a 4/8 spacing scale and breakpoints at 375 / 768 / 1024 / 1440.
+// SeeCareer pixel theme.
+// The layout, sizes and spacing are the original SeeCareer design; only the look is pixel:
+// square corners, solid panels, 2px borders, hard drop shadows (no blur), bevelled buttons, pixel icons
+// and the DotGothic16 pixel font (chosen because it stays easy to read at normal text sizes).
+// Light = pastel sky blue with pink accents, Dark = arcade purple (they match the pixel icons).
 
 :root {
   // ----- typography -----
-  --sc-font: 'VT323', monospace;
-  --sc-font-pixel: 'Pixelify Sans', monospace;
-  --sc-font-head: var(--sc-font-pixel);
-  --sc-code: 'VT323', monospace;
-  --sc-mono: var(--sc-font); // older stylesheets use this name for small labels
+  --sc-font: 'SC Pixel', 'VT323', ui-monospace, monospace;
+  --sc-font-head: 'SC Pixel', 'VT323', ui-monospace, monospace;
+  --sc-font-pixel: var(--sc-font);
+  --sc-code: 'VT323', ui-monospace, monospace;
+  --sc-mono: var(--sc-font);
   --sc-chat-size: 16px;
 
   // ----- spacing scale (4pt) -----
@@ -18,86 +21,53 @@
   --sp-5: 24px;
   --sp-6: 32px;
 
-  // ----- shape and glass -----
-  --sc-radius: 16px;
-  --sc-radius-sm: 10px;
-  --sc-blur: 18px;
+  // ----- shape: pixel -----
+  --sc-radius: 0px;
+  --sc-radius-sm: 0px;
+  --sc-blur: 0px;
+  --sc-bw: 2px;
   --sc-gradient: var(--sc-primary);
 
-  // ----- colour (light) -----
-  --sc-bg: #eaf1ff; // solid fallback under the gradient
-  --sc-bg-image:
-    radial-gradient(60vmax 60vmax at 8% -10%, rgba(59, 130, 246, 0.35), transparent 60%),
-    radial-gradient(55vmax 55vmax at 105% 105%, rgba(20, 184, 166, 0.32), transparent 60%),
-    radial-gradient(40vmax 40vmax at 100% 0%, rgba(99, 102, 241, 0.2), transparent 60%), linear-gradient(160deg, #eef4ff, #e7f8f5);
-  --sc-panel: rgba(255, 255, 255, 0.62); // frosted glass surface
-  --sc-panel-2: rgba(255, 255, 255, 0.5); // inputs and inner blocks
-  --sc-panel-solid: #f6f9ff; // where text must sit on something opaque (menus, dialogs)
-  --sc-border: rgba(30, 64, 175, 0.16);
-  --sc-frame-color: #76c0ec;
-  --sc-frame-accent: #76c0ec;
-  --sc-frame-shadow: #b8b8f1;
-  --sc-frame-clip: polygon(
-    18px 0,
-    calc(100% - 18px) 0,
-    calc(100% - 18px) 6px,
-    calc(100% - 12px) 6px,
-    calc(100% - 12px) 12px,
-    calc(100% - 6px) 12px,
-    calc(100% - 6px) 18px,
-    100% 18px,
-    100% calc(100% - 18px),
-    calc(100% - 6px) calc(100% - 18px),
-    calc(100% - 6px) calc(100% - 12px),
-    calc(100% - 12px) calc(100% - 12px),
-    calc(100% - 12px) calc(100% - 6px),
-    calc(100% - 18px) calc(100% - 6px),
-    calc(100% - 18px) 100%,
-    18px 100%,
-    18px calc(100% - 6px),
-    12px calc(100% - 6px),
-    12px calc(100% - 12px),
-    6px calc(100% - 12px),
-    6px calc(100% - 18px),
-    0 calc(100% - 18px),
-    0 18px,
-    6px 18px,
-    6px 12px,
-    12px 12px,
-    12px 6px,
-    18px 6px
-  );
-  --sc-edge: rgba(255, 255, 255, 0.85); // bright top edge of glass
-  --sc-shadow: 0 8px 30px rgba(30, 64, 175, 0.1);
-  --sc-text: #0f1f3d;
-  --sc-muted: #475a78;
-  --sc-primary: #76c0ec;
-  --sc-on-primary: #0f1f3d;
-  --sc-accent: #76c0ec;
-  --sc-accent-2: #76c0ec;
-  --sc-cyan: #0e7490;
-  --sc-cta: #76c0ec;
-  --sc-on-cta: #0f1f3d;
-  --sc-saved: #b45309;
-  --sc-ok: #15803d;
+  // ----- colour: Sky (light) -----
+  --sc-bg: #e3f3ff;
+  --sc-grid: rgba(74, 163, 232, 0.14);
+  --sc-panel: #ffffff;
+  --sc-panel-2: #eef8ff;
+  --sc-panel-solid: #ffffff;
+  --sc-border: #8ec8f0;
+  --sc-edge: #8ec8f0;
+  --sc-hard: #b5dcf7; // hard pixel shadow
+  --sc-shade: rgba(23, 74, 128, 0.2); // bottom right bevel of buttons
+  --sc-light: rgba(255, 255, 255, 0.45); // top left bevel of buttons
+  --sc-soft: #dbefff; // selected / highlighted background
+  --sc-shadow: 4px 4px 0 0 var(--sc-hard);
+  --sc-text: #14304f;
+  --sc-muted: #4a6585;
+  --sc-primary: #1f7dd4;
+  --sc-on-primary: #ffffff;
+  --sc-accent: #1f7dd4;
+  --sc-accent-2: #ff6f9f;
+  --sc-cyan: #0e8fb0;
+  --sc-cta: #1f7dd4;
+  --sc-on-cta: #ffffff;
+  --sc-saved: #c2410c;
+  --sc-ok: #16803c;
   --sc-warn: #b45309;
-  --sc-danger: #b91c1c;
-  --sc-focus: #0077b6;
-  --sc-selected: #0077b6;
-  --sc-unselected: #76c0ec;
+  --sc-danger: #c81e3a;
+  --sc-focus: #ff6f9f;
 
   // ----- Ionic mapping -----
   --ion-font-family: var(--sc-font);
   --ion-background-color: var(--sc-panel-solid);
   --ion-text-color: var(--sc-text);
-  --ion-color-primary: #76c0ec;
-  --ion-color-primary-rgb: 118, 192, 236;
-  --ion-color-primary-contrast: #0f1f3d;
-  --ion-color-primary-contrast-rgb: 15, 31, 61;
-  --ion-color-primary-shade: #68a9cf;
-  --ion-color-primary-tint: #84c7ed;
-  --ion-color-success: #0f766e;
-  --ion-color-success-rgb: 15, 118, 110;
+  --ion-color-primary: #1f7dd4;
+  --ion-color-primary-rgb: 31, 125, 212;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #1b6ebb;
+  --ion-color-primary-tint: #358ad8;
+  --ion-color-success: #16803c;
+  --ion-color-success-rgb: 22, 128, 60;
   --ion-color-success-contrast: #ffffff;
   --ion-color-success-contrast-rgb: 255, 255, 255;
   --ion-color-success-shade: #0d695f;
@@ -108,44 +78,43 @@
 }
 
 :root.ion-palette-dark {
-  --sc-bg: #000000;
-  --sc-bg-image: linear-gradient(160deg, #000000, #000000);
-  --sc-nav-bg: #212529;
-  --sc-panel: rgba(255, 255, 255, 0.075);
-  --sc-panel-2: rgba(255, 255, 255, 0.06);
-  --sc-panel-solid: #0e1d3a;
-  --sc-border: rgba(255, 255, 255, 0.14);
-  --sc-frame-color: #6330cf;
-  --sc-frame-accent: #6330cf;
-  --sc-frame-shadow: #6b3690;
-  --sc-edge: rgba(255, 255, 255, 0.22);
-  --sc-shadow: 0 10px 34px rgba(0, 0, 0, 0.35);
-  --sc-text: #e8f0ff;
-  --sc-muted: #a3b6d6;
-  --sc-primary: #6330cf;
-  --sc-on-primary: #ffffff;
-  --sc-accent: #6330cf;
-  --sc-accent-2: #6330cf;
-  --sc-cyan: #22d3ee;
-  --sc-cta: #6330cf;
+  // ----- colour: Night (dark) -----
+  --sc-bg: #0d0919;
+  --sc-grid: rgba(139, 92, 246, 0.1);
+  --sc-panel: #171028;
+  --sc-panel-2: #221839;
+  --sc-panel-solid: #171028;
+  --sc-border: #4a3391;
+  --sc-edge: #4a3391;
+  --sc-hard: #2c1166;
+  --sc-shade: rgba(0, 0, 0, 0.35);
+  --sc-light: rgba(255, 255, 255, 0.18);
+  --sc-soft: #2a1d4d;
+  --sc-shadow: 4px 4px 0 0 var(--sc-hard);
+  --sc-text: #f3eeff;
+  --sc-muted: #b9addb;
+  --sc-primary: #a68aff;
+  --sc-on-primary: #160b33;
+  --sc-accent: #a68aff;
+  --sc-accent-2: #ff7eb6;
+  --sc-cyan: #3de0ff;
+  --sc-cta: #7c4dff;
   --sc-on-cta: #ffffff;
-  --sc-saved: #fbbf24;
+  --sc-saved: #ffd23f;
   --sc-ok: #4ade80;
   --sc-warn: #fbbf24;
-  --sc-danger: #f87171;
-  --sc-focus: #6330cf;
-  --sc-selected: #6330cf;
-  --sc-unselected: #6330cf;
+  --sc-danger: #ff6b81;
+  --sc-focus: #ff7eb6;
 
   --ion-background-color: var(--sc-panel-solid);
-  --ion-background-color-rgb: 14, 29, 58;
+  --ion-background-color-rgb: 23, 16, 40;
   --ion-text-color: var(--sc-text);
-  --ion-color-primary: #6330cf;
-  --ion-color-primary-rgb: 99, 48, 207;
+  --ion-color-primary: #8a5cff;
+  --ion-color-primary-rgb: 138, 92, 255;
   --ion-color-primary-contrast: #ffffff;
   --ion-color-primary-contrast-rgb: 255, 255, 255;
-  --ion-color-primary-shade: #572ab6;
-  --ion-color-primary-tint: #7449d5;
+  --ion-color-primary-shade: #7951e0;
+  --ion-color-primary-tint: #966cff;
   --ion-color-success: #2dd4bf;
   --ion-color-success-rgb: 45, 212, 191;
   --ion-color-success-contrast: #042f2b;
@@ -172,20 +141,23 @@
   zoom: 1.14;
 }
 
-// ----- the background: a soft blue and teal glow that the glass sits on -----
+// ----- the background: a flat colour with a faint pixel grid -----
 html,
 body {
   background-color: var(--sc-bg);
 }
 
-// the glow sits on its own fixed layer, so every part of the page shows exactly the same background
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
-  background: var(--sc-bg-image) no-repeat center / cover;
   pointer-events: none;
+  background-color: var(--sc-bg);
+  background-image:
+    linear-gradient(var(--sc-grid) 2px, transparent 2px),
+    linear-gradient(90deg, var(--sc-grid) 2px, transparent 2px);
+  background-size: 24px 24px;
 }
 
 ion-app,
@@ -202,25 +174,22 @@ ion-content {
 
 html {
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
 
 body {
   font-size: 15px;
   line-height: 1.55;
-  letter-spacing: -0.003em;
+  letter-spacing: 0;
 }
 
 h1,
 h2,
 h3,
 h4,
-h5,
-h6,
 ion-title {
   font-family: var(--sc-font-head);
   font-weight: 700;
-  letter-spacing: -0.022em;
+  letter-spacing: 0.01em;
   line-height: 1.2;
 }
 
@@ -232,29 +201,6 @@ ion-modal {
   --background: var(--sc-panel-solid);
 }
 
-ion-modal.history-modal,
-ion-modal.history-modal ion-content {
-  --background: #E8F9FF;
-}
-
-:root.ion-palette-dark ion-modal.history-modal {
-  --background: #111111;
-  --sc-frame-color: #6330cf;
-  --sc-frame-accent: #6330cf;
-  --sc-frame-shadow: #290044;
-}
-
-:root.ion-palette-dark ion-modal.history-modal ion-content {
-  --background: #111111;
-}
-
-ion-modal.history-modal::part(content) {
-  border: 2px solid var(--sc-frame-color);
-  border-image: linear-gradient(135deg, var(--sc-frame-color), var(--sc-frame-accent), var(--sc-frame-color)) 1;
-  clip-path: var(--sc-frame-clip);
-  box-shadow: 3px 5px 0 var(--sc-frame-shadow);
-}
-
 ion-popover,
 ion-alert,
 ion-action-sheet {
@@ -263,7 +209,6 @@ ion-action-sheet {
 
 ion-button {
   --border-radius: var(--sc-radius-sm);
-  --ion-font-family: var(--sc-font-pixel);
   font-weight: 600;
   text-transform: none;
   letter-spacing: 0;
@@ -290,28 +235,6 @@ a {
 // ----- glass: every surface that floats above the background -----
 .glass,
 .card,
-ion-card,
-.jobcard,
-.ai-bubble,
-.resume-banner,
-.resume-card,
-.modebar,
-.composer .inputbox,
-.ctxbar,
-.queue .qitem,
-.stat-card,
-.job-card,
-.feature,
-.rec,
-.rail,
-ion-tab-bar,
-ion-header ion-toolbar {
-  -webkit-backdrop-filter: blur(var(--sc-blur)) saturate(150%);
-  backdrop-filter: blur(var(--sc-blur)) saturate(150%);
-}
-
-.glass,
-.card,
 .jobcard,
 .ai-bubble,
 .resume-banner,
@@ -320,19 +243,18 @@ ion-header ion-toolbar {
 .feature {
   background: var(--sc-panel);
   border: 1px solid var(--sc-border);
-  border-top-color: var(--sc-edge);
-  box-shadow: var(--sc-shadow), inset 0 1px 0 var(--sc-edge);
+  box-shadow: var(--sc-shadow);
 }
 
 ion-modal::part(content) {
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
+  border: 1px solid var(--sc-primary);
+  box-shadow: 6px 6px 0 0 var(--sc-hard);
 }
 
 // ----- accessibility: visible keyboard focus and reduced motion -----
 :focus-visible {
-  outline: 2px solid var(--sc-focus);
-  outline-offset: 2px;
+  outline: 2px dashed var(--sc-focus);
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -355,7 +277,6 @@ ion-segment {
 
 ion-segment-button {
   --border-radius: var(--sc-radius-sm);
-  --ion-font-family: var(--sc-font-pixel);
   text-transform: none;
   letter-spacing: 0;
   font-weight: 600;
@@ -388,6 +309,7 @@ ion-modal::part(content) {
   }
 }
 
+.composer .inputbox,
 .ctxbar,
 .queue .qitem,
 .job-card,
@@ -449,4 +371,194 @@ ion-footer ion-toolbar {
 *::-webkit-scrollbar-thumb {
   border-radius: 99px;
   background: color-mix(in srgb, var(--sc-muted) 45%, transparent);
+}
+
+// ===================== pixel details =====================
+
+// pixel art stays crisp when it is scaled
+img[src*='assets/icon/'] {
+  image-rendering: pixelated;
+}
+
+// buttons are bevelled blocks with a hard shadow and sink when pressed
+ion-button {
+  --box-shadow: inset -3px -3px 0 0 var(--sc-shade), inset 3px 3px 0 0 var(--sc-light), 3px 3px 0 0 var(--sc-hard);
+  transition: transform 60ms steps(1);
+
+  &:active:not(.button-disabled) {
+    transform: translate(2px, 2px);
+    --box-shadow: inset 3px 3px 0 0 var(--sc-shade);
+  }
+}
+
+ion-button[fill='outline'] {
+  --box-shadow: 3px 3px 0 0 var(--sc-hard);
+}
+
+ion-button[fill='clear'],
+ion-buttons ion-button {
+  --box-shadow: none;
+}
+
+ion-chip {
+  border-radius: 0;
+}
+
+ion-card {
+  border-radius: 0;
+}
+
+ion-toggle {
+  --border-radius: 0;
+  --handle-border-radius: 0;
+  --handle-box-shadow: none;
+}
+
+ion-alert .alert-wrapper,
+ion-action-sheet .action-sheet-group,
+ion-toast::part(container) {
+  border-radius: 0 !important;
+  border: 1px solid var(--sc-primary);
+  box-shadow: 5px 5px 0 0 var(--sc-hard);
+}
+
+ion-alert .alert-button {
+  border-radius: 0 !important;
+}
+
+ion-modal::part(handle) {
+  border-radius: 0;
+}
+
+// no visible scrollbars: everything still scrolls with touch, the wheel and the keyboard
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+// ----- pixel icons, placed and sized exactly like the line icons of the original design -----
+ion-tab-button .nav-icon-wrap {
+  display: grid;
+  place-items: center;
+  padding: 2px 12px;
+  transition: background-color 180ms steps(2);
+}
+
+ion-tab-button .nav-icon {
+  display: block;
+  width: auto;
+  height: 24px;
+  max-width: 30px;
+  object-fit: contain;
+}
+
+ion-tab-button.tab-selected .nav-icon-wrap {
+  background: color-mix(in srgb, var(--sc-primary) 18%, transparent);
+}
+
+.rail-link .ico {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+
+  img {
+    display: block;
+    width: auto;
+    height: 22px;
+    max-width: 26px;
+    object-fit: contain;
+  }
+}
+
+// the original bar had an 18px icon right above the label
+.modebar ion-segment-button .mode-icon {
+  display: block;
+  width: auto;
+  height: 18px;
+  max-width: 24px;
+  margin: 10px auto 0;
+  object-fit: contain;
+}
+
+.modebar ion-segment-button ion-label {
+  margin-top: 1px;
+}
+
+.mode-grid .mode-icon {
+  display: block;
+  width: auto;
+  height: 19px;
+  max-width: 24px;
+  object-fit: contain;
+}
+
+.feature .feature-icon {
+  display: block;
+  width: auto;
+  height: 24px;
+  max-width: 28px;
+  object-fit: contain;
+}
+
+.tile .pic img {
+  display: block;
+  width: auto;
+  height: 22px;
+  max-width: 26px;
+  object-fit: contain;
+}
+
+.cta-icon,
+.ai-icon,
+.task-icon,
+.explore-jobs-icon {
+  flex: none;
+  width: auto;
+  height: 18px;
+  max-width: 24px;
+  margin-inline-end: 8px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+.ai-cta > .ai-cta-icon {
+  flex: none;
+  width: auto;
+  height: 26px;
+  max-width: 30px;
+  object-fit: contain;
+}
+
+// group photos: a head and shoulders crop on the theme colour (the photos have a transparent background)
+ion-img.avatar {
+  flex: none;
+  overflow: hidden;
+  background-color: var(--sc-primary) !important;
+}
+
+ion-img.avatar::part(image) {
+  object-fit: cover;
+  object-position: center top;
+}
+
+// dialogs get keyboard focus when they open: the box itself needs no focus outline
+ion-alert:focus-visible,
+ion-modal:focus-visible,
+ion-popover:focus-visible,
+ion-action-sheet:focus-visible,
+ion-alert .alert-wrapper:focus-visible {
+  outline: none;
+}
+
+// tab labels use the whole button width, so "Settings" still fits with large text
+ion-tab-button {
+  --padding-start: 0;
+  --padding-end: 0;
 }

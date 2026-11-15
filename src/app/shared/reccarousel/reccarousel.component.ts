@@ -2,11 +2,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 
 import { Job, Recommendation } from '../../core/models';
 
-/**
- * Swipeable list of recommended jobs. Each card shows the fit %, the chance label,
- * how many skills match, which are missing, and Apply / Details / Select buttons.
- * On wide screens the cards sit in a grid instead of a sideways scroll.
- */
+// Swipeable list of recommended jobs. Each card shows the fit %, the chance label,
+// how many skills match, which are missing, and Apply / Details / Select buttons.
+// On wide screens the cards sit in a grid instead of a sideways scroll.
 @Component({
   selector: 'app-rec-carousel',
   templateUrl: './reccarousel.component.html',
@@ -15,7 +13,7 @@ import { Job, Recommendation } from '../../core/models';
 })
 export class RecCarouselComponent {
   @Input({ required: true }) recs: Recommendation[] = [];
-  /** Id of the job the user already picked. */
+  // Id of the job the user already picked.
   @Input() selectedId?: number;
   @Output() details = new EventEmitter<Job>();
   @Output() jobSelected = new EventEmitter<Job>();

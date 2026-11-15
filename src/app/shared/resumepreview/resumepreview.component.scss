@@ -1,7 +1,14 @@
 // A sheet of paper: always dark text on white, whatever the app theme is.
+// The resume is a real document, so it uses document fonts, never the app's pixel fonts.
 :host {
   display: block;
   container-type: inline-size; // the layout reacts to the width of the preview, not of the screen
+  --sc-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --sc-font-head: 'DM Sans', 'Inter', system-ui, sans-serif;
+  --sc-font-pixel: var(--sc-font);
+  --sc-mono: var(--sc-font);
+  letter-spacing: normal;
+  -webkit-font-smoothing: antialiased;
 }
 
 .sheet {
@@ -164,9 +171,9 @@
     }
   }
 
-  // ----- classic: one column -----
+  // ----- classic: one column, serif -----
   &.classic {
-    font-family: var(--sc-font);
+    font-family: 'Times New Roman', Times, serif;
     font-size: 13px;
     color: #000;
 
@@ -436,7 +443,6 @@
 
       .job {
         margin-top: 5px;
-        font-family: var(--sc-font-pixel);
         font-size: 12px;
         font-weight: 700;
         letter-spacing: 0.08em;
@@ -471,9 +477,9 @@
     }
   }
 
-  // ----- elegant: centred layout with fine lines -----
+  // ----- elegant: centred serif with fine lines -----
   &.elegant {
-    font-family: var(--sc-font);
+    font-family: 'Times New Roman', Times, serif;
     font-size: 13px;
     color: #26262a;
 

@@ -84,7 +84,7 @@
 
         <div class="switch">
           <span>Save chat history on this device</span>
-          <ion-toggle [checked]="settings.settings().saveHistory" (ionChange)="setSaveHistory($any($event).detail.checked)" aria-label="Save chat history"></ion-toggle>
+          <ion-toggle [checked]="settings.settings().saveHistory" (ionChange)="setSaveHistory($any($event).detail.checked, $any($event).target)" aria-label="Save chat history"></ion-toggle>
         </div>
       </section>
     </div>

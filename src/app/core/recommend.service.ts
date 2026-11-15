@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { AiService, ApiMessage, ContentPart } from './ai.service';
-import { DOC_LABELS, DocVerdict, parseVerdict, ruleVerdict } from './doccheck';
+import { docLabels, DocVerdict, parseVerdict, ruleVerdict } from './doccheck';
 import { JobService, locationMentions, plainText } from './job.service';
 import { AiError, Job, Recommendation } from './models';
 import { Place, placeFromName, splitPlace } from './places';
@@ -11,7 +11,7 @@ export interface Profile {
   skills: string[];
   level: string;
   summary: string;
-  /** The place the user asked for, when they named one. */
+  // The place the user asked for, when they named one.
   place?: Place | null;
 }
 
@@ -19,14 +19,16 @@ export interface RecommendResult {
   profile: Profile;
   recs: Recommendation[];
   searched: number;
-  /** True when there were no jobs only for the place, so jobs open to anyone are included. */
+  // True when there were no jobs only for the place, so jobs open to anyone are included.
   loose: boolean;
 }
 
-const MAX_CANDIDATES = 24;
-const RATE_TOP = 12;
+const maxCandidates = 24;
+const rateTop = 12;
+// Jobs rated per AI request (the requests run at the same time).
+const jobsPerRating = 4;
 const SHOW = 8;
-const MIN_FIT = 20;
+const minFit = 20;
 
 function extractJson<T>(raw: string, open: '{' | '['): T | null {
   const close = open === '{' ? '}' : ']';
@@ -46,18 +48,16 @@ export function chanceOf(score: number): Recommendation['chance'] {
   return score >= 75 ? 'High' : score >= 55 ? 'Good' : score >= 35 ? 'Moderate' : 'Low';
 }
 
-/**
- * "Find me jobs I will be accepted for": reads the resume, searches real jobs for the matching titles,
- * then rates each job (skills matched, skills missing, seniority) so the best fits come first.
- * The score is an estimate to guide the user, never a promise of being hired.
- */
+// "Find me jobs I will be accepted for": reads the resume, searches real jobs for the matching titles,
+// then rates each job (skills matched, skills missing, seniority) so the best fits come first.
+// The score is an estimate to guide the user, never a promise of being hired.
 @Injectable({ providedIn: 'root' })
 export class RecommendService {
   private ai = inject(AiService);
   private jobs = inject(JobService);
 
 
-  /** Asks the AI whether a document is a real resume, a job posting, a cover letter, or unrelated. */
+  // Asks the AI whether a document is a real resume, a job posting, a cover letter, or unrelated.
   async classify(text: string, images: string[] = [], name = ''): Promise<DocVerdict> {
     const rules = ruleVerdict(text || '');
     if (!text && !images.length) {
@@ -65,11 +65,11 @@ export class RecommendService {
     }
     const instruction =
       'You check documents for a job-search app. Decide what this document is. Answer with JSON only:\n' +
-      '{"type":"resume|cover_letter|job_posting|job_related|not_job_related","confidence":0-100,"reason":"max 18 words"}\n' +
+      '{"type":"resume|coverLetter|jobPosting|jobRelated|notJobRelated","confidence":0-100,"reason":"max 18 words"}\n' +
       'resume = a real CV/resume of a person (contact details, work history or education, skills). ' +
-      'job_posting = an employer\'s job ad. cover_letter = a letter applying for a job. ' +
-      'job_related = other career documents (certificate, transcript, portfolio). ' +
-      'not_job_related = anything else (homework, receipts, memes, random photos, articles, chats, code...). ' +
+      'jobPosting = an employer\'s job ad. coverLetter = a letter applying for a job. ' +
+      'jobRelated = other career documents (certificate, transcript, portfolio). ' +
+      'notJobRelated = anything else (homework, receipts, memes, random photos, articles, chats, code...). ' +
       'Be strict: a document with no personal work/education history is NOT a resume.';
     const body = `File name: ${name || '(pasted text)'}\n${text ? 'Text:\n' + text.slice(0, 5000) : '(no text: look at the picture)'}`;
     const content: string | ContentPart[] = images.length
@@ -87,18 +87,18 @@ export class RecommendService {
       const verdict = parseVerdict(r.content);
       if (verdict) {
         // if the rules are very sure it is NOT a resume, do not let a hopeful AI answer override it
-        if (verdict.type === 'resume' && rules.type === 'not_job_related' && !images.length) {
-          return { ...verdict, type: 'not_job_related', confidence: 60, reason: rules.reason };
+        if (verdict.type === 'resume' && rules.type === 'notJobRelated' && !images.length) {
+          return { ...verdict, type: 'notJobRelated', confidence: 60, reason: rules.reason };
         }
         return verdict;
       }
     } catch {
-      /* fall back to the offline rules */
+      // fall back to the offline rules
     }
     return rules;
   }
 
-  /** Step 1: who is this person (job titles to search, skills, level). */
+  // Step 1: who is this person (job titles to search, skills, level).
   async profile(resume: string, images: string[] = [], request = ''): Promise<Profile> {
     const prompt =
       'Read this resume and answer with JSON only: ' +
@@ -138,7 +138,7 @@ export class RecommendService {
     };
   }
 
-  /** Reads a resume from pictures and writes it out as plain text, so the app can remember it. */
+  // Reads a resume from pictures and writes it out as plain text, so the app can remember it.
   async transcribe(images: string[]): Promise<string> {
     const content: ContentPart[] = [
       { type: 'text', text: 'Write out everything in this resume as plain text: name, contact, summary, skills, work experience, education, certifications. No comments, only the resume text.' },
@@ -148,7 +148,7 @@ export class RecommendService {
     return r.content.trim();
   }
 
-  /** Whole flow. `onStep` reports progress to show in the chat. */
+  // Whole flow. `onStep` reports progress to show in the chat.
   async recommend(resume: string, images: string[] = [], onStep?: (text: string) => void, request = ''): Promise<RecommendResult> {
     onStep?.(resume || images.length ? 'Reading your resume…' : 'Understanding your request…');
     let profile: Profile;
@@ -181,7 +181,7 @@ export class RecommendService {
     for (let i = 0; i < 8; i++) {
       for (const list of lists) {
         const job = list.jobs[i];
-        if (job && !seen.has(job.id) && candidates.length < MAX_CANDIDATES) {
+        if (job && !seen.has(job.id) && candidates.length < maxCandidates) {
           seen.add(job.id);
           candidates.push(job);
         }
@@ -196,11 +196,11 @@ export class RecommendService {
     // true when none of the jobs is really for the place (they are open to anyone)
     const loose = !!place && !candidates.some((j) => locationMentions(j.candidate_required_location, place));
 
-    // quick offline pre-score so only the most promising jobs go to the AI
+    // quick offline prescore so only the most promising jobs go to the AI
     const pre = candidates
       .map((job) => ({ job, ...this.localFit(job, profile) }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, RATE_TOP);
+      .slice(0, rateTop);
 
     onStep?.(`Checking how well you fit ${pre.length} jobs…`);
     const rated = await this.rate(pre, profile).catch(() => null);
@@ -218,10 +218,10 @@ export class RecommendService {
     });
     recs.sort((a, b) => b.score - a.score);
     // a job that barely fits is noise: only real matches are shown
-    return { profile, recs: recs.filter((r) => r.score >= MIN_FIT).slice(0, SHOW), searched: candidates.length, loose };
+    return { profile, recs: recs.filter((r) => r.score >= minFit).slice(0, SHOW), searched: candidates.length, loose };
   }
 
-  /** Offline score: how many of the person's skills and titles appear in the job. */
+  // Offline score: how many of the person's skills and titles appear in the job.
   private localFit(job: Job, profile: Profile): { score: number; matched: string[]; missing: string[] } {
     const text = `${job.title} ${job.category} ${job.tags.join(' ')} ${plainText(job.description, 3000)}`.toLowerCase();
     const matched = profile.skills.filter((s) => text.includes(s));
@@ -239,11 +239,29 @@ export class RecommendService {
       : `Matches your target role (${profile.titles[0]}). Check the requirements.`;
   }
 
-  /** Step 3: the AI rates each job against the profile (score, why, matched and missing skills). */
+  // Step 3: the AI rates each job against the profile (score, why, matched and missing skills).
+  // It rates the jobs in small batches that run at the same time on the fastest models,
+  // so a dozen jobs take about as long as four (a few seconds instead of half a minute).
   private async rate(
     items: { job: Job; score: number }[],
     profile: Profile,
   ): Promise<{ i: number; score: number; reason: string; matched: string[]; missing: string[] }[] | null> {
+    const batches: { start: number; items: { job: Job; score: number }[] }[] = [];
+    for (let start = 0; start < items.length; start += jobsPerRating) {
+      batches.push({ start, items: items.slice(start, start + jobsPerRating) });
+    }
+    // a batch that takes too long (a busy model) is skipped: those jobs keep the quick score from this phone
+    const late = () => new Promise<never[]>((resolve) => setTimeout(() => resolve([]), 20000));
+    const parts = await Promise.all(batches.map((b) => Promise.race([this.rateBatch(b.items, profile, b.start).catch(() => []), late()])));
+    const all = parts.flat();
+    return all.length ? all : null;
+  }
+
+  private async rateBatch(
+    items: { job: Job; score: number }[],
+    profile: Profile,
+    offset: number,
+  ): Promise<{ i: number; score: number; reason: string; matched: string[]; missing: string[] }[]> {
     const list = items
       .map(
         (p, i) =>
@@ -269,22 +287,24 @@ export class RecommendService {
           `\nJOBS\n${list}`,
       },
     ];
-    const r = await this.ai.chat(messages, 1800, { temperature: 0.1 });
+    const r = await this.ai.chat(messages, 800, { temperature: 0.1, fast: true, spread: offset / jobsPerRating });
     const arr = extractJson<{ i: number; score: number; reason?: string; matched?: string[]; missing?: string[] }[]>(r.content, '[');
     if (!arr?.length) {
-      return null;
+      return [];
     }
-    return arr.map((x) => ({
-      i: Number(x.i),
-      score: Number(x.score) || 0,
-      reason: String(x.reason ?? ''),
-      matched: (x.matched ?? []).map(String),
-      missing: (x.missing ?? []).map(String),
-    }));
+    return arr
+      .filter((x) => Number(x.i) >= 0 && Number(x.i) < items.length)
+      .map((x) => ({
+        i: Number(x.i) + offset,
+        score: Number(x.score) || 0,
+        reason: String(x.reason ?? ''),
+        matched: (x.matched ?? []).map(String),
+        missing: (x.missing ?? []).map(String),
+      }));
   }
 
   label(type: DocVerdict['type']): string {
-    return DOC_LABELS[type];
+    return docLabels[type];
   }
 }
 

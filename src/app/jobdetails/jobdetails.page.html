@@ -63,7 +63,7 @@
         <h3>
           <img
             class="ai-icon"
-            [src]="settings.darkMode() ? 'assets/icon/dark-nav-chat.png' : 'assets/icon/nav-chat.png'"
+            [src]="settings.darkMode() ? 'assets/icon/darkNavChat.png' : 'assets/icon/navChat.png'"
             alt=""
             aria-hidden="true"
           />
@@ -91,9 +91,9 @@
           <div slot="content" class="info">
             <ion-list lines="none">
               <ion-item><ion-label>Salary</ion-label><ion-note slot="end">{{ j.salary || 'Not stated' }}</ion-note></ion-item>
-              <ion-item><ion-label>Type</ion-label><ion-note slot="end">{{ j.job_type.replace('_', ' ') || '—' }}</ion-note></ion-item>
+              <ion-item><ion-label>Type</ion-label><ion-note slot="end">{{ j.job_type.replace('_', ' ') || 'Not listed' }}</ion-note></ion-item>
               <ion-item><ion-label>Location</ion-label><ion-note slot="end">{{ j.candidate_required_location || 'Anywhere' }}</ion-note></ion-item>
-              <ion-item><ion-label>Posted</ion-label><ion-note slot="end">{{ postedDate || '—' }}</ion-note></ion-item>
+              <ion-item><ion-label>Posted</ion-label><ion-note slot="end">{{ postedDate || 'Not listed' }}</ion-note></ion-item>
             </ion-list>
           </div>
         </ion-accordion>

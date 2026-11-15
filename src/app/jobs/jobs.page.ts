@@ -1,11 +1,11 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { Router } from '@angular/router';
 
-import { JobService, QUICK_FILTERS, describeHttpError } from '../core/job.service';
+import { JobService, quickFilters, describeHttpError } from '../core/job.service';
 import { Job } from '../core/models';
 import { SettingsService } from '../core/settings.service';
 
-/** Jobs page: 100k+ jobs from the public API, 20 at a time, with search, filters, bookmarks and infinite scroll. */
+// Jobs page: 100k+ jobs from the public API, 20 at a time, with search, filters, bookmarks and infinite scroll.
 @Component({
   selector: 'app-jobs',
   templateUrl: './jobs.page.html',
@@ -17,7 +17,7 @@ export class JobsPage implements OnInit {
   settings = inject(SettingsService);
   private router = inject(Router);
 
-  readonly filters = QUICK_FILTERS;
+  readonly filters = quickFilters;
 
   jobs = signal<Job[]>([]);
   total = signal(0);
@@ -26,7 +26,7 @@ export class JobsPage implements OnInit {
   loadingMore = signal(false);
   error = signal('');
 
-  // two-way bound inputs
+  // two way bound inputs
   searchText = '';
   filter = '';
   savedOnly = false;
@@ -42,7 +42,7 @@ export class JobsPage implements OnInit {
     this.loadJobs();
   }
 
-  /** The keyword actually searched: the search box wins over the quick filter. */
+  // The keyword actually searched: the search box wins over the quick filter.
   private get query(): string {
     return this.searchText.trim() || this.filter;
   }
@@ -69,7 +69,7 @@ export class JobsPage implements OnInit {
     this.loadJobs();
   }
 
-  /** Loads the first page again (new search, filter or pull-to-refresh). */
+  // Loads the first page again (new search, filter or pull to refresh).
   async loadJobs(): Promise<void> {
     const ticket = ++this.request;
     this.page = 0;
@@ -97,7 +97,7 @@ export class JobsPage implements OnInit {
     }
   }
 
-  /** Infinite scroll: adds the next 20 jobs. */
+  // Infinite scroll: adds the next 20 jobs.
   async loadMore(event: CustomEvent): Promise<void> {
     const target = event.target as HTMLIonInfiniteScrollElement;
     if (!this.hasMore() || this.loadingMore() || this.savedFlag()) {

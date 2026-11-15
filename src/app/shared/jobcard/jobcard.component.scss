@@ -10,7 +10,7 @@
   height: 100%;
   border: 1px solid var(--sc-border);
   background: var(--sc-panel);
-  border-radius: var(--sc-radius);
+  border-radius: 0;
   box-shadow: none;
   transition: border-color 150ms ease;
   cursor: pointer;
@@ -30,7 +30,7 @@
   width: 48px;
   height: 48px;
   flex: 0 0 48px;
-  border-radius: var(--sc-radius-sm);
+  border-radius: 0;
   background: var(--sc-panel-2);
   border: 1px solid var(--sc-border);
   display: grid;

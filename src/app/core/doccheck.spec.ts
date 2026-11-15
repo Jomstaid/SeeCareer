@@ -36,21 +36,24 @@ describe('document check (rules)', () => {
   });
 
   it('rejects text that is not job related', () => {
-    expect(ruleVerdict(HOMEWORK).type).toBe('not_job_related');
+    expect(ruleVerdict(HOMEWORK).type).toBe('notJobRelated');
     expect(looksLikeResume(HOMEWORK)).toBe(false);
-    expect(ruleVerdict('hello').type).toBe('not_job_related');
+    expect(ruleVerdict('hello').type).toBe('notJobRelated');
   });
 
   it('recognises a job posting and a cover letter', () => {
-    expect(ruleVerdict(POSTING).type).toBe('job_posting');
-    expect(ruleVerdict('Dear Hiring Manager,\nI am writing to apply for the role of designer at your company because I love design and have worked on many projects.\nSincerely,\nAna').type).toBe('cover_letter');
+    expect(ruleVerdict(POSTING).type).toBe('jobPosting');
+    expect(ruleVerdict('Dear Hiring Manager,\nI am writing to apply for the role of designer at your company because I love design and have worked on many projects.\nSincerely,\nAna').type).toBe('coverLetter');
   });
 });
 
 describe('AI answer parsing and helpers', () => {
   it('reads the AI verdict JSON, even with extra words around it', () => {
-    const v = parseVerdict('Sure! {"type":"not_job_related","confidence":91,"reason":"A school essay"} done');
-    expect(v?.type).toBe('not_job_related');
+    const v = parseVerdict('Sure! {"type":"notJobRelated","confidence":91,"reason":"A school essay"} done');
+    expect(v?.type).toBe('notJobRelated');
+    // older answers and other spellings still work
+    expect(parseVerdict('{"type":"job_posting","confidence":80,"reason":"x"}')?.type).toBe('jobPosting');
+    expect(parseVerdict('{"type":"Cover Letter","confidence":80,"reason":"x"}')?.type).toBe('coverLetter');
     expect(v?.confidence).toBe(91);
     expect(parseVerdict('no json here')).toBeNull();
     expect(parseVerdict('{"type":"banana"}')).toBeNull();

@@ -1,35 +1,46 @@
 import { AppSettings, ProviderPreset } from './models';
 
-/**
- * The built-in free AI (OpenAI-compatible). It is added to Settings automatically the first time the app opens.
- *
- * This address is a small proxy (see worker/gateway-proxy.js) that holds the real API key on the server.
- * The app needs no key for it, so there is no secret anywhere in the source code or the build.
- */
-export const DEFAULT_FREE_AI = {
+// The built in free AI (OpenAI compatible). It is added to Settings automatically the first time the app opens.
+// This address is a small proxy (see worker/gatewayproxy.js) that holds the real API key on the server.
+// The app needs no key for it, so there is no secret anywhere in the source code or the build.
+export const defaultFreeAi = {
   name: 'Free AI',
   baseUrl: 'https://api.jomstaid.com/v1',
 };
 
-export const PROVIDER_PRESETS: ProviderPreset[] = [
+export const providerPresets: ProviderPreset[] = [
   {
     key: 'free',
     label: 'Free AI (built-in)',
-    baseUrl: DEFAULT_FREE_AI.baseUrl,
+    baseUrl: defaultFreeAi.baseUrl,
     note: 'Free AI that comes with the app. No key needed.',
     keyHint: 'Not needed',
     signup: '',
+    // measured on the gateway: these answer a normal question in about 4-7 seconds
     preferred: [
-      'antigravity/claude-sonnet-4-6',
-      'antigravity/gemini-3.8-flash-high',
-      'antigravity/gemini-3-flash',
-      'antigravity/claude-opus-4-6-thinking',
-      'antigravity/gemini-3.8-flash-medium',
-      'antigravity/gemini-3.5-flash-lite',
-      'antigravity/gemini-3.1-flash-lite',
-      'antigravity/gemini-3.8-flash-low',
+      'hormachuelos/claude-sonnet-4-6',
+      'hormachuelos/gpt-6.1-sol',
+      'hormachuelos/claude-opus-4-8',
+      'hormachuelos/claude-fable-5-2',
+      'hormachuelos/grok-4.7',
+      'ddgw/gpt-5.6-luna',
+      'hormachuelos/gemini-4-argon',
+      'hormachuelos/kimi-k3.1',
+      'hormachuelos/deepseek-v4-pro',
+      'hormachuelos/qwen-3.8-max-0902',
+      'auto/claude-sonnet',
+      'auto/best-chat',
+      'hormachuelos/minimax-m3.1-flash',
+      'hormachuelos/deepseek-v4.1-flash',
+      'ddgw/claude-haiku-4-5',
+      'ddgw/gpt-5.4-mini',
+      'no-think/hormachuelos/claude-sonnet-4-6',
+      'auto/deepseek',
+      'auto/kimi',
       'auto/best-fast',
     ],
+    // every other model from these free providers (also ones added later) is checked before the rest of the gateway
+    preferPrefixes: ['hormachuelos/', 'ddgw/', 'auto/', 'no-think/hormachuelos/'],
   },
   {
     key: 'groq',
@@ -69,7 +80,7 @@ export const PROVIDER_PRESETS: ProviderPreset[] = [
   },
 ];
 
-export const DEFAULT_SETTINGS: AppSettings = {
+export const defaultSettings: AppSettings = {
   theme: 'dark',
   maxTokens: 800,
   saveHistory: true,
@@ -77,15 +88,15 @@ export const DEFAULT_SETTINGS: AppSettings = {
   customInstructions: '',
 };
 
-/** Words in a model id that mean it is not a text-chat model. */
-export const NOT_CHAT_MODELS = ['embed', 'tts', 'whisper', 'image', 'imagen', 'rerank', 'moderation', 'guard', 'dall-e', 'video', 'audio', 'transcribe'];
+// Words in a model id that mean it is not a text chat model.
+export const notChatModels = ['embed', 'tts', 'whisper', 'image', 'imagen', 'rerank', 'moderation', 'guard', 'dall-e', 'video', 'audio', 'transcribe', 'veo', 'music'];
 
-/** How many models are health-checked per provider. */
-export const MAX_SCAN_PER_PROVIDER = 8;
-/** A check keeps going down the model list until at least this many models answer. */
-export const MIN_WORKING = 3;
-/** How often the working models are re-checked while the app is open. */
-export const AUTO_CHECK_MS = 10 * 60 * 1000;
+// How many models are health checked per provider.
+export const maxScanPerProvider = 6;
+// A check keeps going down the model list until at least this many models answer.
+export const minWorking = 6;
+// How often the working models are rechecked while the app is open.
+export const autoCheckMs = 10 * 60 * 1000;
 
 export const SUGGESTIONS: string[] = [
   'What careers fit someone who likes design and coding?',
@@ -94,8 +105,11 @@ export const SUGGESTIONS: string[] = [
   'Give me 5 interview questions for a software job and how to answer them.',
 ];
 
-export const SYSTEM_PROMPT =
-  'You are SeeCareer AI, an expert recruiter, resume writer and interview coach for students, fresh graduates and job seekers ' +
+export const systemPrompt =
+  'Your name is SeeCareer AI. You are the assistant inside the SeeCareer app, made by Group 2 (BSIT 3E, NEUST). ' +
+  'Never say which company or model you are (never say Claude, Anthropic, ChatGPT, OpenAI, Gemini, Google, DeepSeek or any other model name). ' +
+  'If someone asks who you are, what model you are or who made you, say you are SeeCareer AI made by Group 2, running on free AI models.\n' +
+  'You are an expert recruiter, resume writer and interview coach for students, fresh graduates and job seekers ' +
   '(many are from the Philippines; use PHP or local examples when it helps, but do not assume).\n' +
   'SCOPE: you help with careers and work only: finding jobs, resumes and CVs, cover letters and application emails, interviews, skills and learning for work, ' +
   'career choices, salaries and the workplace, and understanding a file the user attached when it relates to those. ' +

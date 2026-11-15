@@ -1,7 +1,5 @@
-/**
- * A resume as structured data. The AI fills this in; the app then lays it out in a real design
- * (PDF, Word, on-screen preview) so the look never depends on what the AI happens to write.
- */
+// A resume as structured data. The AI fills this in; the app then lays it out in a real design
+// (PDF, Word, on screen preview) so the look never depends on what the AI happens to write.
 export interface ResumeExperience {
   role: string;
   company: string;
@@ -39,18 +37,18 @@ export interface ResumeData {
   projects: ResumeProject[];
   certifications: string[];
   languages: string[];
-  /** The layout, colour and section order the AI suggests for this person (the user can change them). */
+  // The layout, colour and section order the AI suggests for this person (the user can change them).
   design?: { template?: ResumeTemplate; accent?: string; order?: SectionKey[] };
-  /** A profile photo as a small data URL (found in the uploaded resume, or added by the user). */
+  // A profile photo as a small data URL (found in the uploaded resume, or added by the user).
   photo?: string;
 }
 
 export type SectionKey = 'summary' | 'skills' | 'experience' | 'education' | 'projects' | 'certifications' | 'languages';
-export const SECTION_KEYS: SectionKey[] = ['summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'languages'];
+export const sectionKeys: SectionKey[] = ['summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'languages'];
 
 export type ResumeTemplate = 'modern' | 'bold' | 'creative' | 'classic' | 'minimal' | 'executive' | 'elegant';
 
-/** The designs. The AI picks one that suits the person; the user can change it any time. */
+// The designs. The AI picks one that suits the person; the user can change it any time.
 export const TEMPLATES: { key: ResumeTemplate; label: string; blurb: string; fits: string }[] = [
   { key: 'modern', label: 'Modern', blurb: 'Colour header, light side column, skill tags', fits: 'tech, startups, marketing, most fresh graduates' },
   { key: 'bold', label: 'Bold', blurb: 'Dark side column with photo and name, strong contrast', fits: 'developers, engineers, designers who want to stand out, trades' },
@@ -78,8 +76,8 @@ export const ACCENTS: { name: string; hex: string }[] = [
   { name: 'Charcoal', hex: '#1f2937' },
 ];
 
-/** The shape the AI is asked to return (shown to the AI inside the prompt). */
-export const RESUME_JSON_SHAPE = `{
+// The shape the AI is asked to return (shown to the AI inside the prompt).
+export const resumeJsonShape = `{
   "name": "Full Name",
   "title": "Target job title, e.g. Junior Web Developer",
   "contact": { "email": "", "phone": "", "location": "City, Country", "links": ["linkedin.com/in/...", "github.com/..."] },
@@ -93,7 +91,7 @@ export const RESUME_JSON_SHAPE = `{
   "design": { "template": "modern | bold | creative | classic | minimal | executive | elegant (choose one)", "accent": "a colour name such as Teal, or a hex like #0e7490", "order": ["summary", "experience", "education", "skills", "projects", "certifications", "languages"] }
 }`;
 
-/** Hex colour for an accent name such as "Purple". Also accepts a hex value. */
+// Hex colour for an accent name such as "Purple". Also accepts a hex value.
 export function accentFromName(name: unknown): string | undefined {
   const v = String(name ?? '').trim();
   if (/^#[0-9a-f]{6}$/i.test(v)) {
@@ -111,7 +109,7 @@ const list = (v: unknown, max = 40, each = 240): string[] =>
 const objects = (v: unknown, max = 20): Record<string, unknown>[] =>
   (Array.isArray(v) ? v : []).filter((x): x is Record<string, unknown> => !!x && typeof x === 'object').slice(0, max);
 
-/** Cleans anything the AI returned into a safe, complete ResumeData. Throws when there is nothing usable. */
+// Cleans anything the AI returned into a safe, complete ResumeData. Throws when there is nothing usable.
 export function normalizeResume(raw: unknown): ResumeData {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
   const c = (r['contact'] && typeof r['contact'] === 'object' ? r['contact'] : {}) as Record<string, unknown>;
@@ -164,7 +162,7 @@ export function normalizeResume(raw: unknown): ResumeData {
   const accent = accentFromName(d['accent']);
   const order = (Array.isArray(d['order']) ? d['order'] : [])
     .map((k) => String(k).toLowerCase() as SectionKey)
-    .filter((k, i, all) => SECTION_KEYS.includes(k) && all.indexOf(k) === i);
+    .filter((k, i, all) => sectionKeys.includes(k) && all.indexOf(k) === i);
   if (TEMPLATES.some((t) => t.key === template) || accent || order.length) {
     data.design = { template: TEMPLATES.some((t) => t.key === template) ? template : undefined, accent, order: order.length ? order : undefined };
   }
@@ -187,7 +185,7 @@ export function normalizeResume(raw: unknown): ResumeData {
   return data;
 }
 
-/** Pulls the JSON object out of an AI answer (it may add words or a code fence around it). */
+// Pulls the JSON object out of an AI answer (it may add words or a code fence around it).
 export function parseResumeJson(text: string): ResumeData {
   const cleaned = (text ?? '').replace(/```(?:json)?/gi, '');
   const a = cleaned.indexOf('{');
@@ -207,7 +205,7 @@ export function parseResumeJson(text: string): ResumeData {
   return normalizeResume(parsed);
 }
 
-/** Plain text version (to save as "my resume" and for AI tools). */
+// Plain text version (to save as "my resume" and for AI tools).
 export function resumeToText(d: ResumeData): string {
   const out: string[] = [d.name, [d.title].filter(Boolean).join('')];
   const contact = [d.contact.email, d.contact.phone, d.contact.location, ...d.contact.links].filter(Boolean).join(' | ');
@@ -241,10 +239,8 @@ export function resumeToText(d: ResumeData): string {
   return out.filter((l, i, a) => l !== '' || a[i - 1] !== '').join('\n');
 }
 
-/**
- * The order the sections are shown in. The AI's choice is used when it gave one; otherwise experience comes first,
- * or education first for someone with no work experience yet. Sections missing from the AI's list are added at the end.
- */
+// The order the sections are shown in. The AI's choice is used when it gave one; otherwise experience comes first,
+// or education first for someone with no work experience yet. Sections missing from the AI's list are added at the end.
 export function sectionOrder(d: ResumeData): SectionKey[] {
   const fallback: SectionKey[] = d.experience.length
     ? ['summary', 'skills', 'experience', 'education', 'projects', 'certifications', 'languages']

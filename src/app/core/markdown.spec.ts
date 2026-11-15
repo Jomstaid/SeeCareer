@@ -30,3 +30,19 @@ describe('italic text', () => {
     expect(renderMarkdown('2 * 3 * 4')).toContain('2 * 3 * 4');
   });
 });
+
+describe('numbered lists', () => {
+  it('keeps one list when the items are separated by blank lines', () => {
+    const html = renderMarkdown('1. **Lead with results.** Text\n\n2. **Keep it to one page.** Text\n\n3. **Mirror the words.** Text');
+    expect(html.match(/<ol/g)?.length).toBe(1);
+    expect(html.match(/<li>/g)?.length).toBe(3);
+  });
+
+  it('keeps the number a list starts at', () => {
+    expect(renderMarkdown('Intro\n\n3. third\n4. fourth')).toContain('<ol start="3">');
+  });
+
+  it('still ends the list at a paragraph after a blank line', () => {
+    expect(renderMarkdown('- a\n- b\n\nAfter the list')).toBe('<ul><li>a</li><li>b</li></ul><p>After the list</p>');
+  });
+});

@@ -7,7 +7,7 @@
         <ion-card-header>
           <ion-card-subtitle>Project</ion-card-subtitle>
           <ion-card-title class="brand">
-            <img src="assets/icon/logo.svg" alt="" width="40" height="40" />
+            <img [src]="settings.darkMode() ? 'assets/icon/logoDark.svg' : 'assets/icon/logoLight.svg'" alt="" width="40" height="40" />
             {{ project.title }}
           </ion-card-title>
         </ion-card-header>
@@ -23,11 +23,13 @@
         </ion-card-header>
         <ion-card-content>
           <ion-list lines="none">
+            <ion-item><ion-label>Group</ion-label><ion-note slot="end">{{ project.group }}</ion-note></ion-item>
             <ion-item><ion-label>Course</ion-label><ion-note slot="end">{{ project.course }}</ion-note></ion-item>
             <ion-item><ion-label>Program</ion-label><ion-note slot="end">{{ project.program }}</ion-note></ion-item>
             <ion-item><ion-label>Year</ion-label><ion-note slot="end">{{ project.year }}</ion-note></ion-item>
             <ion-item><ion-label>Section</ion-label><ion-note slot="end">{{ project.section }}</ion-note></ion-item>
             <ion-item><ion-label>School</ion-label><ion-note slot="end" class="wrap">{{ project.school }}</ion-note></ion-item>
+            <ion-item><ion-label>Instructor</ion-label><ion-note slot="end">{{ project.instructor }}</ion-note></ion-item>
           </ion-list>
         </ion-card-content>
       </ion-card>
@@ -41,7 +43,7 @@
         <ul class="members">
           @for (m of members; track m.name) {
             <li>
-              <img class="avatar" [src]="m.photo" alt="" />
+              <ion-img class="avatar" [src]="photo(m)" [alt]="'Photo of ' + m.name"></ion-img>
               <div class="who">
                 <h3>{{ m.name }}</h3>
                 <p class="role">{{ m.role }}</p>
@@ -63,7 +65,7 @@
             }
           </div>
           <ion-button expand="block" fill="outline" routerLink="/jobs">
-            <img class="explore-jobs-icon" slot="start" [src]="settings.darkMode() ? 'assets/icon/dark-nav-jobs.png' : 'assets/icon/nav-jobs.png'" alt="" aria-hidden="true" />
+            <img class="explore-jobs-icon" slot="start" [src]="settings.darkMode() ? 'assets/icon/darkNavJobs.png' : 'assets/icon/navJobs.png'" alt="" aria-hidden="true" />
             Explore jobs
           </ion-button>
         </ion-card-content>

@@ -1,12 +1,12 @@
 // Gateway proxy for Cloudflare Workers.
 // It adds the secret API key on the server, so the app never carries a key.
 //
-//   App (no key)  ->  this Worker  ->  your AI gateway
+// App (no key)  ->  this Worker  ->  your AI gateway
 //
 // Secrets and variables (Worker > Settings > Variables and Secrets):
-//   GATEWAY_KEY    (secret, required)  the real API key of your gateway
-//   APP_TOKEN      (secret, optional)  if set, requests must send the same value in an X-App-Token header
-//   ALLOWED_MODELS (text, optional)    comma-separated model names; empty = allow all
+// GATEWAY_KEY    (secret, required)  the real API key of your gateway
+// APP_TOKEN      (secret, optional)  if set, requests must send the same value in an X-App-Token header
+// ALLOWED_MODELS (text, optional)    comma separated model names; empty = allow all
 
 const PATHS = ['/v1/chat/completions', '/v1/models'];
 const ORIGINS = [

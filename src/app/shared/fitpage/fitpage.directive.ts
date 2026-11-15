@@ -1,11 +1,9 @@
 import { AfterViewInit, Directive, ElementRef, OnDestroy, OnInit, inject } from '@angular/core';
 
-/**
- * Makes a page fill the whole screen on a big display, with no empty space and no scrolling:
- * the page content is scaled up (like browser zoom) as far as it still fits the height, up to a limit.
- * It re-fits when the window changes size and when the content changes (for example a list that loads).
- * On phones and small windows it does nothing, and the page scrolls as usual.
- */
+// Makes a page fill the whole screen on a big display, with no empty space and no scrolling:
+// the page content is scaled up (like browser zoom) as far as it still fits the height, up to a limit.
+// It refits when the window changes size and when the content changes (for example a list that loads).
+// On phones and small windows it does nothing, and the page scrolls as usual.
 @Directive({
   selector: '[appFitPage]',
   standalone: false,
@@ -13,16 +11,19 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, OnInit, inject } from 
 export class FitPageDirective implements OnInit, AfterViewInit, OnDestroy {
   private ref = inject<ElementRef<HTMLElement>>(ElementRef);
 
-  /** The most the content may be enlarged. */
+  // The most the content may be enlarged.
   private readonly maxZoom = 1.45;
-  /** The least the content may be shrunk (for large text on a small screen). */
-  private readonly minZoom = 0.45;
+  // The least the content may be shrunk. Below this the text gets too small to read comfortably,
+  // so a page that still does not fit simply scrolls instead.
+  private readonly minZoom = 0.85;
   private resize?: ResizeObserver;
   private mutate?: MutationObserver;
   private timer?: ReturnType<typeof setTimeout>;
   private fitting = false;
+  // Something changed while a fit was running: fit again once it is done.
+  private pending = false;
 
-  /** Turns the page's own scrolling on or off (a scrollbar must not flash while the page is being fitted). */
+  // Turns the page's own scrolling on or off (a scrollbar must not flash while the page is being fitted).
   private scrolling(on: boolean): void {
     const content = this.ref.nativeElement.closest('ion-content');
     if (content) {
@@ -62,13 +63,15 @@ export class FitPageDirective implements OnInit, AfterViewInit, OnDestroy {
 
   private later(wait = 90): void {
     if (this.fitting) {
+      // never drop a change (for example the model list getting shorter): check again right after this fit
+      this.pending = true;
       return;
     }
     clearTimeout(this.timer);
     this.timer = setTimeout(() => this.fit(), wait);
   }
 
-  /** Only a page laid out in two or more columns is fitted; a single column (phone) scrolls as usual. */
+  // Only a page laid out in two or more columns is fitted; a single column (phone) scrolls as usual.
   private multiColumn(page: HTMLElement): boolean {
     return getComputedStyle(page).gridTemplateColumns.split(' ').length > 1;
   }
@@ -78,8 +81,14 @@ export class FitPageDirective implements OnInit, AfterViewInit, OnDestroy {
     try {
       this.measure();
     } finally {
-      // the observers report this fit's own changes a moment later: ignore them
-      setTimeout(() => (this.fitting = false), 120);
+      // the observers report this fit's own changes a moment later: ignore those, then handle real changes
+      setTimeout(() => {
+        this.fitting = false;
+        if (this.pending) {
+          this.pending = false;
+          this.later(60);
+        }
+      }, 120);
     }
   }
 
@@ -94,7 +103,7 @@ export class FitPageDirective implements OnInit, AfterViewInit, OnDestroy {
     page.style.minHeight = '0';
     // while measuring, a scrollbar must not appear and disappear (that made the page flicker)
     this.scrolling(false);
-    // the header floats over the top of a full-screen content, so that padding is not free space
+    // the header floats over the top of a full screen content, so that padding is not free space
     const style = getComputedStyle(box);
     const available = box.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     if (!this.multiColumn(page) || available < 300) {

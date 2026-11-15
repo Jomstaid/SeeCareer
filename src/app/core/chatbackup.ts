@@ -1,14 +1,14 @@
 import { Conversation } from './models';
 
-/** Marks a file as a SeeCareer chat backup, so other JSON files are not imported by mistake. */
+// Marks a file as a SeeCareer chat backup, so other JSON files are not imported by mistake.
 const FORMAT = 'seecareer-chats';
 
-/** Turns the chats into the text of a backup file. */
+// Turns the chats into the text of a backup file.
 export function chatsToBackup(chats: Conversation[]): string {
   return JSON.stringify({ format: FORMAT, version: 1, exported: new Date().toISOString(), chats }, null, 2);
 }
 
-/** True when the value looks like a chat: an id and a list of messages with a role and text. */
+// True when the value looks like a chat: an id and a list of messages with a role and text.
 function isChat(c: unknown): c is Conversation {
   const chat = c as Conversation | null;
   return (
@@ -20,7 +20,7 @@ function isChat(c: unknown): c is Conversation {
   );
 }
 
-/** Reads a backup file. Returns the valid chats, or throws an Error with a plain message. */
+// Reads a backup file. Returns the valid chats, or throws an Error with a plain message.
 export function chatsFromBackup(text: string): Conversation[] {
   let data: unknown;
   try {

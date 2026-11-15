@@ -4,16 +4,16 @@ import { AlertController, ToastController } from '@ionic/angular/lazy';
 import { AiService } from '../core/ai.service';
 import { chatsFromBackup, chatsToBackup } from '../core/chatbackup';
 import { ChatStore } from '../core/chatstore.service';
-import { PROVIDER_PRESETS } from '../core/defaults';
+import { providerPresets } from '../core/defaults';
 import { deliverBlob } from '../core/fileexport';
 import { AiError, AiProvider, AppSettings, ProviderPreset } from '../core/models';
 import { ProviderService } from '../core/provider.service';
 import { SettingsService } from '../core/settings.service';
-import { FieldErrors, MAX_INSTRUCTIONS_LENGTH, validateProvider } from '../core/validators';
+import { FieldErrors, maxInstructionsLength, validateProvider } from '../core/validators';
 
 type StatusColor = 'muted' | 'ok' | 'warn' | 'danger';
 
-/** Settings: add/test free AI providers (like CMDPilot), model health, theme and data. */
+// Settings: add/test free AI providers (like CMDPilot), model health, theme and data.
 @Component({
   selector: 'app-settings',
   templateUrl: './settings.page.html',
@@ -28,11 +28,11 @@ export class SettingsPage {
   private alerts = inject(AlertController);
   private toast = inject(ToastController);
 
-  readonly presets = PROVIDER_PRESETS;
-  readonly maxInstructions = MAX_INSTRUCTIONS_LENGTH;
+  readonly presets = providerPresets;
+  readonly maxInstructions = maxInstructionsLength;
   instructions = '';
 
-  // ----- provider form (two-way bound with ngModel) -----
+  // ----- provider form (two way bound with ngModel) -----
   selectedId = '';
   presetKey = 'free';
   name = '';
@@ -41,10 +41,10 @@ export class SettingsPage {
   model = '';
   enabled = true;
   showKey = false;
-  /** True for the built-in provider: it needs no key, and its name and address cannot be changed. */
+  // True for the built in provider: it needs no key, and its name and address cannot be changed.
   locked = false;
 
-  /** The add / edit form is a dialog that opens from the provider list. */
+  // The add / edit form is a dialog that opens from the provider list.
   formOpen = signal(false);
 
   errors: FieldErrors = {};
@@ -57,7 +57,7 @@ export class SettingsPage {
     this.applyPreset();
   }
 
-  /** Providers to pick from: the built-in one is only listed while editing it. */
+  // Providers to pick from: the built in one is only listed while editing it.
   get choices(): ProviderPreset[] {
     return this.presets.filter((p) => p.key !== 'free' || this.locked);
   }
@@ -88,13 +88,13 @@ export class SettingsPage {
     }
   }
 
-  /** The "Add" button: an empty form in a dialog. */
+  // The "Add" button: an empty form in a dialog.
   startNew(): void {
     this.newProvider();
     this.formOpen.set(true);
   }
 
-  /** A provider tapped in the list: its settings in a dialog. */
+  // A provider tapped in the list: its settings in a dialog.
   edit(p: AiProvider): void {
     this.select(p);
     this.setStatus('');
@@ -119,13 +119,13 @@ export class SettingsPage {
     this.name = p.name;
     this.baseUrl = p.baseUrl;
     this.locked = !!p.builtin;
-    this.apiKey = p.builtin ? '' : p.apiKey; // the built-in key never reaches this screen
+    this.apiKey = p.builtin ? '' : p.apiKey; // the built in key never reaches this screen
     this.model = p.model;
     this.enabled = p.enabled;
     this.errors = {};
   }
 
-  /** Validates, tests the connection (finds working models) and saves. */
+  // Validates, tests the connection (finds working models) and saves.
   async testAndSave(): Promise<void> {
     if (this.locked) {
       await this.testAndSaveLocked();
@@ -163,7 +163,7 @@ export class SettingsPage {
     }
   }
 
-  /** The built-in provider: only the model and the on/off switch can change. It needs no key. */
+  // The built in provider: only the model and the on/off switch can change. It needs no key.
   private async testAndSaveLocked(): Promise<void> {
     const raw = this.providers.providers().find((p) => p.id === this.selectedId);
     if (!raw) {
@@ -263,22 +263,22 @@ export class SettingsPage {
     this.notify(n ? `${n} model(s) working` : 'No model answered');
   }
 
-  /** Models that answered (a provider that could not be reached at all is shown too, so the reason is visible). */
+  // Models that answered (a provider that could not be reached at all is shown too, so the reason is visible).
   get shown() {
     return this.providers.health().filter((h) => h.ok !== false || h.model === '*');
   }
 
-  /** Models that did not answer and are not used. */
+  // Models that did not answer and are not used.
   get skipped(): number {
     return this.providers.health().filter((h) => h.ok === false && h.model !== '*').length;
   }
 
-  /** The model name without the provider path in front of it. */
+  // The model name without the provider path in front of it.
   shortModel(h: { providerId: string; model: string }): string {
     return h.model === '*' ? this.providerName(h.providerId) : (h.model.split('/').pop() ?? h.model);
   }
 
-  /** How long the bar for a model is: the faster it answered, the longer the bar (full at 0 s, short at 6 s or more). */
+  // How long the bar for a model is: the faster it answered, the longer the bar (full at 0 s, short at 6 s or more).
   speed(latency: number): number {
     return Math.max(10, Math.min(100, 100 - (latency / 6) * 90));
   }
@@ -304,15 +304,40 @@ export class SettingsPage {
     this.settings.update({ maxTokens: Number(value) });
   }
 
-  setSaveHistory(value: boolean): void {
-    this.settings.update({ saveHistory: value });
-    if (!value) {
+  // turning history off deletes the saved chats, so we ask first (one wrong tap should not lose everything)
+  async setSaveHistory(value: boolean, toggle?: { checked: boolean }): Promise<void> {
+    if (value) {
+      this.settings.update({ saveHistory: true });
+      return;
+    }
+    if (!this.chats.conversations().length) {
+      this.settings.update({ saveHistory: false });
+      return;
+    }
+    const alert = await this.alerts.create({
+      header: 'Stop saving chats?',
+      message: 'Your saved chats will be deleted from this device.',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { text: 'Delete and stop', role: 'confirm' },
+      ],
+    });
+    await alert.present();
+    const { role } = await alert.onDidDismiss();
+    if (role === 'confirm') {
+      this.settings.update({ saveHistory: false });
       this.chats.clearAll();
+    } else {
+      // put the switch back on (the setting never changed, so the screen has to be told)
+      this.settings.update({ saveHistory: true });
+      if (toggle) {
+        toggle.checked = true;
+      }
     }
   }
 
   saveInstructions(): void {
-    this.settings.update({ customInstructions: this.instructions.trim().slice(0, MAX_INSTRUCTIONS_LENGTH) });
+    this.settings.update({ customInstructions: this.instructions.trim().slice(0, maxInstructionsLength) });
     this.notify('AI instructions saved');
   }
 
@@ -322,7 +347,7 @@ export class SettingsPage {
   }
 
   // ---------- data ----------
-  /** Saves every chat in one file the user can keep. */
+  // Saves every chat in one file the user can keep.
   async exportChats(): Promise<void> {
     const chats = this.chats.conversations();
     if (!chats.length) {
@@ -333,7 +358,7 @@ export class SettingsPage {
     void this.notify(await deliverBlob(blob, `seecareerchats${new Date().toISOString().slice(0, 10)}.json`));
   }
 
-  /** Reads a backup file picked by the user and adds its chats. */
+  // Reads a backup file picked by the user and adds its chats.
   async importChats(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];

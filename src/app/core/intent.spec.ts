@@ -10,6 +10,8 @@ describe('detectIntent: does the message ask for a file?', () => {
       'generate a resume for me',
       'redesign my resume',
       'please write me a resume for a nurse',
+      'create a resume using these tips',
+      'make me a resume with the best practices for nurses',
     ]) {
       expect(detectIntent(msg)?.kind, msg).toBe('resume');
     }
@@ -20,6 +22,9 @@ describe('detectIntent: does the message ask for a file?', () => {
       'how do I write a resume?',
       'what should a resume include',
       'tips for my resume',
+      'Give me 3 short tips for a fresh graduate resume',
+      'give me ideas to improve my cv',
+      'I need advice on my resume',
       'review my resume',
       'analyze my resume please',
       'hello',
@@ -123,6 +128,8 @@ describe('a plain list of jobs', () => {
     expect(looksLikeJobSearch('how do I find jobs?')).toBe(false);
     expect(looksLikeJobSearch('what jobs pay the most')).toBe(false);
     expect(looksLikeJobSearch('write a cover letter for a job')).toBe(false);
+    expect(looksLikeJobSearch('Give me 5 tips for my first job interview')).toBe(false);
+    expect(looksLikeJobSearch('salary for nursing jobs in manila')).toBe(false);
     expect(looksLikeJobSearch('hello')).toBe(false);
   });
 });

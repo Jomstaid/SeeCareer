@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 
 import { AiService, ApiMessage, ContentPart } from './ai.service';
-import { ACCENTS, RESUME_JSON_SHAPE, ResumeData, ResumeTemplate, TEMPLATES, accentFromName, parseResumeJson } from './resumedata';
+import { ACCENTS, resumeJsonShape, ResumeData, ResumeTemplate, TEMPLATES, accentFromName, parseResumeJson } from './resumedata';
 
 export interface DesignResult {
   data: ResumeData;
@@ -10,7 +10,7 @@ export interface DesignResult {
 
 const SYSTEM =
   'You are an expert resume writer and ATS specialist. You reply with ONE JSON object and nothing else: no explanation, no markdown, no code fence.\n' +
-  `The JSON must have exactly this shape (use "" or [] for anything unknown):\n${RESUME_JSON_SHAPE}\n\n` +
+  `The JSON must have exactly this shape (use "" or [] for anything unknown):\n${resumeJsonShape}\n\n` +
   'Writing rules:\n' +
   '- Use ONLY facts the user gave. Never invent employers, schools, dates, numbers, links or skills. Leave unknown fields empty.\n' +
   '- Bullets start with a strong action verb (Built, Led, Reduced, Designed...) and say what was done and the result. Use numbers only if the user gave them.\n' +
@@ -32,21 +32,19 @@ const DESIGNER =
   'Templates:\n' + TEMPLATES.map((t) => `${t.key}: ${t.blurb}. Best for ${t.fits}.`).join('\n') + '\n' +
   'Accent: one of ' + ACCENTS.map((a) => a.name).join(', ') + ', or a hex colour like #0e7490.';
 
-/** Turns resume text into structured data for the designer, and applies the user's change requests. */
+// Turns resume text into structured data for the designer, and applies the user's change requests.
 @Injectable({ providedIn: 'root' })
 export class ResumeDesignService {
   private ai = inject(AiService);
 
 
-  /** Builds a resume from the user's text (their saved resume, notes or an uploaded file's text). */
+  // Builds a resume from the user's text (their saved resume, notes or an uploaded file's text).
   fromText(text: string, extraInstructions = ''): Promise<DesignResult> {
     return this.fromInput({ text, instructions: extraInstructions });
   }
 
-  /**
-   * Builds a resume from whatever the user gave: text, pictures (a photo or scan of a resume), and their request.
-   * When there is almost no information, the AI writes a ready-to-fill template for the role with [placeholders].
-   */
+  // Builds a resume from whatever the user gave: text, pictures (a photo or scan of a resume), and their request.
+  // When there is almost no information, the AI writes a ready to fill template for the role with [placeholders].
   fromInput(input: { text?: string; images?: string[]; request?: string; instructions?: string; person?: string }): Promise<DesignResult> {
     const text = (input.text ?? '').trim();
     const images = input.images ?? [];
@@ -77,10 +75,8 @@ export class ResumeDesignService {
     return this.ask([{ role: 'user', content }]);
   }
 
-  /**
-   * Picks a look for this person, like a designer would. `current` is excluded when the user asked for something different.
-   * `request` carries any wishes ("something creative", "more professional").
-   */
+  // Picks a look for this person, like a designer would. `current` is excluded when the user asked for something different.
+  // `request` carries any wishes ("something creative", "more professional").
   async chooseDesign(data: ResumeData, request: string, current?: { template: ResumeTemplate; accent: string }): Promise<{ template: ResumeTemplate; accent: string; reason: string }> {
     const facts =
       `Person: ${data.name || 'unknown'}, ${data.title || 'no title'}. ` +
@@ -100,7 +96,7 @@ export class ResumeDesignService {
       accent = accentFromName(j.accent);
       reason = String(j.reason ?? '').slice(0, 160);
     } catch {
-      /* use a sensible fallback below */
+      // use a sensible fallback below
     }
     // never hand back the same look when a different one was asked for
     const others = TEMPLATES.filter((t) => t.key !== current?.template);
@@ -114,7 +110,7 @@ export class ResumeDesignService {
     return { template, accent, reason };
   }
 
-  /** Changes an existing resume, for example "make it one page" or "emphasize teamwork". */
+  // Changes an existing resume, for example "make it one page" or "emphasize teamwork".
   refine(data: ResumeData, instruction: string): Promise<DesignResult> {
     const { photo, ...withoutPhoto } = data; // the picture is never sent to the AI
     const user =
@@ -124,7 +120,7 @@ export class ResumeDesignService {
     return this.ask([{ role: 'user', content: user }]).then((r) => (photo ? { ...r, data: { ...r.data, photo } } : r));
   }
 
-  /** Asks the AI; if the answer is not valid resume JSON, shows it the problem and asks once more. */
+  // Asks the AI; if the answer is not valid resume JSON, shows it the problem and asks once more.
   private async ask(user: ApiMessage[]): Promise<DesignResult> {
     const messages: ApiMessage[] = [{ role: 'system', content: SYSTEM }, ...user];
     const first = await this.ai.chat(messages, 2000, { temperature: 0.2 });

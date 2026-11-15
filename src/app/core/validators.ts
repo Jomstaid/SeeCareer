@@ -1,4 +1,4 @@
-/** Input validation used by the Settings form and the chat box. */
+// Input validation used by the Settings form and the chat box.
 
 export interface ProviderInput {
   name: string;
@@ -12,23 +12,23 @@ export type FieldErrors = Partial<Record<keyof ProviderInput, string>>;
 export interface ProviderCheck {
   valid: boolean;
   errors: FieldErrors;
-  /** Cleaned-up values (trimmed, no trailing slash). */
+  // Cleaned up values (trimmed, no trailing slash).
   clean: ProviderInput;
 }
 
-export const MAX_MESSAGE_LENGTH = 4000;
-export const MIN_RESUME_LENGTH = 50;
-export const MAX_RESUME_LENGTH = 12000;
-export const MAX_INSTRUCTIONS_LENGTH = 600;
+export const maxMessageLength = 4000;
+export const minResumeLength = 50;
+export const maxResumeLength = 12000;
+export const maxInstructionsLength = 600;
 
-/** Returns an error message, or '' when the resume text is fine to analyze. */
+// Returns an error message, or '' when the resume text is fine to analyze.
 export function validateResume(text: string): string {
   const value = (text ?? '').trim();
-  if (value.length < MIN_RESUME_LENGTH) {
-    return `Add more detail: at least ${MIN_RESUME_LENGTH} characters (you have ${value.length}).`;
+  if (value.length < minResumeLength) {
+    return `Add more detail: at least ${minResumeLength} characters (you have ${value.length}).`;
   }
-  if (value.length > MAX_RESUME_LENGTH) {
-    return `Resume is too long (${value.length}/${MAX_RESUME_LENGTH} characters).`;
+  if (value.length > maxResumeLength) {
+    return `Resume is too long (${value.length}/${maxResumeLength} characters).`;
   }
   return '';
 }
@@ -90,14 +90,14 @@ export function isValidHttpUrl(value: string): boolean {
   }
 }
 
-/** Returns an error message, or '' when the chat text is fine to send. */
+// Returns an error message, or '' when the chat text is fine to send.
 export function validateMessage(text: string): string {
   const value = (text ?? '').trim();
   if (!value) {
     return 'Type a message first.';
   }
-  if (value.length > MAX_MESSAGE_LENGTH) {
-    return `Message is too long (${value.length}/${MAX_MESSAGE_LENGTH} characters).`;
+  if (value.length > maxMessageLength) {
+    return `Message is too long (${value.length}/${maxMessageLength} characters).`;
   }
   return '';
 }

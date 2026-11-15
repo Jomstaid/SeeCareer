@@ -4,7 +4,7 @@ import { ModeInfo } from '../../core/modes';
 import { ChatMode } from '../../core/models';
 import { SettingsService } from '../../core/settings.service';
 
-/** The six AI features as a list. One column on phones, two on tablets and desktops. */
+// The six AI features as a list. One column on phones, two on tablets and desktops.
 @Component({
   selector: 'app-feature-list',
   templateUrl: './featurelist.component.html',
