@@ -4,7 +4,7 @@ SeeCareer is our final case study for **IT-PT02 Mobile Application Development**
 
 We made it with **Ionic 9 + Angular 22** and turned it into an **Android app with Capacitor**. It also runs in the browser. The design is a pixel theme with a light mode (sky blue) and a dark mode (purple).
 
-**Group 2, BSIT 3E**
+**Group 2, BSIT 3E** 👋
 Nueva Ecija University of Science and Technology (NEUST)
 Instructor: Sir Angelito Cunanan Jr.
 
@@ -15,7 +15,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Anjo T. Adriano | Tester | Tested every page and feature on phones and laptops, checked the job APIs and reported the bugs we fixed |
 | Khimberly M. Bautista | Documentation | Wrote the documentation, the setup guide and the test results of the project |
 
-## What is in this repository
+## What is in this repository 📂
 
 | Folder | What it has |
 |---|---|
@@ -36,7 +36,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Settings | AI providers, the list of every AI model (with search, filter and a Test button), theme, text size, reply length and your data |
 | About Our Group | Project title and description, course, section, members and their roles |
 
-## How we followed the case study
+## How we followed the case study 📋
 
 | Requirement | Where it is |
 |---|---|
@@ -49,7 +49,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Reusable component | `<app-page-header title="...">`, the same header on every page with a different title |
 | Testing | 169 unit tests plus our own walkthrough of every button (see below) |
 
-## APIs we used
+## APIs we used 🌐
 
 All of these are free and need no API key.
 
@@ -93,7 +93,7 @@ ionic serve
 
 The app opens at http://localhost:8100
 
-## Install the APK on a phone
+## Install the APK on a phone 📲
 
 1. Copy `apk/SeeCareer.apk` to your Android phone (Android 7.0 or newer).
 2. Open the file. If Android asks, allow "Install unknown apps" for your file manager or browser.
@@ -143,7 +143,7 @@ We also clicked through every button of the app one by one, on a phone screen (3
 | About Our Group shows the project, course, section and all members | ✅ Passed |
 | No sideways scrolling and no errors on every page | ✅ Passed |
 
-## Known limits
+## Known limits ⚠️
 
 * The job APIs list remote jobs only, so some jobs (like nursing or driving) have few results. The app then gives buttons for JobStreet, Indeed and LinkedIn.
 * In a browser the job list is smaller (backup APIs). The full list works in the Android app.
@@ -157,6 +157,6 @@ We also clicked through every button of the app one by one, on a phone screen (3
 * **Port 8100 is already used:** close the other terminal or run `ionic serve --port 8200`.
 * **The chat says the AI is busy:** wait a minute and send again. In Settings you can press Re-check to test the models.
 
-## Privacy
+## Privacy 🔒
 
 There is no account and no login. Your resume, chats and settings are saved only on your device. When you use the AI, the text you send goes to the AI provider set in Settings.
