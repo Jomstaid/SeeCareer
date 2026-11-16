@@ -537,3 +537,14 @@
     }
   }
 }
+
+.sheet.modern,
+.sheet.bold,
+.sheet.creative {
+  display: flex;
+  flex-direction: column;
+
+  > .cols {
+    flex: 1 1 auto;
+  }
+}

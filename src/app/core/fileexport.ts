@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 
 import { ExportFormat } from './models';
+import { paperOf } from './resumedata';
 import { clean } from './resumerender';
 
 interface Block {
@@ -68,9 +69,10 @@ export function safeFileName(title: string): string {
   return base || 'SeeCareer';
 }
 
-async function buildPdf(title: string, markdown: string): Promise<Blob> {
+async function buildPdf(title: string, markdown: string, paper?: string): Promise<Blob> {
   const { jsPDF } = await import('jspdf');
-  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+  const size = paperOf(paper);
+  const doc = new jsPDF({ unit: 'pt', format: [size.w, size.h], orientation: 'portrait' });
   const W = doc.internal.pageSize.getWidth();
   const H = doc.internal.pageSize.getHeight();
   const margin = 58;
@@ -210,7 +212,7 @@ async function buildPdf(title: string, markdown: string): Promise<Blob> {
   return doc.output('blob');
 }
 
-async function buildDocx(title: string, markdown: string): Promise<Blob> {
+async function buildDocx(title: string, markdown: string, paper?: string): Promise<Blob> {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, BorderStyle } = await import('docx');
   const runs = (text: string, size = 22) =>
     text
@@ -244,7 +246,8 @@ async function buildDocx(title: string, markdown: string): Promise<Blob> {
           return new Paragraph({ spacing: { after: 80 }, children: runs(b.text) });
       }
     });
-  const doc = new Document({ creator: 'SeeCareer', title, sections: [{ children }] });
+  const size = paperOf(paper);
+  const doc = new Document({ creator: 'SeeCareer', title, sections: [{ properties: { page: { size: { width: Math.round(size.w * 20), height: Math.round(size.h * 20) } } }, children }] });
   return Packer.toBlob(doc);
 }
 
@@ -255,12 +258,12 @@ const MIME: Record<ExportFormat, string> = {
   md: 'text/markdown',
 };
 
-export async function buildFile(format: ExportFormat, title: string, markdown: string): Promise<Blob> {
+export async function buildFile(format: ExportFormat, title: string, markdown: string, paper?: string): Promise<Blob> {
   switch (format) {
     case 'pdf':
-      return buildPdf(title, markdown);
+      return buildPdf(title, markdown, paper);
     case 'docx':
-      return buildDocx(title, markdown);
+      return buildDocx(title, markdown, paper);
     case 'txt':
       return new Blob([parseBlocks(markdown).map((b) => (b.type === 'bullet' ? '• ' : '') + plain(b.text)).join('\n')], {
         type: MIME.txt,
@@ -279,8 +282,8 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-export async function exportFile(format: ExportFormat, title: string, markdown: string): Promise<string> {
-  const blob = await buildFile(format, title, markdown);
+export async function exportFile(format: ExportFormat, title: string, markdown: string, paper?: string): Promise<string> {
+  const blob = await buildFile(format, title, markdown, paper);
   return deliverBlob(blob, `${safeFileName(title)}.${format}`);
 }
 

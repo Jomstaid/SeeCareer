@@ -94,11 +94,16 @@ export function paperOf(key?: string): PaperSize {
   return PAPERS[0];
 }
 
+export function paperScale(key?: string): number {
+  return Math.min(1.6, Math.max(0.8, paperOf(key).w / 595.28));
+}
+
 const paperWords = /\b(paper|size|sized|page|sheet|bond|format|print(ed|ing)?|layout)\b/i;
 
 export function detectPaper(text: string): string | undefined {
   const t = (text ?? '').toLowerCase();
-  const context = paperWords.test(t) || t.trim().length <= 24;
+  const endsWithSize = /\b(resume|cv)\b/.test(t) && /\b(legal|letter|a[3-5]|b[45]|folio|long bond|short bond|tabloid)\s*[.!]?\s*$/.test(t);
+  const context = paperWords.test(t) || t.trim().length <= 24 || endsWithSize;
   const dims = /(\d+(?:\.\d+)?)\s*(in(?:ch(?:es)?)?|"|mm|cm)?\s*(?:x|×|by|\*)\s*(\d+(?:\.\d+)?)\s*(in(?:ch(?:es)?)?|"|mm|cm)?/i.exec(t);
   if (dims && (context || dims[2] || dims[4])) {
     const unit = (dims[2] || dims[4] || '').toLowerCase();
@@ -117,7 +122,7 @@ export function detectPaper(text: string): string | undefined {
   if (iso && (context || /\b(to|in|on|into|use|make it)\s+[ab][3-5]\b/.test(t))) return iso[1];
   if (!context) return undefined;
   if (/\blegal\b/.test(t) && !/\blegal (assistant|secretary|officer|counsel|advisor|adviser|analyst|clerk|aide|researcher|writer|department|team)\b/.test(t)) return 'legal';
-  const strict = paperWords.test(t) || /^\s*(make it|use|to|switch to|change (it )?to|in|on)?\s*(us\s*)?letter\s*[.!]?\s*$/.test(t);
+  const strict = paperWords.test(t) || endsWithSize || /^\s*(make it|use|to|switch to|change (it )?to|in|on)?\s*(us\s*)?letter\s*[.!]?\s*$/.test(t);
   if (strict && /\bletter\b/.test(t) && !/\bcover letter\b|\bletter of\b/.test(t)) return 'letter';
   if (/\bexecutive (paper|size|sized|page|sheet)\b/.test(t)) return 'executive';
   return undefined;

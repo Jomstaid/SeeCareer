@@ -1,6 +1,6 @@
 import type { jsPDF } from 'jspdf';
 
-import { ResumeData, ResumeTemplate, SectionKey, paperOf, sectionOrder } from './resumedata';
+import { ResumeData, ResumeTemplate, SectionKey, paperOf, paperScale, sectionOrder } from './resumedata';
 
 type RGB = [number, number, number];
 
@@ -724,9 +724,9 @@ async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, sca
   PAGE = { w: paper.w, h: paper.h };
   const doc = new jsPDF({ unit: 'pt', format: [paper.w, paper.h], orientation: 'portrait' });
   const raw = doc.internal as unknown as { write: (...parts: string[]) => void };
-  const total = Math.min(1, paper.w / 540) * scale;
+  const total = paperScale(data.design?.paper) * scale;
   A4 = { w: PAGE.w / total, h: PAGE.h / total };
-  pageStart = total < 1 ? () => raw.write(`q ${total.toFixed(4)} 0 0 ${total.toFixed(4)} 0 ${(PAGE.h * (1 - total)).toFixed(3)} cm`) : () => undefined;
+  pageStart = total !== 1 ? () => raw.write(`q ${total.toFixed(4)} 0 0 ${total.toFixed(4)} 0 ${(PAGE.h * (1 - total)).toFixed(3)} cm`) : () => undefined;
   try {
     if (template === 'modern' || template === 'bold' || template === 'creative') {
       sidebar(doc, data, accent, template);
@@ -734,7 +734,7 @@ async function draw(data: ResumeData, template: ResumeTemplate, accent: RGB, sca
       singleColumn(doc, data, accent, template);
     }
     const pages = doc.getNumberOfPages();
-    if (total < 1) {
+    if (total !== 1) {
       for (let i = 1; i <= pages; i++) {
         doc.setPage(i);
         raw.write('Q');
@@ -781,9 +781,10 @@ export async function buildResumeDocx(data: ResumeData, template: ResumeTemplate
   const pageW = Math.round(paper.w * 20);
   const pageH = Math.round(paper.h * 20);
   const fit = (twips: number) => Math.max(1000, Math.round(twips * (pageW / 11906)));
+  const grow = paperScale(data.design?.paper);
   const font = classic ? 'Times New Roman' : 'Calibri';
   const T = (text: string, o: { bold?: boolean; italics?: boolean; size?: number; color?: string; caps?: boolean } = {}) =>
-    new TextRun({ text, font, bold: o.bold, italics: o.italics, size: o.size ?? 21, color: o.color, allCaps: o.caps });
+    new TextRun({ text, font, bold: o.bold, italics: o.italics, size: Math.round((o.size ?? 21) * grow), color: o.color, allCaps: o.caps });
   const none = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
   const noBorders = { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none };
   const cellBorders = { top: none, bottom: none, left: none, right: none };
@@ -854,7 +855,7 @@ export async function buildResumeDocx(data: ResumeData, template: ResumeTemplate
     const bytes = Uint8Array.from(atob(data.photo.split(',')[1] ?? ''), (c) => c.charCodeAt(0));
     return new Paragraph({
       alignment: AlignmentType.RIGHT,
-      children: [new ImageRun({ type: png ? 'png' : 'jpg', data: bytes, transformation: { width: 88, height: 88 }, altText: { name: 'Photo', description: 'Profile photo', title: 'Photo' } })],
+      children: [new ImageRun({ type: png ? 'png' : 'jpg', data: bytes, transformation: { width: Math.round(88 * grow), height: Math.round(88 * grow) }, altText: { name: 'Photo', description: 'Profile photo', title: 'Photo' } })],
     });
   };
 

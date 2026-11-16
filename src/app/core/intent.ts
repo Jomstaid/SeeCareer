@@ -91,8 +91,23 @@ export function wantsDifferentDesign(text: string): boolean {
   );
 }
 
+export function fixTypos(text: string): string {
+  return (text ?? '')
+    .replace(/\b(resum|resumee|resumme|rezume|reume|resme|reusme|resue|resune|rsume|rèsumè|résumé|resumé)\b/gi, 'resume')
+    .replace(/\b(curiculum|curriculum) vita[e]?\b/gi, 'cv')
+    .replace(/\bmak\b/gi, 'make')
+    .replace(/\bmke\b/gi, 'make')
+    .replace(/\bcreat\b/gi, 'create')
+    .replace(/\bgenerat\b/gi, 'generate')
+    .replace(/\b(plz|pls|pleas)\b/gi, 'please')
+    .replace(/\bu\b/gi, 'you')
+    .replace(/\bur\b/gi, 'your')
+    .replace(/\b(jb|jbs|jobz)\b/gi, 'jobs')
+    .replace(/\bcoverletter\b/gi, 'cover letter');
+}
+
 export function detectIntent(text: string, hasPriorAnswer = false): Intent | null {
-  const t = (text ?? '').trim();
+  const t = fixTypos(text).trim();
   if (t.length < 4 || t.startsWith('/') || QUESTION.test(t)) {
     return null;
   }
@@ -129,7 +144,7 @@ export function personFromRequest(text: string): string | null {
   if (guess && !guess.split(/\s+/).some((w) => notNames.test(w)) && !jobWords.test(guess)) {
     return guess;
   }
-  if (/\b(resume|cv)\b/i.test(t) && (/\b(example|sample|demo)\b/i.test(t) || wantsOnlinePhoto(t))) {
+  if (/\b(resume|cv)\b/i.test(t) && (/\b(example|sample|demo)\b/i.test(t) || wantsOnlinePhoto(t) || /\b(about|of)\s+\p{L}/u.test(t))) {
     const after = /\b(?:of|use|using|about|like)\s+([\p{L}][\p{L}'.-]*(?:\s+[\p{L}][\p{L}'.-]*){0,4})/u.exec(t);
     const words: string[] = [];
     for (const w of (after?.[1] ?? '').split(/\s+/)) {
@@ -146,7 +161,29 @@ export function personFromRequest(text: string): string | null {
 }
 
 const nameStop =
-  /^(with|and|in|as|using|plus|pdf|word|docx|her|his|their|photo|photos|image|images|picture|pictures|search|internet|online|web|from|on|resume|cv|example|sample|please|then|also|style|design|color|colour|red|blue|green|purple|black|modern|classic|minimal)$/i;
+  /^(with|and|in|as|using|plus|pdf|word|docx|her|his|their|photo|photos|image|images|picture|pictures|search|internet|online|web|from|on|resume|cv|example|sample|please|then|also|style|design|color|colour|red|blue|green|purple|black|modern|classic|minimal|legal|letter|paper|size|sized|bond|long|short|a3|a4|a5|b4|b5|folio|tabloid|format|page|me|my|mine|myself|last|this|next|year|years|month|week|work|experience|job|jobs|skills|education|school|life|career|today)$/i;
+
+const offerWords = /\b(search|internet|online|google|web|wikipedia|look (it )?(up|online)|find (it|one|him|her|them))\b/i;
+const yesWords = /^\s*(yes|yeah|yep|yup|sure|ok|okay|go|go ahead|do it|please|please do|yes please|of course|sige|oo|opo|tara)\b[\s!.,]*(\S+\s*){0,3}$/i;
+
+export function followUpAction(text: string, actions: { command?: string; label: string }[]): number {
+  const t = (text ?? '').trim();
+  if (!actions.length || t.length > 40 || t.startsWith('/')) {
+    return -1;
+  }
+  const online = actions.findIndex((a) => a.command === 'findPhotoOnline');
+  if (online >= 0 && (offerWords.test(t) || yesWords.test(t))) {
+    return online;
+  }
+  const pick = actions.findIndex((a) => a.command === 'pickPhoto');
+  if (pick >= 0 && /\b(choose|pick|upload|my own|i have one|from (my )?(phone|gallery|files?))\b/i.test(t)) {
+    return pick;
+  }
+  if (yesWords.test(t) && actions.length === 1 && actions[0].command) {
+    return 0;
+  }
+  return -1;
+}
 
 const photoWord = /\b(pic|pics|picture|pictures|photo|photos|image|selfie|portrait|face|avatar|headshot)\b/i;
 
@@ -163,7 +200,7 @@ const editVerb =
 const questionStart = /^\s*(how|what|why|when|where|which|who|can you tell|explain|is |are |do |does |tell me)/i;
 
 export function isResumeEdit(text: string): boolean {
-  const t = (text ?? '').trim();
+  const t = fixTypos(text).trim();
   return t.length >= 4 && t.length <= 240 && !t.startsWith('/') && !questionStart.test(t) && (editVerb.test(t) || photoWord.test(t) || Object.keys(detectDesign(t)).length > 0 || !!detectPaper(t) || wantsDifferentDesign(t));
 }
 
@@ -184,7 +221,7 @@ export function usesMyResume(text: string): boolean {
 }
 
 export function looksLikeJobSearch(text: string): boolean {
-  const t = (text ?? '').trim();
+  const t = fixTypos(text).trim();
   const words = t.split(/\s+/).length;
   if (words < 2 || words > 12 || /\?\s*$/.test(t) || /^\s*(how|what|why|when|which|who|should|can|could|is|are|do|does|tips|advice|explain|write|make|create|help)\b/i.test(t)) {
     return false;

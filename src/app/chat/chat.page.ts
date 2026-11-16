@@ -8,7 +8,7 @@ import { jobTasks, resumeTasks, TaskKey } from '../core/aitasks';
 import { isLetterRequest, letterize, nameFromRequest, stripChatter, titleOf } from '../core/docclean';
 import { deliverBlob, exportFile, safeFileName } from '../core/fileexport';
 import { aboutAssistantAnswer, appName, asksWhoYouAre, identityAnswer } from '../core/identity';
-import { Intent, detectDesign, detectIntent, isQuestion, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
+import { Intent, detectDesign, detectIntent, followUpAction, isQuestion, isResumeEdit, looksLikeJobSearch, personFromRequest, roleFromRequest, usesMyResume, wantsDifferentDesign, wantsOnlinePhoto, wantsPhotoAdded, wantsPhotoRemoved } from '../core/intent';
 import { acceptedFiles, FileReadError, formatBytes, readAttachment } from '../core/filereader';
 import { ChatStore } from '../core/chatstore.service';
 import { docLabels, DocVerdict, jobFromText, looksLikeResume } from '../core/doccheck';
@@ -375,7 +375,7 @@ export class ChatPage implements OnDestroy {
     this.inputError = '';
   }
 
-  async onAction(a: ChatAction, m?: ChatMessage): Promise<void> {
+  async onAction(a: ChatAction, m?: ChatMessage, shown?: string): Promise<void> {
     if (a.url) {
       window.open(a.url, '_blank', 'noopener');
       return;
@@ -397,8 +397,8 @@ export class ChatPage implements OnDestroy {
       this.openDesigner(m);
     } else if (a.command === 'pickPhoto') {
       this.pickPhoto();
-    } else if (a.command === 'findPhotoOnline' && m?.resume) {
-      await this.editResume('add a photo from the internet', [], m);
+    } else if (a.command === 'findPhotoOnline' && this.resumeFor(m)) {
+      await this.editResume('add a photo from the internet', [], this.resumeFor(m)!, shown);
     } else if (a.command === 'recommend') {
       await this.recommendFromSaved();
     } else if (a.command === 'askAnyway') {
@@ -602,6 +602,11 @@ export class ChatPage implements OnDestroy {
         source = 'your saved resume';
       }
       let publicFacts = false;
+      const ownDetails = text.length > 60 && /\b(student|skills?|intern\w*|worked|working|experience|exp|years?|yrs|graduat\w*|school|university|college|course|bsit|bs\s?\w+|degree)\b|@|\b(19|20)\d{2}\b/i.test(text);
+      if (!info && !pictures.length && ownDetails) {
+        info = `Details the user typed about themselves:\n${text}`;
+        source = 'what you told me';
+      }
       if (!info && !pictures.length && person) {
         this.stepText.set(`Looking up ${person} online…`);
         const facts = await personFacts(person);
@@ -612,6 +617,7 @@ export class ChatPage implements OnDestroy {
         }
       }
       const hasInfo = !!info || pictures.length > 0;
+      const toldMe = !hasInfo && !person && /\b(i am|i'm|im|ako|my name|years?|yrs?|exp|experience|graduate|grad|student|worked|working|skills?|studied|course)\b/i.test(text) && text.split(/\s+/).length >= 6;
       if (hasInfo && !publicFacts && !(await this.tasks.ensureConsent())) {
         throw new AiError('Cancelled. The AI needs your permission to read the resume.', 'config');
       }
@@ -667,8 +673,11 @@ export class ChatPage implements OnDestroy {
         resume: d,
         resumeDesign: { template, accent },
         resumeFormat: format,
-        content: hasInfo
-          ? `Done. I made ${publicFacts ? `a resume for ${d.name}` : 'your resume'} from ${source} in the ${label} design${photo ? ', with your photo' : ''}${d.design?.paper ? ` on ${paperOf(d.design.paper).label} paper` : ''}.${webNote} Use a button below to download it, or open the designer to change the layout, colour or wording.`
+        publicPerson: publicFacts,
+        content: toldMe
+          ? `Done. I made your resume from what you told me, in the ${label} design${d.design?.paper && d.design.paper !== 'a4' ? ` on ${paperOf(d.design.paper).label} paper` : ''}. I put [placeholders] where I still need details, like your name and contact. Send them and I will fill them in, or open the designer to change the layout, colour or wording.`
+          : hasInfo
+          ? `Done. I made ${publicFacts ? `a resume for ${d.name}` : 'your resume'} from ${source} in the ${label} design${photo ? ', with your photo' : ''}${d.design?.paper && d.design.paper !== 'a4' ? ` on ${paperOf(d.design.paper).label} paper` : ''}.${webNote} Use a button below to download it, or open the designer to change the layout, colour or wording.`
           : `I did not have ${person ? person + "'s" : 'your'} details yet, so I made a ready-to-fill **template** in the ${label} design with [placeholders].${webNote} ` +
             `Send ${person ? 'their' : 'your'} details or a resume file and I will fill it in. You can also say "add picture", "make it red" or "add skill Python", then download it with a button below.`,
         actions,
@@ -1010,11 +1019,29 @@ export class ChatPage implements OnDestroy {
     this.scrollDown();
   }
 
+  private jobFollowUp(text: string): string | null {
+    const m = /^\s*(?:what about|how about|and|also|try|now|then|ok(?:ay)?,? (?:what about|how about)|paano naman ang|eh)\s+(?:for\s+|a\s+|an\s+)?(.{3,60}?)\s*[?.!]*\s*$/i.exec(text ?? '');
+    if (!m || /\b(resume|cv|cover letter|interview|salary|tips?)\b/i.test(m[1])) {
+      return null;
+    }
+    const recent = this.chat().messages.slice(-3).filter((x) => x.role === 'assistant');
+    const afterJobs = recent.some((x) => (x.recs?.length ?? 0) > 0 || (x.jobs?.length ?? 0) > 0 || (x.actions ?? []).some((a) => /^(JobStreet|Indeed|LinkedIn|Find more jobs|Show more jobs)/.test(a.label)));
+    return afterJobs ? m[1].replace(/\bjobs?\b/gi, '').trim() || null : null;
+  }
+
+  private resumeFor(m?: ChatMessage): ChatMessage | undefined {
+    if (m?.resume) {
+      return m;
+    }
+    return [...this.chat().messages].reverse().find((x) => x.role === 'assistant' && !!x.resume);
+  }
+
   private recentResume(): ChatMessage | undefined {
-    return this.chat()
-      .messages.slice(-3)
+    const found = this.chat()
+      .messages.slice(-10)
       .reverse()
-      .find((m) => m.role === 'assistant' && !!m.resume);
+      .find((m) => m.role === 'assistant' && (!!m.resume || (m.actions ?? []).some((a) => a.command === 'download') || (m.jobs?.length ?? 0) > 0 || (m.recs?.length ?? 0) > 0));
+    return found?.resume ? found : undefined;
   }
 
   private formatOf(m: ChatMessage, text: string): 'pdf' | 'docx' {
@@ -1045,12 +1072,13 @@ export class ChatPage implements OnDestroy {
       resume: withDesign,
       resumeDesign: { template, accent },
       resumeFormat: format,
+      publicPerson: this.resumeFor()?.publicPerson,
       content,
       actions: this.resumeActions(format),
     });
   }
 
-  private async editResume(text: string, files: Attachment[], last: ChatMessage): Promise<void> {
+  private async editResume(text: string, files: Attachment[], last: ChatMessage, shown?: string): Promise<void> {
     this.pending.set([]);
     const id = newId();
     const pictures = files.flatMap((f) => f.images ?? []);
@@ -1061,7 +1089,7 @@ export class ChatPage implements OnDestroy {
       ...this.chat(),
       messages: [
         ...this.chat().messages,
-        { id, role: 'user', content: text, time: Date.now(), quote: this.takeQuote(), auto: this.takeAuto(), attachments: files.map(({ images, preview, ...rest }) => rest) },
+        { id, role: 'user', content: shown ?? text, time: Date.now(), quote: this.takeQuote(), auto: this.takeAuto(), attachments: files.map(({ images, preview, ...rest }) => rest) },
       ],
     });
     const base = last.resume!;
@@ -1080,7 +1108,7 @@ export class ChatPage implements OnDestroy {
       } else if (wantsPhotoAdded(text)) {
         let picture = pictures[0];
         let from = 'your photo';
-        if (!picture && isSearchableName(d.name)) {
+        if (!picture && isSearchableName(d.name) && (last.publicPerson || wantsOnlinePhoto(text))) {
           this.stepText.set('Looking for a photo online…');
           const web = await findWebPhoto(d.name);
           if (web) {
@@ -1132,7 +1160,8 @@ export class ChatPage implements OnDestroy {
           said = `I switched to the ${TEMPLATES.find((t) => t.key === template)?.label} design${pick.reason ? ': ' + pick.reason.replace(/\.$/, '') : ''}. Download it below, or say "different" again for another look.`;
         } else if (designOnly) {
           const changes = [
-            ...(look.template || look.accent ? [`the design to ${TEMPLATES.find((t) => t.key === template)?.label ?? 'your choice'}`] : []),
+            ...(look.template ? [`the design to ${TEMPLATES.find((t) => t.key === template)?.label ?? 'your choice'}`] : []),
+            ...(look.accent ? [`the colour to ${ACCENTS.find((a) => a.hex === look.accent)?.name ?? 'your choice'}`] : []),
             ...(paper ? [`the paper size to ${paperOf(paper).label}`] : []),
           ];
           said = `I changed ${changes.join(' and ')}. Download the new version below.`;
@@ -1181,7 +1210,7 @@ export class ChatPage implements OnDestroy {
     const title = titleOf(body) ?? (/^\s*dear\b/im.test(body) ? `Cover letter${company ? ' ' + company : ''}` : `SeeCareer ${new Date().toISOString().slice(0, 10)}`);
     let message: string;
     try {
-      message = await exportFile(format, title, body);
+      message = await exportFile(format, title, body, m.paper);
     } catch {
       message = 'Could not create the file.';
     }
@@ -1363,6 +1392,26 @@ export class ChatPage implements OnDestroy {
       this.persist();
       return;
     }
+    const lastMsg = this.chat().messages.at(-1);
+    if (!files.length && lastMsg?.role === 'assistant' && lastMsg.actions?.length) {
+      const pick = followUpAction(text, lastMsg.actions);
+      if (pick >= 0) {
+        const action = lastMsg.actions[pick];
+        if (action.command === 'findPhotoOnline' || action.command === 'pickPhoto') {
+          if (action.command === 'pickPhoto') {
+            this.push({ role: 'user', content: text });
+            this.push({ role: 'assistant', content: 'Sure. Choose the picture from your phone or computer and I will place it on your resume.', actions: [action] });
+            this.persist();
+          }
+          await this.onAction(action, lastMsg, text);
+          return;
+        }
+        this.push({ role: 'user', content: text });
+        this.persist();
+        await this.onAction(action, lastMsg);
+        return;
+      }
+    }
     const hasPrior = this.chat().messages.some((x) => x.role === 'assistant' && !x.error && x.content.length > 40);
     const intent = detectIntent(text, hasPrior);
     if (intent) {
@@ -1381,6 +1430,19 @@ export class ChatPage implements OnDestroy {
       await this.editResume(text, files, lastResume);
       return;
     }
+    const askedPaper = !files.length && text.length <= 80 ? detectPaper(text) : undefined;
+    const docMsg = askedPaper ? [...this.chat().messages].slice(-4).reverse().find((x) => x.role === 'assistant' && (x.actions ?? []).some((a) => a.command === 'download')) : undefined;
+    if (askedPaper && docMsg) {
+      this.push({ role: 'user', content: text });
+      this.chat.set({ ...this.chat(), messages: this.chat().messages.map((x) => (x.id === docMsg.id ? { ...x, paper: askedPaper } : x)) });
+      this.push({
+        role: 'assistant',
+        content: `Done. The file will be on ${paperOf(askedPaper).label} paper. Download it below.`,
+        actions: (docMsg.actions ?? []).filter((a) => a.command === 'download').map((a) => ({ ...a, data: docMsg.id })),
+      });
+      this.persist();
+      return;
+    }
 
     if (files.length) {
       await this.sendWithFiles(text, files);
@@ -1393,8 +1455,15 @@ export class ChatPage implements OnDestroy {
       await this.answerFromChat(text);
       return;
     }
-    if ((jobRequest.test(text) && text.length > 12) || (looksLikeJobSearch(text) && !this.job())) {
+    const followJob = this.jobFollowUp(text);
+    if ((jobRequest.test(text) && text.length > 12) || (looksLikeJobSearch(text) && !this.job()) || followJob) {
       this.push({ role: 'user', content: text });
+      if (followJob) {
+        await this.busy(async () => {
+          await this.runRecommend('', [], undefined, `${followJob} jobs`, false, false);
+        });
+        return;
+      }
       const aboutResume = /\b(resume|cv|curriculum vitae)\b/i.test(text);
       if (aboutResume && !this.hasResume()) {
         this.ready(true, false);

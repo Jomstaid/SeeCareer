@@ -1,6 +1,6 @@
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnDestroy, ViewChild, inject, signal } from '@angular/core';
 
-import { ResumeData, ResumeTemplate, SectionKey, paperOf, sectionOrder } from '../../core/resumedata';
+import { ResumeData, ResumeTemplate, SectionKey, paperOf, paperScale, sectionOrder } from '../../core/resumedata';
 
 const a4Width = 680;
 const a4Points = 595.28;
@@ -26,7 +26,7 @@ export class ResumePreviewComponent implements AfterViewInit, OnChanges, OnDestr
 
   get paperWidth(): number {
     const p = paperOf(this.paper);
-    return Math.round(Math.max(520, (a4Width * p.w) / a4Points));
+    return Math.round((a4Width * p.w) / a4Points / paperScale(this.paper));
   }
 
   get paperHeight(): number {

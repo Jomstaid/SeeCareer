@@ -103,6 +103,8 @@ export interface ChatMessage {
   quote?: string;
   intro?: boolean;
   resumeFormat?: 'pdf' | 'docx';
+  paper?: string;
+  publicPerson?: boolean;
   auto?: boolean;
   model?: string;
   error?: boolean;

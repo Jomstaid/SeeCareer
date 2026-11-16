@@ -9,6 +9,12 @@ export function titleMatches(name: string, title: string): boolean {
       .filter((w) => w.length > 2);
   const wanted = words(name);
   const found = new Set(words(title));
+  const squash = (s: string) => words(s).join('');
+  const a = squash(name);
+  const b = squash(title.replace(/\s*\(.*\)\s*$/, ''));
+  if (a.length >= 6 && b.length >= 6 && (a === b || b.includes(a) || a.includes(b))) {
+    return true;
+  }
   return wanted.length > 0 && wanted.filter((w) => found.has(w)).length >= Math.min(2, wanted.length);
 }
 

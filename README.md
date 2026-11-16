@@ -74,7 +74,7 @@ Instructor: Sir Angelito Cunanan Jr.
 | Data binding and events | `[(ngModel)]`, `{{ }}`, `[src]`, `(click)`, `(ionInput)`, `(ionChange)` |
 | TypeScript interface and class | `src/app/core/models.ts` (`Job` interface, `GroupMember` class and more) |
 | Reusable component | `<app-page-header title="...">`, the same header on every page with a different title |
-| Testing | 200 unit tests plus our own walkthrough of every button (see below) |
+| Testing | 207 unit tests plus our own walkthrough of every button (see below) |
 
 ## APIs we used 🌐
 
@@ -101,6 +101,7 @@ All of these are free and need no API key.
 * **It never gets stuck on one model.** If a model gives an error, the next one is asked right away. If a model is slow and has not started answering after about 4 seconds, the next one is asked too and the first one that starts writing is used (the others are stopped). Your question, the chat so far and your resume go with it, so you still get a full answer. If all the working models fail in the middle of a question, the app keeps going down the full list of models (skipping the servers that are busy) until one answers.
 * **It tells you when the AI is busy.** If every model says "too many requests", the app shows "The free AI is busy right now, try again in a minute" instead of waiting.
 * **It shows what it is doing.** While you wait, the chat says "Thinking…", then "Picking the fastest free AI for you…", and "Writing…" once the answer starts.
+* **It understands how people really type.** Typos like "mak me resum pls" still make a resume, "create a resume about SpongeBob legal" looks up the person and uses Legal paper, "search on internet" or "yes" runs the button the app just offered, and "what about data analyst" after a job search searches again. It never searches the internet for a photo of a private person unless you ask.
 * **It is always SeeCareer AI.** Questions like "who are you", "are you ChatGPT" or "ikaw ba si Claude" get a fixed answer, and the app removes the model's own name if it ever says it.
 * **It answers questions about itself correctly.** "What can you do", "is this free", "do you save my data" and "how do you work" get the app's own answers, so the AI never makes them up.
 * **It handles nonsense.** Random letters like "asdfgh", "jsjsjs" or "???" get a friendly "Sorry, I didn't understand that" with buttons for what the app can do. Questions that are not about careers (like sports or jokes) get a polite "I focus on careers".
@@ -295,7 +296,7 @@ Run the unit tests with:
 npm test
 ```
 
-Result: **200 tests passed** (input checks, paper sizes and custom sizes in the PDF and Word files, showing the answer word by word, skipping a server that is down, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list, checking every model in the background, reading a person's name for an example resume and more).
+Result: **207 tests passed** (input checks, typos like "mak me resum", short replies like "search on internet" or "yes", paper sizes and custom sizes in the PDF and Word files, showing the answer word by word, skipping a server that is down, the resume check, reading and making PDF and Word files, job search and place filter, how the app understands requests, the AI model list, asking the next model when one hangs, the busy message, the identity filter, questions about the AI, nonsense messages, falling back to the full model list, checking every model in the background, reading a person's name for an example resume and more).
 
 We also clicked through every button of the app one by one, on a phone screen (390 x 844) in light mode and on a laptop screen (1440 x 900) in dark mode. All **74 checks passed** on both, and again on a small phone (360 x 780). We also ran **72 checks** on Android phone sizes with the status bar and navigation bar, and **69 checks** for the paper size on a phone, a small phone and a laptop:
 
@@ -314,6 +315,8 @@ We also clicked through every button of the app one by one, on a phone screen (3
 | When the working models are down, the chat still answers from the full model list | ✅ Passed |
 | Upload a resume, design it, download PDF and Word, cover letter in Word | ✅ Passed |
 | Paper size in the designer (Legal, A5, custom 8 x 10 in) changes the page shape and the files | ✅ Passed |
+| On a bigger paper like A3 the whole design grows with the page, and the side column fills the full page | ✅ Passed |
+| Messy messages from many test users (typos, Taglish, "yes", "search on internet", "what about…", nonsense, off topic) get the right action | ✅ Passed |
 | Asking the chat "make it legal size", "use long bond paper", "make the paper 8 x 10 inches" or "back to A4" changes the paper | ✅ Passed |
 | The answer shows word by word, and the first words come in about 1 to 2 seconds | ✅ Passed |
 | Settings: theme, text size, reply length, providers, a wrong API key, export chats | ✅ Passed |

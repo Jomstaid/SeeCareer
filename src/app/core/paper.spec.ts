@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 
-import { isResumeEdit, detectDesign } from './intent';
-import { PAPERS, customPaper, detectPaper, normalizeResume, paperOf, parseResumeJson } from './resumedata';
+import { isResumeEdit, detectDesign, detectIntent, fixTypos, followUpAction, personFromRequest } from './intent';
+import { PAPERS, customPaper, detectPaper, normalizeResume, paperOf, paperScale, parseResumeJson } from './resumedata';
 import { buildResumeDocx, buildResumePdf } from './resumerender';
 
 const SAMPLE = normalizeResume({
@@ -93,4 +93,65 @@ describe('paper sizes', () => {
       expect(xml).toMatch(/<w:pgSz[^>]*w:w="12240"[^>]*w:h="20160"/);
     }
   }, 30000);
+});
+
+describe('paper scale and human follow-ups', () => {
+  it('grows the design with bigger paper and shrinks it a little for small paper', () => {
+    expect(paperScale('a4')).toBe(1);
+    expect(paperScale('a3')).toBeCloseTo(1.414, 2);
+    expect(paperScale('a5')).toBe(0.8);
+    expect(paperScale('legal')).toBeCloseTo(612 / 595.28, 3);
+  });
+
+  it('draws the A3 PDF bigger instead of leaving empty space', async () => {
+    const blob = await buildResumePdf({ ...SAMPLE, design: { paper: 'a3' } }, 'modern', '#0369a1');
+    const text = new TextDecoder('latin1').decode(new Uint8Array(await blob.arrayBuffer()));
+    expect(text).toMatch(/q 1\.414\d 0 0 1\.414\d /);
+  }, 30000);
+
+  it('makes the Word text bigger on A3', async () => {
+    const small = await buildResumeDocx({ ...SAMPLE, design: { paper: 'a4' } }, 'modern', '#0369a1');
+    const big = await buildResumeDocx({ ...SAMPLE, design: { paper: 'a3' } }, 'modern', '#0369a1');
+    const size = async (b: Blob) => {
+      const xml = await (await JSZip.loadAsync(await b.arrayBuffer())).file('word/document.xml')!.async('string');
+      return Math.max(...[...xml.matchAll(/<w:sz w:val="(\d+)"/g)].map((m) => +m[1]));
+    };
+    expect(await size(big)).toBeGreaterThan(await size(small));
+  }, 30000);
+
+  it('reads the person and the paper from a messy request', () => {
+    expect(personFromRequest('create me resume about SpongeBob square pants legal')).toBe('SpongeBob square pants');
+    expect(detectPaper('create me resume about SpongeBob square pants legal')).toBe('legal');
+    expect(detectPaper('make a resume for me in A5')).toBe('a5');
+    expect(personFromRequest('can you check my resume of last year')).toBeNull();
+    expect(personFromRequest('make my resume about my experience')).toBeNull();
+  });
+
+  it('runs the offered action when the user answers in a few words', () => {
+    const offer = [
+      { label: 'Choose photo', command: 'pickPhoto' },
+      { label: 'Find one online', command: 'findPhotoOnline' },
+    ];
+    expect(followUpAction('search on internet', offer)).toBe(1);
+    expect(followUpAction('find it online', offer)).toBe(1);
+    expect(followUpAction('google it', offer)).toBe(1);
+    expect(followUpAction('yes please', offer)).toBe(1);
+    expect(followUpAction('i will upload my own', offer)).toBe(0);
+    expect(followUpAction('what jobs fit a nurse in manila with 3 years experience', offer)).toBe(-1);
+    expect(followUpAction('sure', [{ label: 'Start mock interview', command: 'mock' }])).toBe(0);
+    expect(followUpAction('sure', [{ label: 'A', command: 'a' }, { label: 'B', command: 'b' }])).toBe(-1);
+  });
+});
+
+describe('messy typing', () => {
+  it('still understands a resume request with typos', () => {
+    expect(detectIntent('mak me resum pls im nurse 3 yrs exp in manila st lukes')?.kind).toBe('resume');
+    expect(detectIntent('creat a rezume for me')?.kind).toBe('resume');
+    expect(fixTypos('plz mak ur resum')).toBe('please make your resume');
+  });
+
+  it('treats short resume edits with typos as edits', () => {
+    expect(isResumeEdit('add skill iv therapy')).toBe(true);
+    expect(isResumeEdit('mak it red plz')).toBe(true);
+  });
 });
