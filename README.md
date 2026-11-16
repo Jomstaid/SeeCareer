@@ -20,6 +20,16 @@
   <a href="#testing-">✅ Testing</a>
 </p>
 
+## 🎬 Watch our defense video
+
+<p align="center">
+  <a href="https://youtu.be/Go9KJ-6VitQ">
+    <img src="media/thumbnail.png" width="720" alt="SeeCareer Defense (Group 2) - click to watch">
+  </a>
+  <br>
+  <a href="https://youtu.be/Go9KJ-6VitQ"><b>▶️ Click to watch: SeeCareer Defense (Group 2)</b></a>
+</p>
+
 ---
 
 ## About the project 📌

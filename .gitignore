@@ -86,3 +86,6 @@ Thumbs.db
 
 # Documentation, video script and other submission files stay on our computers only
 /docs/
+
+# Defense video (too big for GitHub, hosted on YouTube)
+*.mp4
